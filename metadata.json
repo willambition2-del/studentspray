@@ -1,0 +1,6 @@
+{
+  "name": "المدير العام - الملتقى القرآني",
+  "description": "لوحة تحكم المدير العام المتكاملة لإدارة الملتقى القرآني مع مركز الطباعة الموحد، الأوسمة والجوائز، وبوابة ولي الأمر الذكية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,300 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GuardianRelationship {
+  FATHER
+  MOTHER
+  BROTHER
+  UNCLE
+  GUARDIAN
+  OTHER
+}
+
+enum HalaqaMemberStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  WITHDRAWN
+}
+
+model Forum {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String    @unique
+  logo      String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branches Branch[]
+  users    User[]
+  roles    Role[]
+  halaqas  Halaqa[]
+
+  @@index([isActive, deletedAt])
+}
+
+model Branch {
+  id        String    @id @default(uuid()) @db.Uuid
+  forumId   String    @db.Uuid
+  name      String
+  code      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  forum      Forum      @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  users      User[]
+  halaqas    Halaqa[]
+  roleScopes UserRole[]
+
+  @@unique([forumId, code])
+  @@index([forumId, isActive, deletedAt])
+}
+
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  forumId            String    @db.Uuid
+  branchId           String?   @db.Uuid
+  username           String
+  email              String?
+  phone              String?
+  passwordHash       String?
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  forum             Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  roles             UserRole[]
+  studentProfile    StudentProfile?
+  parentProfile     ParentProfile?
+  teacherProfile    TeacherProfile?
+  supervisorProfile SupervisorProfile?
+
+  @@unique([forumId, username])
+  @@unique([forumId, email])
+  @@unique([forumId, phone])
+  @@index([forumId, branchId, isActive, deletedAt])
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  forumId     String   @db.Uuid
+  name        String
+  displayName String
+  description String?
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  forum       Forum            @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@unique([forumId, name])
+  @@index([forumId, isActive])
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  roleId    String    @db.Uuid
+  branchId  String?   @db.Uuid
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role    @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isActive])
+  @@index([roleId, branchId, isActive])
+}
+
+model StudentProfile {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  studentNumber  String?
+  dateOfBirth    DateTime? @db.Date
+  enrollmentDate DateTime? @db.Date
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guardians         StudentGuardian[]
+  halaqaMemberships HalaqaMember[]
+
+  @@index([studentNumber])
+}
+
+model ParentProfile {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @unique @db.Uuid
+  occupation String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students StudentGuardian[]
+}
+
+model TeacherProfile {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  employeeNumber String?
+  specialization String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments HalaqaTeacher[]
+
+  @@index([employeeNumber])
+}
+
+model SupervisorProfile {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  employeeNumber String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments HalaqaSupervisor[]
+
+  @@index([employeeNumber])
+}
+
+model StudentGuardian {
+  id                      String               @id @default(uuid()) @db.Uuid
+  studentId               String               @db.Uuid
+  parentId                String               @db.Uuid
+  relationship            GuardianRelationship
+  isPrimary               Boolean              @default(false)
+  canReceiveNotifications Boolean              @default(true)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent  ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, parentId])
+  @@index([parentId])
+}
+
+model Halaqa {
+  id          String    @id @default(uuid()) @db.Uuid
+  forumId     String    @db.Uuid
+  branchId    String    @db.Uuid
+  name        String
+  code        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  forum       Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch      Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  members     HalaqaMember[]
+  teachers    HalaqaTeacher[]
+  supervisors HalaqaSupervisor[]
+
+  @@unique([branchId, code])
+  @@index([forumId, branchId, isActive, deletedAt])
+}
+
+model HalaqaMember {
+  id        String             @id @default(uuid()) @db.Uuid
+  halaqaId  String             @db.Uuid
+  studentId String             @db.Uuid
+  status    HalaqaMemberStatus @default(ACTIVE)
+  startedAt DateTime           @default(now())
+  endedAt   DateTime?
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  halaqa  Halaqa         @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([halaqaId, isActive])
+  @@index([studentId, isActive])
+}
+
+model HalaqaTeacher {
+  id        String    @id @default(uuid()) @db.Uuid
+  halaqaId  String    @db.Uuid
+  teacherId String    @db.Uuid
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  halaqa  Halaqa         @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+
+  @@index([halaqaId, isActive])
+  @@index([teacherId, isActive])
+}
+
+model HalaqaSupervisor {
+  id           String    @id @default(uuid()) @db.Uuid
+  halaqaId     String    @db.Uuid
+  supervisorId String    @db.Uuid
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  halaqa     Halaqa            @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  supervisor SupervisorProfile @relation(fields: [supervisorId], references: [id], onDelete: Restrict)
+
+  @@index([halaqaId, isActive])
+  @@index([supervisorId, isActive])
+}
