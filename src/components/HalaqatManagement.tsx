@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Users, Sliders, TrendingUp, Award, Calendar, AlertTriangle, 
   Settings, CheckCircle, FileText, BarChart3, Clock, Flame, ShieldAlert, Plus, 
@@ -12,6 +12,12 @@ import {
   Star, Sparkles, LayoutGrid, Table, MessageSquare, Check, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+  getHalaqas, createHalaqa, updateHalaqa, archiveHalaqa, restoreHalaqa,
+  assignTeacherToHalaqa, endTeacherAssignment, assignSupervisorToHalaqa, endSupervisorAssignment,
+  getBranches, getTeachers, getSupervisors,
+  type HalaqaDto, type BranchDto, type TeacherProfileDto, type SupervisorProfileDto, ApiError
+} from '../lib/api';
 
 // Interfaces mapping the 18 sections
 export interface EvaluationCriterion {
@@ -609,6 +615,63 @@ export default function HalaqatManagement({ onNavigate, currentUser }: HalaqatMa
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
 
+  const [availableBranches, setAvailableBranches] = useState<BranchDto[]>([]);
+  const [availableTeachers, setAvailableTeachers] = useState<TeacherProfileDto[]>([]);
+
+  const loadHalaqasData = async () => {
+    try {
+      const [halaqasRes, branchesRes, teachersRes] = await Promise.all([
+        getHalaqas({ limit: 100 }),
+        getBranches({ limit: 100 }),
+        getTeachers({ limit: 100 }),
+      ]);
+      setAvailableBranches(branchesRes.items);
+      setAvailableTeachers(teachersRes.items);
+      if (halaqasRes.items && halaqasRes.items.length > 0) {
+        const mapped = halaqasRes.items.map((dto): Halaqa => {
+          const activeTeacher = dto.teachers?.find(t => t.isActive && !t.endedAt);
+          return {
+            id: dto.id,
+            name: dto.name,
+            teacher: activeTeacher?.teacher.user.displayName || activeTeacher?.teacher.user.username || 'الشيخ عبد الرحمن السعيد',
+            branch: dto.branch?.name || 'الفرع الرئيسي',
+            level: 'shabab',
+            status: dto.deletedAt ? 'closed' : (dto.isActive ? 'active' : 'paused'),
+            lifecycleStage: 'running',
+            studentCount: dto.members?.length ?? 12,
+            averageAge: 15,
+            rawHifzScore: 92,
+            rawAttendanceScore: 95,
+            rawFidelityScore: 90,
+            rawExamsScore: 92,
+            rawPedagogyScore: 88,
+            retentionRate: 96,
+            monthlyDropCount: 0,
+            transferRate: 1,
+            temporalStabilityScore: 94,
+            activities: [],
+            badges: [],
+            challenges: [],
+            notes: [],
+            bestHifzStudent: 'عبدالرحمن المزروعي',
+            mostCommittedStudent: 'أنس القحطاني',
+            mostImprovedStudent: 'فيصل الدوسري',
+            highestAttendanceStudent: 'عبدالرحمن المزروعي',
+            allStudents: []
+          };
+        });
+        setHalaqat(mapped);
+        if (mapped[0]) setSelectedCircleId(mapped[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load halaqas:', err);
+    }
+  };
+
+  useEffect(() => {
+    void loadHalaqasData();
+  }, []);
+
   // New templates Forms state
   const [newHalaqaForm, setNewHalaqaForm] = useState({
     name: '', teacher: 'الشيخ عبد الرحمن السعيد', branch: 'الفرع الغربي الرئيسي',
@@ -815,6 +878,19 @@ export default function HalaqatManagement({ onNavigate, currentUser }: HalaqatMa
     setHalaqat([...halaqat, newH]);
     setSelectedCircleId(newId);
     setShowAddHalaqaModal(false);
+
+    const branchId = availableBranches[0]?.id;
+    if (branchId) {
+      createHalaqa({
+        branchId,
+        name: newHalaqaForm.name,
+        code: `HAL-${Date.now().toString().slice(-4)}`,
+        description: `حلقة ${newHalaqaForm.name}`,
+      })
+        .then(() => void loadHalaqasData())
+        .catch(err => console.error('Error creating halaqa in backend:', err));
+    }
+
     setNewHalaqaForm({
       name: '', teacher: 'الشيخ عبد الرحمن السعيد', branch: 'الفرع الغربي الرئيسي',
       level: 'shabab', status: 'active', lifecycleStage: 'init', averageAge: 14, studentCount: 10
@@ -1006,6 +1082,10 @@ export default function HalaqatManagement({ onNavigate, currentUser }: HalaqatMa
       `قرار المدير العام - سبب الإلغاء: ${reason}`
     );
 
+    archiveHalaqa(circleToClose.id)
+      .then(() => void loadHalaqasData())
+      .catch(err => console.error('Error archiving halaqa in backend:', err));
+
     setShowCloseModal(false);
     setCircleToClose(null);
     setClosureReason('إلغاء الحلقة وإعادة توزيع الطلاب على الحلقات النشطة');
@@ -1014,6 +1094,10 @@ export default function HalaqatManagement({ onNavigate, currentUser }: HalaqatMa
   const handleReopenHalaqa = (circleId: string) => {
     if (!isAdmin) return;
     if (window.confirm('هل أنت تأكد بصفتك المدير العام من إعادة فتح ملف هذه الحلقة وتنشيطها؟')) {
+      restoreHalaqa(circleId)
+        .then(() => void loadHalaqasData())
+        .catch(err => console.error('Error restoring halaqa in backend:', err));
+
       setHalaqat(prev => prev.map(h => {
         if (h.id === circleId) {
           return {

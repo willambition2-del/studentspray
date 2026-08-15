@@ -45,6 +45,7 @@ import PrintCenter from './components/PrintCenter';
 import FieldVisitsManagement from './components/FieldVisitsManagement';
 import GlobalSearchModal from './components/GlobalSearchModal';
 import { ApiError, loginWeb, logoutWeb, restoreWebSession, type WebAccount } from './lib/api/auth';
+import { getCurrentForum, updateCurrentForum } from './lib/api/forums';
 
 const LEGACY_SEARCH_USERS = [
   {
@@ -484,6 +485,11 @@ export default function App() {
   // Identity Handlers
   const handleSaveIdentity = async (data: VisualIdentity) => {
     try {
+      await updateCurrentForum({
+        name: data.centerName,
+        logo: data.logo,
+      }).catch((e) => console.error('Error saving forum identity to NestJS API:', e));
+
       await fetch('/api/identity', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -649,25 +655,9 @@ export default function App() {
           />
         );
       case 'users':
-        return (
-          <UserManagement 
-            users={users} 
-            roles={roles}
-            onAddUser={handleAddUser} 
-            onUpdateUser={handleUpdateUser} 
-            onUpdateStatus={handleUpdateUserStatus} 
-            onResetPassword={handleResetPassword} 
-          />
-        );
+        return <UserManagement />;
       case 'roles':
-        return (
-          <RolesManagement 
-            roles={roles} 
-            onAddRole={handleAddRole} 
-            onUpdateRole={handleUpdateRole} 
-            onDeleteRole={handleDeleteRole} 
-          />
-        );
+        return <RolesManagement />;
       case 'approvals':
         return (
           <ApprovalsCenter 

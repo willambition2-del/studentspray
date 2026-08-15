@@ -3,140 +3,244 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useTransition } from 'react';
 import { 
   UserPlus, Search, Edit2, Shield, Trash2, Key, ToggleLeft, ToggleRight, 
-  MapPin, Check, X, AlertTriangle, RefreshCw 
+  MapPin, Check, X, AlertTriangle, RefreshCw, AlertCircle 
 } from 'lucide-react';
-import { User, UserType, Role } from '../types';
+import { 
+  getUsers, createUser, updateUser, assignUserRole, 
+  activateUser, suspendUser, forcePasswordChange,
+  getRoles, getBranches,
+  type UserDto, type RoleDto, type BranchDto, ProfileType, ApiError
+} from '../lib/api';
 
-interface UserManagementProps {
-  users: User[];
-  roles: Role[];
-  onAddUser: (user: Partial<User>) => void;
-  onUpdateUser: (id: string, user: Partial<User>) => void;
-  onUpdateStatus: (id: string, status: 'active' | 'inactive' | 'archived') => void;
-  onResetPassword: (id: string) => Promise<string>;
-}
+export default function UserManagement() {
+  const [users, setUsers] = useState<UserDto[]>([]);
+  const [roles, setRoles] = useState<RoleDto[]>([]);
+  const [branches, setBranches] = useState<BranchDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-export default function UserManagement({
-  users, roles, onAddUser, onUpdateUser, onUpdateStatus, onResetPassword
-}: UserManagementProps) {
+  // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'suspended' | 'archived' | 'all'>('all');
+  const [page, setPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const limit = 20;
+
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [resetPwdResult, setResetPwdResult] = useState<{ name: string; pass: string } | null>(null);
+  const [editingUser, setEditingUser] = useState<UserDto | null>(null);
+  const [resetPwdResult, setResetPwdResult] = useState<{ name: string; pass: string; forced: boolean } | null>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
   const [formUsername, setFormUsername] = useState('');
-  const [formType, setFormType] = useState<UserType>('teacher');
   const [formRoleId, setFormRoleId] = useState('');
   const [formBranchId, setFormBranchId] = useState('');
-  const [formBranchName, setFormBranchName] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formProfileType, setFormProfileType] = useState<ProfileType | ''>('');
+
+  const loadDependencies = async () => {
+    try {
+      const [rolesRes, branchesRes] = await Promise.all([
+        getRoles({ limit: 100 }),
+        getBranches({ limit: 100 }),
+      ]);
+      setRoles(rolesRes.items);
+      setBranches(branchesRes.items);
+    } catch (err: unknown) {
+      console.error('Failed to load dependencies:', err);
+    }
+  };
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await getUsers({
+        page,
+        limit,
+        search: searchTerm.trim() || undefined,
+        branchId: branchFilter !== 'all' ? branchFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      });
+      setUsers(res.items);
+      setTotalUsers(res.meta.total);
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'تعذر تحميل قائمة المستخدمين';
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchTerm, branchFilter, statusFilter]);
+
+  useEffect(() => {
+    void loadDependencies();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startTransition(() => {
+        void loadUsers();
+      });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [loadUsers]);
 
   const clearForm = () => {
     setFormName('');
     setFormEmail('');
+    setFormPhone('');
     setFormUsername('');
-    setFormType('teacher');
     setFormRoleId('');
     setFormBranchId('');
-    setFormBranchName('');
+    setFormPassword('');
+    setFormProfileType('');
   };
 
   const handleOpenAdd = () => {
     clearForm();
+    if (roles.length > 0) {
+      const defaultRole = roles.find((r) => r.name === 'TEACHER') || roles[0];
+      setFormRoleId(defaultRole.id);
+    }
+    const tempPass = `Pass@${Math.floor(100000 + Math.random() * 900000)}`;
+    setFormPassword(tempPass);
     setIsAddOpen(true);
   };
 
-  const handleOpenEdit = (user: User) => {
+  const handleOpenEdit = (user: UserDto) => {
     setEditingUser(user);
-    setFormName(user.name);
-    setFormEmail(user.email);
+    setFormName(user.displayName || user.username);
+    setFormEmail(user.email || '');
+    setFormPhone(user.phone || '');
     setFormUsername(user.username);
-    setFormType(user.type);
-    setFormRoleId(user.roleId || '');
     setFormBranchId(user.branchId || '');
-    setFormBranchName(user.branchName || '');
+    const activeAssignment = user.roles.find((r) => r.isActive);
+    setFormRoleId(activeAssignment?.role.id || (roles[0]?.id ?? ''));
   };
 
-  const handleSubmitAdd = (e: React.FormEvent) => {
+  const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName || !formEmail) return;
-    
-    const autoUsername = formEmail.split('@')[0] || `user_${Date.now().toString(36)}`;
+    if (!formName || !formUsername || !formRoleId || !formPassword) return;
 
-    onAddUser({
-      name: formName,
-      email: formEmail,
-      username: autoUsername,
-      type: formType,
-      roleId: formRoleId || null,
-      branchId: formBranchId || null,
-      branchName: formBranchName || null,
-      status: 'active'
-    });
-    setIsAddOpen(false);
-    clearForm();
+    setActionLoading(true);
+    setErrorMsg(null);
+    try {
+      const selectedRole = roles.find((r) => r.id === formRoleId);
+      let profileType: ProfileType | undefined;
+      if (selectedRole) {
+        if (selectedRole.name === 'TEACHER') profileType = ProfileType.TEACHER;
+        else if (selectedRole.name === 'TECHNICAL_SUPERVISOR') profileType = ProfileType.TECHNICAL_SUPERVISOR;
+        else if (selectedRole.name === 'STUDENT') profileType = ProfileType.STUDENT;
+        else if (selectedRole.name === 'PARENT') profileType = ProfileType.PARENT;
+      }
+      if (formProfileType) {
+        profileType = formProfileType;
+      }
+
+      await createUser({
+        displayName: formName.trim(),
+        username: formUsername.trim(),
+        email: formEmail.trim() || undefined,
+        phone: formPhone.trim() || undefined,
+        roleId: formRoleId,
+        branchId: formBranchId || undefined,
+        temporaryPassword: formPassword,
+        profileType,
+      });
+
+      setIsAddOpen(false);
+      setResetPwdResult({ name: formName, pass: formPassword, forced: true });
+      clearForm();
+      void loadUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'تعذر إنشاء الحساب';
+      setErrorMsg(msg);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleSubmitEdit = (e: React.FormEvent) => {
+  const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
 
-    const autoUsername = formUsername || formEmail.split('@')[0] || `user_${Date.now().toString(36)}`;
+    setActionLoading(true);
+    setErrorMsg(null);
+    try {
+      await updateUser(editingUser.id, {
+        displayName: formName.trim(),
+        username: formUsername.trim(),
+        email: formEmail.trim() || undefined,
+        phone: formPhone.trim() || undefined,
+        branchId: formBranchId || undefined,
+      });
 
-    onUpdateUser(editingUser.id, {
-      name: formName,
-      email: formEmail,
-      username: autoUsername,
-      type: formType,
-      roleId: formRoleId || null,
-      branchId: formBranchId || null,
-      branchName: formBranchName || null
-    });
-    setEditingUser(null);
-    clearForm();
+      const currentRoleId = editingUser.roles.find((r) => r.isActive)?.role.id;
+      if (formRoleId && formRoleId !== currentRoleId) {
+        await assignUserRole(editingUser.id, {
+          roleId: formRoleId,
+          branchId: formBranchId || undefined,
+        });
+      }
+
+      setEditingUser(null);
+      clearForm();
+      void loadUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'تعذر تحديث بيانات الحساب';
+      setErrorMsg(msg);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleResetPasswordClick = async (user: User) => {
-    const tempPass = await onResetPassword(user.id);
-    setResetPwdResult({ name: user.name, pass: tempPass });
+  const handleToggleStatus = async (user: UserDto) => {
+    setActionLoading(true);
+    try {
+      if (user.isActive) {
+        await suspendUser(user.id);
+      } else {
+        await activateUser(user.id);
+      }
+      void loadUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'تعذر تغيير حالة الحساب';
+      setErrorMsg(msg);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  // Filter logic
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.branchName && user.branchName.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesType = typeFilter === 'all' ? true : user.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' ? true : user.status === statusFilter;
-
-    // Don't show fully archived unless requested specifically
-    if (statusFilter !== 'archived' && user.status === 'archived') {
-      return false;
+  const handleResetPassword = async (user: UserDto) => {
+    setActionLoading(true);
+    try {
+      await forcePasswordChange(user.id);
+      setResetPwdResult({
+        name: user.displayName || user.username,
+        pass: 'تم إلزام المستخدم بتعيين كلمة مرور عند الدخول القادم',
+        forced: true,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'تعذر إعادة تعيين كلمة المرور';
+      setErrorMsg(msg);
+    } finally {
+      setActionLoading(false);
     }
+  };
 
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
-  const getTypeNameAr = (type: UserType) => {
-    switch (type) {
-      case 'admin': return 'المدير العام';
-      case 'branch_manager': return 'المدير التنفيذي';
-      case 'supervisor': return 'مشرف حلقات';
-      case 'teacher': return 'معلم حلقة';
-      case 'parent': return 'ولي أمر';
-    }
+  const getRoleDisplayName = (user: UserDto) => {
+    const active = user.roles.find((r) => r.isActive);
+    return active?.role.displayName || active?.role.name || 'بدون دور';
   };
 
   return (
@@ -144,8 +248,8 @@ export default function UserManagement({
       {/* Header operations bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="user-header-ops">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 font-display">إدارة المستخدمين النشطين</h2>
-          <p className="text-slate-400 text-xs">تعيين المستخدمين والأنساب والربط الإداري الهرمي بالفروع</p>
+          <h2 className="text-xl font-bold text-slate-800 font-display">إدارة المستخدمين والحسابات</h2>
+          <p className="text-slate-400 text-xs">تعيين المستخدمين والأدوار والربط الإداري الهرمي بالفروع المعتمدة</p>
         </div>
         
         <button
@@ -158,6 +262,13 @@ export default function UserManagement({
         </button>
       </div>
 
+      {errorMsg && (
+        <div role="alert" className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+          <p className="font-bold leading-relaxed">{errorMsg}</p>
+        </div>
+      )}
+
       {/* Filters and search card */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-2xs flex flex-col md:flex-row gap-4 justify-between" id="user-filters-bar">
         {/* Search */}
@@ -167,38 +278,47 @@ export default function UserManagement({
             type="text"
             placeholder="البحث بالاسم، اسم المستخدم، البريد، أو الفرع..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pl-4 pr-10 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-bold"
             id="user-search-input"
           />
         </div>
 
-        {/* Level type Filter */}
+        {/* Branch & Status Filter */}
         <div className="flex flex-wrap gap-2">
           <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white"
-            id="user-type-filter"
+            value={branchFilter}
+            onChange={(e) => {
+              setBranchFilter(e.target.value);
+              setPage(1);
+            }}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white font-bold"
+            id="user-branch-filter"
           >
-            <option value="all">كل الرتب الإدارية</option>
-            <option value="admin">المدير العام</option>
-            <option value="branch_manager">المدير التنفيذي</option>
-            <option value="supervisor">مشرف حلقات</option>
-            <option value="teacher">معلم حلقة</option>
-            <option value="parent">ولي أمر</option>
+            <option value="all">كل الفروع</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.code})
+              </option>
+            ))}
           </select>
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white"
+            onChange={(e) => {
+              setStatusFilter(e.target.value as 'active' | 'suspended' | 'archived' | 'all');
+              setPage(1);
+            }}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white font-bold"
             id="user-status-filter"
           >
-            <option value="all">كل الحالات (عدا مؤرشف)</option>
+            <option value="all">كل الحالات</option>
             <option value="active">نشط</option>
-            <option value="inactive">معطل</option>
-            <option value="archived">جميع الأرشيف</option>
+            <option value="suspended">معطل / موقوف</option>
+            <option value="archived">مؤرشف</option>
           </select>
         </div>
       </div>
@@ -209,121 +329,144 @@ export default function UserManagement({
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-slate-50/75 border-b border-slate-100 text-slate-500 text-xs font-bold">
-                <th className="p-4">الاسم والبريد</th>
+                <th className="p-4">الاسم وبيانات الاتصال</th>
                 <th className="p-4">الرتبة والدور</th>
                 <th className="p-4">الفرع المربوط</th>
                 <th className="p-4">الحالة</th>
                 <th className="p-4 text-center">الإجراءات والتحكم</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
-                        {user.name.slice(0, 1)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-800">{user.name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{user.email} | @{user.username}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="space-y-1">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-sm text-[10px] font-bold ${
-                        user.type === 'admin' ? 'bg-purple-100 text-purple-800' :
-                        user.type === 'branch_manager' ? 'bg-amber-100 text-amber-800' :
-                        user.type === 'supervisor' ? 'bg-teal-100 text-teal-800' :
-                        user.type === 'teacher' ? 'bg-emerald-100 text-emerald-800' :
-                        'bg-sky-100 text-sky-800'
-                      }`}>
-                        {getTypeNameAr(user.type)}
-                      </span>
-                      {user.roleId && (
-                        <p className="text-[10px] text-slate-400">
-                          دور مخصص: {roles.find(r => r.id === user.roleId)?.name || 'غير مجدول'}
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    {user.branchName ? (
-                      <div className="flex items-center gap-1 text-slate-600">
-                        <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
-                        <span>{user.branchName}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-300 font-medium text-xs">إدارة عامة العليا</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      user.status === 'active' ? 'bg-emerald-100 text-emerald-800' :
-                      user.status === 'inactive' ? 'bg-amber-100 text-amber-800' :
-                      'bg-slate-100 text-slate-800'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-emerald-500' : user.status === 'inactive' ? 'bg-amber-500' : 'bg-slate-500'}`} />
-                      {user.status === 'active' ? 'نشط' : user.status === 'inactive' ? 'معطل' : 'مؤرشف'}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-center gap-1.5">
-                      {/* Toggle status */}
-                      <button
-                        onClick={() => onUpdateStatus(user.id, user.status === 'active' ? 'inactive' : 'active')}
-                        title={user.status === 'active' ? 'تعطيل الحساب' : 'تنشيط الحساب'}
-                        className={`p-1.5 rounded-lg border hover:bg-slate-100 transition-all cursor-pointer ${user.status === 'active' ? 'text-amber-600 border-amber-100' : 'text-emerald-600 border-emerald-100'}`}
-                      >
-                        {user.status === 'active' ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                      </button>
-
-                      {/* Edit */}
-                      <button
-                        onClick={() => handleOpenEdit(user)}
-                        title="تعديل البيانات"
-                        className="p-1.5 text-indigo-600 border border-indigo-100 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-
-                      {/* Password Reset */}
-                      <button
-                        onClick={() => handleResetPasswordClick(user)}
-                        title="إعادة تعيين كلمة المرور"
-                        className="p-1.5 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-all cursor-pointer"
-                      >
-                        <Key className="h-4 w-4" />
-                      </button>
-
-                      {/* Archive */}
-                      {user.status !== 'archived' && (
-                        <button
-                          onClick={() => onUpdateStatus(user.id, 'archived')}
-                          title="أرشفة الحساب"
-                          className="p-1.5 text-red-600 border border-red-50 rounded-lg hover:bg-red-50 transition-all cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredUsers.length === 0 && (
+            <tbody className="divide-y divide-slate-100 text-xs sm:text-sm font-bold">
+              {loading ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-slate-400 text-xs">
-                    لا تتوفر نتائج للخيارات المحددة في النظام.
+                    <div className="flex items-center justify-center gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+                      <span>جاري جلب بيانات المستخدمين من الخادم...</span>
+                    </div>
                   </td>
                 </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-400 text-xs">
+                    لا تتوفر نتائج تطابق معايير البحث المحددة.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm shrink-0">
+                          {(user.displayName || user.username).slice(0, 1)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800">{user.displayName || user.username}</p>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            {user.email || 'بدون بريد'} | @{user.username} {user.phone ? `| ${user.phone}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="inline-block px-2.5 py-0.5 rounded-sm text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        {getRoleDisplayName(user)}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {user.branch ? (
+                        <div className="flex items-center gap-1 text-slate-600">
+                          <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span>{user.branch.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 font-medium text-xs">إدارة عامة العليا</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        user.deletedAt ? 'bg-slate-100 text-slate-800' :
+                        user.isActive ? 'bg-emerald-100 text-emerald-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          user.deletedAt ? 'bg-slate-500' :
+                          user.isActive ? 'bg-emerald-500' :
+                          'bg-amber-500'
+                        }`} />
+                        {user.deletedAt ? 'مؤرشف' : user.isActive ? 'نشط' : 'معطل'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {/* Toggle status */}
+                        {!user.deletedAt && (
+                          <button
+                            disabled={actionLoading}
+                            onClick={() => handleToggleStatus(user)}
+                            title={user.isActive ? 'تعطيل الحساب' : 'تنشيط الحساب'}
+                            className={`p-1.5 rounded-lg border hover:bg-slate-100 transition-all cursor-pointer ${
+                              user.isActive ? 'text-amber-600 border-amber-100' : 'text-emerald-600 border-emerald-100'
+                            }`}
+                          >
+                            {user.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                          </button>
+                        )}
+
+                        {/* Edit */}
+                        <button
+                          disabled={actionLoading}
+                          onClick={() => handleOpenEdit(user)}
+                          title="تعديل البيانات"
+                          className="p-1.5 text-indigo-600 border border-indigo-100 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+
+                        {/* Password Reset */}
+                        <button
+                          disabled={actionLoading}
+                          onClick={() => handleResetPassword(user)}
+                          title="إلزام بتغيير كلمة المرور"
+                          className="p-1.5 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-all cursor-pointer"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination controls */}
+        {totalUsers > limit && (
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
+            <span>إجمالي المستخدمين: {totalUsers}</span>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+              >
+                السابق
+              </button>
+              <span className="px-3 py-1.5 font-mono">صفحة {page}</span>
+              <button
+                disabled={page * limit >= totalUsers || loading}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+              >
+                التالي
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Reset Password Modal */}
+      {/* Password Reset Result Modal */}
       {resetPwdResult && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="pwd-reset-success-modal">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-100 shadow-xl space-y-4 relative">
@@ -331,15 +474,15 @@ export default function UserManagement({
               <div className="p-2 rounded-full bg-emerald-50">
                 <Check className="h-5 w-5" />
               </div>
-              <h3 className="font-bold text-slate-800 font-display">نجاح تعيين كلمة المرور</h3>
+              <h3 className="font-bold text-slate-800 font-display">بيانات الحساب وكلمة المرور</h3>
             </div>
             
-            <p className="text-slate-500 text-xs leading-relaxed">
-              تم إصدار بروتوكول أمني وتوليد كلمة مرور مؤقتة صالحة للاستخدام لمرة واحدة لفائدة الحساب التابع لـ <span className="font-bold text-slate-800">({resetPwdResult.name})</span>.
+            <p className="text-slate-500 text-xs leading-relaxed font-bold">
+              تم تحديث إعدادات الأمان للحساب التابع لـ <span className="font-bold text-slate-800">({resetPwdResult.name})</span>.
             </p>
 
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400">كلمة المرور المؤقتة:</span>
+              <span className="text-[10px] font-bold text-slate-400">كلمة المرور:</span>
               <span className="font-mono bg-white px-2.5 py-1.5 rounded-md text-sm border border-slate-100 font-bold text-indigo-600 select-all">
                 {resetPwdResult.pass}
               </span>
@@ -348,23 +491,23 @@ export default function UserManagement({
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setResetPwdResult(null)}
-                className="bg-slate-800 hover:bg-slate-950 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="bg-slate-800 hover:bg-slate-950 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-display"
               >
-                حسناً، فهمت
+                حسناً، تم الحفظ
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add / Edit Users dialog */}
+      {/* Add / Edit Users Dialog */}
       {(isAddOpen || editingUser) && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="add-edit-user-modal">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 border border-slate-100 shadow-xl space-y-4 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-800 font-display flex items-center gap-2">
                 <Shield className="h-5 w-5 text-emerald-600" />
-                {isAddOpen ? 'إضافة مستخدم جديد للنظام الكلي' : 'تعديل بيانات الحساب التعليمي'}
+                {isAddOpen ? 'إضافة مستخدم جديد للنظام الكلي' : 'تعديل بيانات الحساب'}
               </h3>
               <button 
                 onClick={() => { setIsAddOpen(false); setEditingUser(null); }}
@@ -384,98 +527,109 @@ export default function UserManagement({
                     required
                     placeholder="مثال: فضيلة الشيخ عمر التركي"
                     value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    onChange={(e) => {
+                      setFormName(e.target.value);
+                      if (isAddOpen && !formUsername) {
+                        setFormUsername(`user_${Date.now().toString(36)}`);
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white font-bold"
                   />
                 </div>
 
+                {/* Username */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">اسم المستخدم الفريد</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="username"
+                    value={formUsername}
+                    onChange={(e) => setFormUsername(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono bg-white font-bold"
+                  />
+                </div>
+
                 {/* Email */}
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-slate-700">البريد الإلكتروني المعتمد</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">البريد الإلكتروني (اختياري)</label>
                   <input
                     type="email"
-                    required
                     placeholder="example@alhudacenter.org"
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono bg-white font-bold"
                   />
                 </div>
+
+                {/* Phone */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700">رقم الهاتف (اختياري)</label>
+                  <input
+                    type="tel"
+                    placeholder="05xxxxxxxx"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono bg-white font-bold"
+                  />
+                </div>
+
+                {/* Temporary Password (Add only) */}
+                {isAddOpen && (
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-bold text-slate-700">كلمة المرور المؤقتة</label>
+                    <input
+                      type="text"
+                      required
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono bg-white font-bold text-indigo-700"
+                    />
+                  </div>
+                )}
 
                 {/* Role / Permission Level */}
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-xs font-bold text-slate-800 block">
-                    الدور المنوط بقرار المدير العام (تحديد صلاحيات الحساب)
+                    الدور الوظيفي وصلاحيات الحساب
                   </label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as UserType)}
-                    className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-600 bg-emerald-50/40 font-bold text-emerald-950"
-                  >
-                    <option value="admin">المدير العام (تحكم واختصاص شامل بالنظام)</option>
-                    <option value="branch_manager">مدير تنفيذي / مدير فرع (إدارة المنهج والقرارات والاعتمادات)</option>
-                    <option value="supervisor">موجه تربوي / مشرف حلقات (توجيه الحلقات والمعلمين والمتابعة)</option>
-                    <option value="teacher">مدرس / معلم حلقة (تسميع ورصد الدرجات والتقارير)</option>
-                    <option value="parent">ولي أمر الطالب (متابعة الأبناء والتقارير)</option>
-                    <option value="student">طالب مقيد (استعراض الخطط والنتائج)</option>
-                  </select>
-                </div>
-
-                {/* Custom system Roles */}
-                <div className="space-y-1 sm:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">
-                      مصفوفة الصلاحيات الخاصة والأدوار المخصصة
-                    </label>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                      تخصيص مرن من المدير العام
-                    </span>
-                  </div>
                   <select
                     value={formRoleId}
                     onChange={(e) => setFormRoleId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white font-semibold text-slate-800"
+                    required
+                    className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-600 bg-emerald-50/40 font-bold text-emerald-950"
                   >
-                    <option value="">صلاحيات قياسية حسب الدور المحدد أعلاه</option>
-                    {roles.map(r => (
+                    <option value="">اختر الدور المناسب...</option>
+                    {roles.map((r) => (
                       <option key={r.id} value={r.id}>
-                        مصفوفة مخصصة: {r.name} ({r.description || 'صلاحيات خاصة'})
+                        {r.displayName || r.name} {r.isSystem ? '(نظامي)' : ''}
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-slate-400 font-medium">
-                    يمكن للمدير العام إسناد مصفوفة صلاحيات دقيقة ومستقلة لأي مستخدم (مثل: مسؤول اختبارات وتعديل الدرجات، أو مشرف تقني ومتابعة).
-                  </p>
                 </div>
 
-                {/* Branch binding - ID */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600">رقم مصلحة الفرع (إن وجد)</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: BR-1447"
+                {/* Branch Selection */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-600">الفرع التابع له (اختياري)</label>
+                  <select
                     value={formBranchId}
                     onChange={(e) => setFormBranchId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white"
-                  />
-                </div>
-
-                {/* Branch binding - Name */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600">اسم الفرع المحلي المربوط به</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: فرع الشمال بالرياض"
-                    value={formBranchName}
-                    onChange={(e) => setFormBranchName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white"
-                  />
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-emerald-500 bg-white font-bold"
+                  >
+                    <option value="">إدارة عامة شاملة لجميع الفروع</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-2">
                 <button
                   type="button"
+                  disabled={actionLoading}
                   onClick={() => { setIsAddOpen(false); setEditingUser(null); }}
                   className="px-4 py-2 text-slate-500 hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
@@ -483,9 +637,11 @@ export default function UserManagement({
                 </button>
                 <button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                  disabled={actionLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 font-display"
                 >
-                  {isAddOpen ? 'إضافة وتشييد الحساب' : 'حفظ التغيرات المعتمدة'}
+                  {actionLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{isAddOpen ? 'إضافة وتشييد الحساب' : 'حفظ التغيرات المعتمدة'}</span>
                 </button>
               </div>
             </form>

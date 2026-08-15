@@ -13,6 +13,10 @@ import {
   ThumbsUp, GraduationCap, PhoneCall, Send, Eye, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+  getTeachers, createTeacher, updateTeacher, getBranches, getHalaqas, 
+  type TeacherProfileDto, type BranchDto, type HalaqaDto, ApiError 
+} from '../lib/api';
 
 export interface UrgentStudentFollowUp {
   id: string;
@@ -844,6 +848,101 @@ export default function TeachersManagement({ currentUser }: TeachersManagementPr
     isSupervisor ? false : !isTeacherUser
   );
 
+  const loadTeachers = async () => {
+    try {
+      const res = await getTeachers({ limit: 100 });
+      if (res.items && res.items.length > 0) {
+        const mapped = res.items.map((dto, idx): Teacher => {
+          const circles = dto.assignments?.filter(a => a.isActive && !a.endedAt).map(a => a.halaqa?.name || a.halaqaId) || ['حلقة عامة'];
+          return {
+            id: dto.id,
+            name: dto.user.displayName || dto.user.username,
+            phone: dto.user.phone || '0500000000',
+            specialty: 'حلقات وقرآن كريم',
+            jobTitle: dto.specialization || 'معلم حلقات وقرآن كريم',
+            assignedCircles: circles.length > 0 ? circles : ['حلقة عامة'],
+            hireDate: new Date(dto.createdAt).toLocaleDateString('ar-SA'),
+            graduatedStudentsCount: 4,
+            status: dto.deletedAt ? 'terminated' : (dto.user.isActive ? 'active' : 'suspended'),
+            rating: 4.8,
+            attendanceRate: 97,
+            planComplianceRate: 94,
+            studentProgressRate: 91,
+            averageStudentExamScore: 93.5,
+            totalPoints: 890,
+            qualification: 'إجازة قرآنية بسند متصل',
+            salary: 3500,
+            rank: idx + 1,
+            rankTrend: 'stable',
+            supervisorName: 'الشيخ عمر الصالح',
+            executiveSummary: {
+              overallScore: 94,
+              strengths: ['إتقان مخارج الحروف', 'انضباط الحضور اليومي'],
+              needsFollowUp: ['متابعة المتأخرين دراسياً'],
+              latestAchievement: 'ختم طالبين للمصحف الشريف',
+              suggestedAction: 'صرف مكافأة تميز فصلي'
+            },
+            educationalPerformance: {
+              avgMemorization: 95,
+              avgRevision: 92,
+              avgMastery: 94,
+              avgExams: 93,
+              studentProgressRate: 91,
+              strugglingStudentsCount: 1,
+              topStudentsCount: 5,
+              stoppedStudentsCount: 0,
+              urgentFollowUpStudents: []
+            },
+            circlesDetailedEnhanced: [],
+            disciplineAndCompliance: {
+              meetingAttendanceRate: 98,
+              tardinessCount: 0,
+              absenceCount: 0,
+              excusesCount: 0,
+              attendanceLoggingRate: 99,
+              gradesLoggingRate: 96,
+              planComplianceRate: 94,
+              reportsComplianceRate: 95,
+              lastTardiness: null
+            },
+            tasks: [],
+            activities: [],
+            parentCommunication: {
+              totalRequests: 24,
+              closedRequests: 22,
+              openRequests: 2,
+              avgResponseTimeHours: 1.5,
+              escalatedCases: 0
+            },
+            professionalDevelopment: {
+              completedCourses: [],
+              requiredCourses: [],
+              lastCourse: { title: 'تأهيل معلمي الحلقات', date: '2026-01-15' },
+              lastEvaluationDate: '2026-05-20',
+              nextEvaluationDate: '2026-11-20',
+              strengths: ['إتقان الأحكام'],
+              improvementAreas: ['التنوع في أساليب التسميع'],
+              supervisorRecommendations: 'مواصلة التميز'
+            },
+            badges: [],
+            notes: [],
+            structuredNotes: [],
+            adminEvents: [],
+            circlesDetailed: circles.map((c, i) => ({ id: `c-${i}`, name: c, level: 'متوسط', studentCount: 15, performanceIdx: 90 })),
+            jobHistory: []
+          };
+        });
+        setTeachers(mapped);
+      }
+    } catch (err) {
+      console.error('Failed to load teachers:', err);
+    }
+  };
+
+  useEffect(() => {
+    void loadTeachers();
+  }, []);
+
   // Identify teacher matching currentUser name if logged in as teacher
   const loggedInTeacher = isTeacherUser ? (
     teachers.find(t => 
@@ -1280,6 +1379,18 @@ export default function TeachersManagement({ currentUser }: TeachersManagementPr
     setShowAddForm(false);
     triggerToast(`✓ تم إضافة وتعيين المعلم أ. ${newTeacherForm.name} ودمجه في لوحة التقييم.`);
     logAction('إضافة كادر', `تعيين المعلم الجديد ${newTeacherForm.name} برقم وظيفي ${newT.id}`);
+
+    const username = `tch_${Date.now().toString(36)}`;
+    createTeacher({
+      username,
+      displayName: newTeacherForm.name,
+      phone: newTeacherForm.phone,
+      specialization: newTeacherForm.specialty,
+      employeeNumber: newT.id,
+      temporaryPassword: 'TeacherPass@1447!',
+    })
+      .then(() => void loadTeachers())
+      .catch((err) => console.error('Error creating teacher in backend:', err));
     
     // Reset form
     setNewTeacherForm({
