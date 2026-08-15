@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
+import { AuthorizationModule } from './authorization/authorization.module';
 import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
 import { environmentValidationSchema } from './config/environment';
 import { PrismaModule } from './database/prisma.module';
@@ -14,6 +16,8 @@ import { RedisModule } from './redis/redis.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
     RedisModule,
+    AuthorizationModule,
+    AuthModule,
     HealthModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }],

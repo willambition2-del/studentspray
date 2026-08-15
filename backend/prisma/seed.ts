@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { PERMISSION_CATALOG, ROLE_PERMISSION_DEFAULTS } from '../src/authorization/permission-catalog';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -29,11 +30,24 @@ async function main(): Promise<void> {
   });
 
   for (const [name, displayName] of roles) {
-    await prisma.role.upsert({
+    const role = await prisma.role.upsert({
       where: { forumId_name: { forumId: forum.id, name } },
       update: { displayName },
       create: { forumId: forum.id, name, displayName, isSystem: true },
     });
+
+    for (const code of ROLE_PERMISSION_DEFAULTS[name]) {
+      const permission = await prisma.permission.upsert({
+        where: { code },
+        update: { description: PERMISSION_CATALOG[code] },
+        create: { code, description: PERMISSION_CATALOG[code] },
+      });
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
+        update: {},
+        create: { roleId: role.id, permissionId: permission.id },
+      });
+    }
   }
 }
 

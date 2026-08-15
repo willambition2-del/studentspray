@@ -1,4 +1,4 @@
-# Quran Forum API — Phase 1 Foundation
+# Quran Forum API — Phase 2 Authentication Foundation
 
 This directory contains the new NestJS API. The existing React/Vite application and its legacy Express server remain unchanged and continue to run independently.
 
@@ -59,6 +59,32 @@ npm run start:dev
 - Swagger UI (development only): `http://localhost:4000/api/docs`
 - OpenAPI JSON: `http://localhost:4000/api/docs-json`
 
+### Authentication contracts
+
+- `POST /api/v1/auth/web/login`
+- `POST /api/v1/auth/web/refresh` — HttpOnly cookie and trusted `Origin` required
+- `POST /api/v1/auth/web/logout` — HttpOnly cookie and trusted `Origin` required
+- `POST /api/v1/auth/mobile/login`
+- `POST /api/v1/auth/mobile/refresh`
+- `POST /api/v1/auth/mobile/logout`
+- `GET /api/v1/auth/me` — Bearer access token
+- `POST /api/v1/auth/change-password` — Bearer access token
+- `POST /api/v1/auth/logout-all` — revokes every session including the caller
+
+Mobile refresh tokens must be stored in platform secure storage. Web refresh tokens are never returned to JavaScript and are stored only in an HttpOnly cookie. Access tokens contain only `sub` and `sid`; roles and permissions are resolved from the database for protected requests.
+
+Refresh tokens rotate once. Reuse of a rotated token revokes its entire token family; a concurrent loser is treated conservatively as reuse, so two valid successor tokens cannot be created. `change-password` keeps the authenticated session and revokes the user's other sessions, while `logout-all` revokes every session including the caller.
+
+### First General Manager
+
+Run the seed first, provide the `BOOTSTRAP_*` environment variables locally, then execute:
+
+```bash
+npm run bootstrap:general-manager
+```
+
+The command refuses to create another active General Manager in the same forum, hashes the password with Argon2id, and never logs it.
+
 Production startup:
 
 ```bash
@@ -74,4 +100,4 @@ Copy `.env.example` to `.env` and adjust values locally. `CORS_ORIGINS` is a com
 
 ## Phase boundary
 
-This phase provides infrastructure only. Authentication, JWT/refresh tokens, authorization guards, business endpoints, Flutter, S3, Firebase, Socket.IO, and migration of React pages from mock/local data are intentionally deferred.
+Phase 2 implements authentication, session rotation, security audit events, RBAC guards, and resource-scope foundations. Business modules, Flutter UI, S3, Firebase, Socket.IO, and migration of React pages from mock/local data remain deferred.

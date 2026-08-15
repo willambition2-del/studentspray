@@ -38,4 +38,14 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
     return ttlSeconds ? this.client.set(key, value, 'EX', ttlSeconds) : this.client.set(key, value);
   }
   del(key: string): Promise<number> { return this.client.del(key); }
+
+  async incrementWithExpiry(key: string, windowSeconds: number): Promise<number> {
+    const result = await this.client.eval(
+      "local count = redis.call('INCR', KEYS[1]); if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; return count",
+      1,
+      key,
+      windowSeconds,
+    );
+    return Number(result);
+  }
 }

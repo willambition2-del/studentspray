@@ -24,6 +24,32 @@ enum HalaqaMemberStatus {
   WITHDRAWN
 }
 
+enum AuthClient {
+  WEB
+  MOBILE
+}
+
+enum SessionRevocationReason {
+  LOGOUT
+  LOGOUT_ALL
+  ROTATED
+  REUSE_DETECTED
+  PASSWORD_CHANGED
+  ACCOUNT_DISABLED
+  EXPIRED
+}
+
+enum SecurityAuditEvent {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  ACCOUNT_LOCKED
+  PASSWORD_CHANGED
+  LOGOUT
+  LOGOUT_ALL
+  REFRESH_REUSE_DETECTED
+  SESSION_REVOKED
+}
+
 model Forum {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
@@ -62,19 +88,25 @@ model Branch {
 }
 
 model User {
-  id                 String    @id @default(uuid()) @db.Uuid
-  forumId            String    @db.Uuid
-  branchId           String?   @db.Uuid
-  username           String
-  email              String?
-  phone              String?
-  passwordHash       String?
-  isActive           Boolean   @default(true)
-  mustChangePassword Boolean   @default(false)
-  lastLoginAt        DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  deletedAt          DateTime?
+  id                  String    @id @default(uuid()) @db.Uuid
+  forumId             String    @db.Uuid
+  branchId            String?   @db.Uuid
+  username            String
+  usernameNormalized  String
+  email               String?
+  emailNormalized     String?
+  phone               String?
+  phoneNormalized     String?
+  passwordHash        String?
+  passwordChangedAt   DateTime?
+  isActive            Boolean   @default(true)
+  mustChangePassword  Boolean   @default(false)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
 
   forum             Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
   branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -83,11 +115,57 @@ model User {
   parentProfile     ParentProfile?
   teacherProfile    TeacherProfile?
   supervisorProfile SupervisorProfile?
+  authSessions      AuthSession[]
+  securityAuditLogs SecurityAuditLog[]
 
   @@unique([forumId, username])
+  @@unique([forumId, usernameNormalized])
   @@unique([forumId, email])
+  @@unique([forumId, emailNormalized])
   @@unique([forumId, phone])
+  @@unique([forumId, phoneNormalized])
   @@index([forumId, branchId, isActive, deletedAt])
+}
+
+model AuthSession {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  userId              String                   @db.Uuid
+  refreshTokenHash    String                   @unique
+  tokenFamilyId       String                   @db.Uuid
+  client              AuthClient
+  lastUsedAt          DateTime?
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  revokedReason       SessionRevocationReason?
+  replacedBySessionId String?                  @unique @db.Uuid
+  ipAddress           String?                  @db.VarChar(45)
+  userAgent           String?                  @db.VarChar(512)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy AuthSession? @relation("SessionRotation", fields: [replacedBySessionId], references: [id], onDelete: SetNull)
+  replaces   AuthSession? @relation("SessionRotation")
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([tokenFamilyId])
+}
+
+model SecurityAuditLog {
+  id          String             @id @default(uuid()) @db.Uuid
+  actorUserId String?            @db.Uuid
+  event       SecurityAuditEvent
+  success     Boolean
+  ipAddress   String?            @db.VarChar(45)
+  userAgent   String?            @db.VarChar(512)
+  requestId   String?            @db.VarChar(128)
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([event, createdAt])
 }
 
 model Role {

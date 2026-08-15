@@ -38,6 +38,7 @@ async function bootstrap(): Promise<void> {
       .setTitle('Quran Forum API')
       .setDescription('Production backend foundation for the Quran Forum platform')
       .setVersion('1.0')
+      .addBearerAuth()
       .build());
     SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs-json' });
   }

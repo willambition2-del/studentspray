@@ -11,6 +11,21 @@ export const environmentValidationSchema = Joi.object({
   CORS_ORIGINS: Joi.string().required(),
   SWAGGER_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   TRUST_PROXY: Joi.boolean().truthy('true').falsy('false').default(false),
+  JWT_ACCESS_SECRET: Joi.string().min(32).required(),
+  JWT_ACCESS_TTL: Joi.string().pattern(/^\d+[smhd]$/).default('15m'),
+  JWT_ISSUER: Joi.string().min(3).max(100).default('quran-forum-api'),
+  JWT_AUDIENCE: Joi.string().min(3).max(100).default('quran-forum-clients'),
+  REFRESH_TOKEN_TTL_DAYS: Joi.number().integer().min(1).max(365).default(30),
+  REFRESH_TOKEN_HASH_SECRET: Joi.string().min(32).required(),
+  ARGON2_MEMORY_COST: Joi.number().integer().min(19456).max(262144).default(65536),
+  ARGON2_TIME_COST: Joi.number().integer().min(2).max(10).default(3),
+  ARGON2_PARALLELISM: Joi.number().integer().min(1).max(4).default(1),
+  AUTH_MAX_FAILED_ATTEMPTS: Joi.number().integer().min(3).max(20).default(5),
+  AUTH_LOCK_MINUTES: Joi.number().integer().min(1).max(1440).default(15),
+  AUTH_RATE_LIMIT_ATTEMPTS: Joi.number().integer().min(3).max(100).default(10),
+  AUTH_RATE_LIMIT_WINDOW_SECONDS: Joi.number().integer().min(10).max(3600).default(60),
+  AUTH_COOKIE_NAME: Joi.string().pattern(/^[A-Za-z0-9_-]+$/).default('qf_refresh'),
+  AUTH_COOKIE_SAME_SITE: Joi.string().valid('strict', 'lax', 'none').default('strict'),
 });
 
 export function parseCorsOrigins(value: string): string[] {

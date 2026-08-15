@@ -26,3 +26,7 @@ The two applications currently run independently:
 ## Later migration
 
 Future phases should introduce authentication first, then migrate bounded frontend features endpoint by endpoint. Each migration should remove the corresponding in-memory/localStorage dependency only after API integration and regression verification. The legacy `server.ts` should be removed only after no current UI route depends on it.
+
+## Legacy authentication warning
+
+The Express prototype and its `DEMO_USERS`, role headers, in-memory sessions, and localStorage login state are not production authentication sources. Do not expose the legacy server as a public production API. New clients must migrate to the NestJS `/api/v1/auth` contracts; the legacy authentication code remains only to preserve the current prototype until endpoint-by-endpoint frontend migration is complete.
