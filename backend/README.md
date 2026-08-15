@@ -1,6 +1,6 @@
-# Quran Forum API — Phase 2 Authentication Foundation
+# Quran Forum API — Phase 3 Core Management Foundation
 
-This directory contains the new NestJS API. The existing React/Vite application and its legacy Express server remain unchanged and continue to run independently.
+This directory contains the NestJS production API. React admin authentication now uses this API; legacy feature pages and `server.ts` remain during incremental migration.
 
 ## Requirements
 
@@ -85,6 +85,18 @@ npm run bootstrap:general-manager
 
 The command refuses to create another active General Manager in the same forum, hashes the password with Argon2id, and never logs it.
 
+### Core management contracts
+
+- `/api/v1/forums/current`
+- `/api/v1/branches`
+- `/api/v1/users`
+- `/api/v1/roles` and `/api/v1/permissions`
+- `/api/v1/students`, `/api/v1/parents`, `/api/v1/teachers`, `/api/v1/supervisors`
+- `/api/v1/halaqas` including historical memberships and teacher/supervisor assignments
+- `POST /api/v1/students/:id/transfer-halaqa`
+
+Lists use server-side `page`/`limit` pagination (maximum 100), search, and scoped filters. Archive operations preserve history. Compound mutations and business audit writes use Prisma transactions. Swagger contains the complete DTO and route inventory in development.
+
 Production startup:
 
 ```bash
@@ -100,4 +112,4 @@ Copy `.env.example` to `.env` and adjust values locally. `CORS_ORIGINS` is a com
 
 ## Phase boundary
 
-Phase 2 implements authentication, session rotation, security audit events, RBAC guards, and resource-scope foundations. Business modules, Flutter UI, S3, Firebase, Socket.IO, and migration of React pages from mock/local data remain deferred.
+Phase 3 implements the core management APIs and real React admin login. Attendance, memorization, grades, Flutter, S3, Firebase, Socket.IO, and migration of the management page data sources remain deferred.

@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
@@ -7,8 +7,9 @@ import { PrismaClient } from '../generated/prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor(config: ConfigService) {
-    const connectionString = config.getOrThrow<string>('DATABASE_URL');
+  constructor(@Optional() @Inject(ConfigService) config?: ConfigService) {
+    const connectionString = config?.get<string>('DATABASE_URL') ?? process.env.DATABASE_URL;
+    if (!connectionString) throw new Error('DATABASE_URL is not configured');
     super({ adapter: new PrismaPg({ connectionString }) });
   }
 

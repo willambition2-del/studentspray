@@ -25,4 +25,6 @@ A role or permission never grants access to every record by itself. Forum, branc
 - `canAccessStudent`: managers follow forum/branch rules; teacher/supervisor access is derived through active Halaqa membership; students access themselves; parents require `StudentGuardian`.
 - IDs supplied by React or future Flutter clients are treated only as requested resource identifiers and are always re-authorized server-side.
 
-Business APIs added later must declare permissions with `@RequirePermissions(...)` and call `AccessScopeService` for the target resource.
+Phase 3 business APIs declare permissions with `@RequirePermissions(...)` and resolve forum, branch, Halaqa, student, assignment, and guardian scope server-side. `branches.read` and `branches.manage` are part of the system-controlled permission catalog. Role mutation also applies a no-escalation policy: non-General Managers cannot grant a permission they do not hold or assign `GENERAL_MANAGER`.
+
+Suspending an account revokes active sessions in the same transaction. Business changes are written to `AuditLog`; authentication and session security events remain in the separate `SecurityAuditLog`.

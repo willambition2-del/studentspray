@@ -44,8 +44,9 @@ import StudentPlanManagement from './components/StudentPlanManagement';
 import PrintCenter from './components/PrintCenter';
 import FieldVisitsManagement from './components/FieldVisitsManagement';
 import GlobalSearchModal from './components/GlobalSearchModal';
+import { ApiError, loginWeb, logoutWeb, restoreWebSession, type WebAccount } from './lib/api/auth';
 
-const DEMO_USERS = [
+const LEGACY_SEARCH_USERS = [
   {
     id: 'u-1',
     name: 'الشيخ عبدالرحمن بن محمد السعيد',
@@ -116,10 +117,10 @@ export const canViewStrategicDashboard = (user: any) => {
 };
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<any | null>(() => {
-    const saved = localStorage.getItem('alhudacenter_current_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -221,9 +222,53 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('alhudacenter_current_user');
+  const toDashboardUser = (account: WebAccount) => {
+    const role = account.roles.find(item => item.name === 'GENERAL_MANAGER' || item.name === 'EXECUTIVE_MANAGER');
+    if (!role) throw new ApiError('هذه اللوحة متاحة للمدير العام والمدير التنفيذي فقط.', 403);
+    return {
+      id: account.id,
+      name: account.displayName || account.username,
+      username: account.username,
+      email: account.email || '',
+      type: role.name === 'GENERAL_MANAGER' ? 'admin' : 'branch_manager',
+      roleName: role.name === 'GENERAL_MANAGER' ? 'المدير العام' : 'المدير التنفيذي',
+      branchId: account.branch?.id ?? null,
+      branchName: account.branch?.name,
+      permissions: account.permissions,
+      mustChangePassword: account.mustChangePassword,
+      avatar: '👨‍💼',
+    };
+  };
+
+  useEffect(() => {
+    let active = true;
+    restoreWebSession()
+      .then(async account => {
+        if (!active || !account) return;
+        try { setCurrentUser(toDashboardUser(account)); }
+        catch (error) { await logoutWeb(); throw error; }
+      })
+      .catch(error => { if (active) setLoginError(error instanceof ApiError && error.status === 403 ? error.message : 'تعذر الاتصال بخدمة تسجيل الدخول. تحقق من تشغيل الخادم ثم أعد المحاولة.'); })
+      .finally(() => { if (active) setAuthLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const handleLogout = async () => {
+    try { await logoutWeb(); } finally { setCurrentUser(null); setLoginError(null); }
+  };
+
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoginLoading(true);
+    setLoginError(null);
+    const form = new FormData(event.currentTarget);
+    try {
+      const account = await loginWeb(String(form.get('username') ?? ''), String(form.get('password') ?? ''));
+      try { setCurrentUser(toDashboardUser(account)); }
+      catch (error) { await logoutWeb(); throw error; }
+    } catch (error) {
+      setLoginError(error instanceof ApiError && error.status === 403 ? error.message : 'اسم المستخدم أو كلمة المرور غير صحيحة.');
+    } finally { setLoginLoading(false); }
   };
 
   useEffect(() => {
@@ -309,9 +354,7 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  useEffect(() => { if (currentUser) void loadAllData(); }, [currentUser]);
 
   // Action methods bridging API routes
 
@@ -747,6 +790,10 @@ export default function App() {
     { id: 'users', label: 'إدارة المستخدمين', icon: Users }
   ];
 
+  if (authLoading) {
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><RefreshCw className="h-10 w-10 text-emerald-600 animate-spin" /></div>;
+  }
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden" id="login-screen-wrapper">
@@ -779,31 +826,24 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right panel: Login forms and demo buttons */}
+          {/* Right panel: production backend login */}
           <div className="md:w-7/12 p-6 sm:p-8 flex flex-col justify-between space-y-6" id="login-right-pane">
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 font-display">بوابة النفاذ الموحد للملتقى</h3>
-                <p className="text-xs text-slate-400">فضلاً أدخل اسم المستخدم وكلمة المرور، أو اختر دوراً تجريبياً للدخول الفوري ومراجعة الصلاحيات واللوحات.</p>
+                <p className="text-xs text-slate-400">فضلاً أدخل اسم المستخدم وكلمة المرور لحساب إداري مصرح.</p>
               </div>
 
-              {/* Simulated input form */}
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const fd = new FormData(e.currentTarget);
-                const userVal = String(fd.get('username')).toLowerCase();
-                const matched = DEMO_USERS.find(du => du.username === userVal || du.type === userVal);
-                const finalUser = matched || DEMO_USERS[0]; // fallback to GM
-                setCurrentUser(finalUser);
-                localStorage.setItem('alhudacenter_current_user', JSON.stringify(finalUser));
-              }} className="space-y-3">
+              <form onSubmit={handleLogin} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">اسم المستخدم:</label>
                     <input 
                       type="text" 
                       name="username" 
-                      placeholder="أدخل admin أو moaz_n..."
+                      placeholder="اسم المستخدم أو البريد أو الجوال"
+                      required
+                      autoComplete="username"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
                     />
                   </div>
@@ -811,7 +851,10 @@ export default function App() {
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">كلمة المرور الآمنة:</label>
                     <input 
                       type="password" 
+                      name="password"
                       placeholder="••••••••" 
+                      required
+                      autoComplete="current-password"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
                     />
                   </div>
@@ -819,44 +862,14 @@ export default function App() {
 
                 <button 
                   type="submit"
+                  disabled={loginLoading}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5 font-display"
                 >
-                  <CheckCircle className="h-4 w-4" />
-                  <span>تسجيل الدخول الآمن</span>
+                  {loginLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  <span>{loginLoading ? 'جاري التحقق...' : 'تسجيل الدخول الآمن'}</span>
                 </button>
               </form>
-
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-slate-150"></div>
-                <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400">الدخول السريع بجميع الأدوار التجريبية (النماذج المحاكية)</span>
-                <div className="flex-grow border-t border-slate-150"></div>
-              </div>
-
-              {/* Demo Roles selection grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" id="demo-roles-selector-grid">
-                {DEMO_USERS.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => {
-                      setCurrentUser(user);
-                      localStorage.setItem('alhudacenter_current_user', JSON.stringify(user));
-                    }}
-                    className="p-2.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 hover:shadow-xs text-right transition-all group cursor-pointer flex items-start gap-2.5 relative"
-                    title={user.description}
-                  >
-                    <span className="text-xl select-none pt-0.5 shrink-0">{user.avatar}</span>
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-xs text-slate-800 group-hover:text-emerald-900 transition-colors">{user.name}</p>
-                      <p className="text-[10px] text-emerald-800 font-bold">{user.roleName}</p>
-                    </div>
-
-                    {/* Simple explanatory tooltip element */}
-                    <div className="absolute bottom-full mb-1 right-2 left-2 bg-slate-800 text-white text-[9px] p-2 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-md leading-relaxed text-right">
-                      {user.description}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {loginError && <div role="alert" className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-3 text-xs font-bold">{loginError}</div>}
             </div>
 
             <div className="text-[10px] text-slate-400 text-center leading-normal pt-2 border-t border-slate-100">
@@ -1066,7 +1079,7 @@ export default function App() {
         currentUser={currentUser}
         currentContextTab={activeTab}
         onNavigateToTab={(tabId) => setActiveTab(tabId)}
-        demoUsers={DEMO_USERS}
+        demoUsers={LEGACY_SEARCH_USERS}
       />
     </div>
   );

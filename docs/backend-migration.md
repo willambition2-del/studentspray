@@ -1,8 +1,8 @@
 # Backend migration plan
 
-## Current state
+## Current state — Phase 3
 
-The root application is an existing React 19 + Vite product prototype. Its `server.ts` combines the Vite development middleware, static production hosting, in-memory records, prototype authentication/authorization, and legacy API routes. Several UI areas also persist mock or user-entered data in `localStorage`.
+The root application remains a React 19 + Vite product prototype. Its `server.ts` still hosts legacy feature routes and mock data, but it is no longer an authentication source for the admin dashboard. React login, session restoration, role admission, and logout now use the NestJS web-auth endpoints. Access tokens stay in memory and refresh tokens stay in an HttpOnly cookie.
 
 ## Phase 1 decision
 
@@ -23,10 +23,10 @@ The two applications currently run independently:
 - Existing prototype: root `npm run dev`
 - New API: `cd backend && npm run start:dev`
 
-## Later migration
+## Phase 3 boundary and later migration
 
-Future phases should introduce authentication first, then migrate bounded frontend features endpoint by endpoint. Each migration should remove the corresponding in-memory/localStorage dependency only after API integration and regression verification. The legacy `server.ts` should be removed only after no current UI route depends on it.
+The NestJS API now owns Forum, Branch, User, Role, Permission, Student, Parent, Teacher, Technical Supervisor, Halaqa, membership, assignment, transfer, and business-audit data in PostgreSQL. The corresponding React management pages intentionally remain on their legacy routes for this phase. Migrate each bounded UI feature only after API integration and regression verification. Remove `server.ts` only after no UI route depends on it.
 
 ## Legacy authentication warning
 
-The Express prototype and its `DEMO_USERS`, role headers, in-memory sessions, and localStorage login state are not production authentication sources. Do not expose the legacy server as a public production API. New clients must migrate to the NestJS `/api/v1/auth` contracts; the legacy authentication code remains only to preserve the current prototype until endpoint-by-endpoint frontend migration is complete.
+The Express prototype's demo identities, role headers, and in-memory records are not production authentication sources. The admin login has no demo-user fallback or quick-login path and does not persist identity or tokens in browser storage. Only `GENERAL_MANAGER` and `EXECUTIVE_MANAGER` are admitted to the current web dashboard.

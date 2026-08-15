@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -7,12 +7,12 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(RedisService.name);
   private readonly client: Redis;
 
-  constructor(config: ConfigService) {
+  constructor(@Optional() @Inject(ConfigService) config?: ConfigService) {
     this.client = new Redis({
-      host: config.getOrThrow<string>('REDIS_HOST'),
-      port: config.getOrThrow<number>('REDIS_PORT'),
-      password: config.get<string>('REDIS_PASSWORD') || undefined,
-      db: config.get<number>('REDIS_DB', 0),
+      host: config?.get<string>('REDIS_HOST') ?? process.env.REDIS_HOST ?? 'localhost',
+      port: config?.get<number>('REDIS_PORT') ?? (process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 56379),
+      password: config?.get<string>('REDIS_PASSWORD') || process.env.REDIS_PASSWORD || undefined,
+      db: config?.get<number>('REDIS_DB', 0) ?? (process.env.REDIS_DB ? Number(process.env.REDIS_DB) : 0),
       lazyConnect: true,
       enableOfflineQueue: false,
       maxRetriesPerRequest: 1,

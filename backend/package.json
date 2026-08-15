@@ -14,7 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
-    "bootstrap:general-manager": "tsx scripts/bootstrap-general-manager.ts",
+    "bootstrap:general-manager": "tsc -p tsconfig.json && node dist/scripts/bootstrap-general-manager.js",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand --testPathPatterns=\\.spec\\.ts$ --testPathIgnorePatterns=\\.e2e-spec\\.ts$",
     "test:e2e": "jest --runInBand --testPathPatterns=\\.e2e-spec\\.ts$"
