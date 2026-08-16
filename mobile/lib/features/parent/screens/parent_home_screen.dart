@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../notifications/providers/notification_provider.dart';
+import '../../chat/providers/chat_provider.dart';
 import '../providers/parent_provider.dart';
 
 class ParentHomeScreen extends ConsumerWidget {
@@ -13,11 +15,31 @@ class ParentHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final childrenAsync = ref.watch(parentChildrenProvider);
     final activeChildId = ref.watch(activeChildIdProvider);
+    final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    final unreadChat = ref.watch(chatTotalUnreadCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('بوابة ولي الأمر — الملتقى القرآني'),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadChat > 0,
+              label: Text('$unreadChat'),
+              child: const Icon(Icons.chat_bubble_outline_rounded),
+            ),
+            tooltip: 'المحادثات',
+            onPressed: () => context.push('/chat'),
+          ),
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadNotifs > 0,
+              label: Text('$unreadNotifs'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'الإشعارات',
+            onPressed: () => context.push('/notifications'),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'تحديث البيانات',
@@ -26,6 +48,8 @@ class ParentHomeScreen extends ConsumerWidget {
               if (activeChildId != null) {
                 ref.invalidate(childDashboardProvider(activeChildId));
               }
+              ref.invalidate(unreadNotificationsCountProvider);
+              ref.invalidate(chatTotalUnreadCountProvider);
             },
           ),
           IconButton(

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../notifications/providers/notification_provider.dart';
+import '../../chat/providers/chat_provider.dart';
 import '../providers/teacher_provider.dart';
 
 class TeacherHomeScreen extends ConsumerWidget {
@@ -15,11 +17,31 @@ class TeacherHomeScreen extends ConsumerWidget {
     final user = authState.user;
     final halaqasAsync = ref.watch(myHalaqasProvider);
     final pendingCountAsync = ref.watch(pendingMutationsCountProvider);
+    final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    final unreadChat = ref.watch(chatTotalUnreadCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('الملتقى القرآني — المعلم'),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadChat > 0,
+              label: Text('$unreadChat'),
+              child: const Icon(Icons.chat_bubble_outline_rounded),
+            ),
+            tooltip: 'المحادثات',
+            onPressed: () => context.push('/chat'),
+          ),
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadNotifs > 0,
+              label: Text('$unreadNotifs'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'الإشعارات',
+            onPressed: () => context.push('/notifications'),
+          ),
           IconButton(
             icon: const Icon(Icons.sync_rounded),
             tooltip: 'مزامنة العمليات المعلقة',

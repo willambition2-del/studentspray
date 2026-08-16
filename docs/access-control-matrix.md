@@ -23,8 +23,14 @@ A role or permission never grants access to every record by itself. Forum, branc
 - `canAccessBranch`: General Manager is forum-wide; Executive Manager follows `UserRole.branchId`; other roles remain constrained to their own branch context.
 - `canAccessHalaqa`: managers follow branch scope; teachers and supervisors require active assignment rows.
 - `canAccessStudent`: managers follow forum/branch rules; teacher/supervisor access is derived through active Halaqa membership; students access themselves; parents require `StudentGuardian`.
-- IDs supplied by React or future Flutter clients are treated only as requested resource identifiers and are always re-authorized server-side.
+- `canAccessChatConversation`:
+  - `HALAQA`: Active teacher and enrolled active students of the Halaqa only.
+  - `STAFF`: Forum staff members (General Manager, Executive Manager, Technical Supervisor, Teacher) only.
+  - `PARENT_STUDENT_CHANNEL`: Linked parent of the child and child's active Halaqa teachers only.
+  - Global/arbitrary DMs are strictly prohibited.
+- `canAccessNotifications`: Users can only read and manage their own notifications (`userId = CurrentUser.id`). Device tokens are strictly tied to authenticated user sessions.
 
 Phase 3 business APIs declare permissions with `@RequirePermissions(...)` and resolve forum, branch, Halaqa, student, assignment, and guardian scope server-side. `branches.read` and `branches.manage` are part of the system-controlled permission catalog. Role mutation also applies a no-escalation policy: non-General Managers cannot grant a permission they do not hold or assign `GENERAL_MANAGER`.
 
 Suspending an account revokes active sessions in the same transaction. Business changes are written to `AuditLog`; authentication and session security events remain in the separate `SecurityAuditLog`.
+

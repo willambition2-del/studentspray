@@ -35,6 +35,9 @@ import '../features/parent/screens/parent_child_recitation_screen.dart';
 import '../features/parent/screens/parent_child_exams_screen.dart';
 import '../features/parent/screens/parent_child_evaluations_screen.dart';
 import '../features/parent/screens/parent_child_progress_screen.dart';
+import '../features/notifications/screens/notifications_screen.dart';
+import '../features/chat/screens/conversations_screen.dart';
+import '../features/chat/screens/chat_room_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -300,6 +303,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final studentId = state.pathParameters['studentId'] ?? '';
           return ParentChildProgressScreen(studentId: studentId);
+        },
+      ),
+
+      // Notifications Route (Shared across Teacher, Supervisor, Student, Parent)
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+
+      // Chat Routes (Role-scoped Realtime Chat)
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) => const ConversationsScreen(),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (context, state) {
+          final convId = state.pathParameters['id'] ?? '';
+          final title = state.uri.queryParameters['title'];
+          return ChatRoomScreen(conversationId: convId, title: title);
         },
       ),
     ],

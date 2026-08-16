@@ -216,6 +216,7 @@ model Forum {
   recommendations     Recommendation[]
   exams               Exam[]
   studentEvaluations  StudentEvaluation[]
+  conversations       Conversation[]
 
   @@index([isActive, deletedAt])
 }
@@ -287,6 +288,10 @@ model User {
   createdExams              Exam[]                   @relation("ExamCreator")
   gradedExamResults         ExamResult[]             @relation("ResultGrader")
   evaluatedStudents         StudentEvaluation[]      @relation("StudentEvaluator")
+  deviceTokens              DeviceToken[]
+  notifications             Notification[]
+  conversationMemberships   ConversationMember[]
+  sentMessages              ChatMessage[]            @relation("MessageSender")
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -438,6 +443,7 @@ model StudentProfile {
   revisionRecords     RevisionRecord[]
   examResults         ExamResult[]
   studentEvaluations  StudentEvaluation[]
+  conversations       Conversation[]
 
   @@index([studentNumber])
 }
@@ -532,6 +538,7 @@ model Halaqa {
   recommendations     Recommendation[]
   exams               Exam[]
   studentEvaluations  StudentEvaluation[]
+  conversations       Conversation[]
 
   @@unique([branchId, code])
   @@index([forumId, branchId, isActive, deletedAt])
@@ -1105,3 +1112,125 @@ model StudentEvaluation {
   @@index([studentId, evaluationDate])
   @@index([halaqaId, evaluationDate])
 }
+
+enum NotificationType {
+  ATTENDANCE
+  EXAM_RESULT
+  STUDENT_EVALUATION
+  MEMORIZATION
+  REVISION
+  FIELD_VISIT
+  RECOMMENDATION
+  NEW_MESSAGE
+  SYSTEM
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+model DeviceToken {
+  id         String         @id @default(uuid()) @db.Uuid
+  userId     String         @db.Uuid
+  token      String         @unique
+  platform   DevicePlatform @default(ANDROID)
+  deviceId   String?
+  appVersion String?
+  isActive   Boolean        @default(true)
+  lastSeenAt DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType @default(SYSTEM)
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+enum ConversationType {
+  HALAQA
+  STAFF
+  PARENT_STUDENT_CHANNEL
+}
+
+enum ChatMessageType {
+  TEXT
+  SYSTEM
+}
+
+model Conversation {
+  id        String           @id @default(uuid()) @db.Uuid
+  forumId   String           @db.Uuid
+  type      ConversationType
+  halaqaId  String?          @db.Uuid
+  studentId String?          @db.Uuid
+  title     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+
+  forum    Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  halaqa   Halaqa?              @relation(fields: [halaqaId], references: [id], onDelete: Cascade)
+  student  StudentProfile?      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  members  ConversationMember[]
+  messages ChatMessage[]
+
+  @@index([forumId, type])
+  @@index([halaqaId])
+  @@index([studentId])
+}
+
+model ConversationMember {
+  id                String    @id @default(uuid()) @db.Uuid
+  conversationId    String    @db.Uuid
+  userId            String    @db.Uuid
+  role              String?
+  lastReadMessageId String?   @db.Uuid
+  lastReadAt        DateTime?
+  joinedAt          DateTime  @default(now())
+  leftAt            DateTime?
+  isActive          Boolean   @default(true)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, isActive])
+}
+
+model ChatMessage {
+  id              String          @id @default(uuid()) @db.Uuid
+  conversationId  String          @db.Uuid
+  senderId        String          @db.Uuid
+  clientMessageId String?         @unique @db.Uuid
+  type            ChatMessageType @default(TEXT)
+  text            String
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  editedAt        DateTime?
+  deletedAt       DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+}
+

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Conversation, ChatMessage, User, Student, ChatMember } from '../types';
+import { getChatConversations, getChatMessages, sendChatMessage, markChatAsRead } from '../lib/api/chat';
 
 interface ChatSystemProps {
   currentUser: User | any;
@@ -194,17 +195,35 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
     ]
   });
 
-  // Sync / Generate dynamic conversations from server API
+  // Sync conversations from backend NestJS API
   useEffect(() => {
-    fetch('/api/conversations')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setConversations(data);
+    let isMounted = true;
+    getChatConversations()
+      .then(apiConvs => {
+        if (!isMounted || !Array.isArray(apiConvs) || apiConvs.length === 0) return;
+        const mapped: Conversation[] = apiConvs.map(c => ({
+          id: c.id,
+          type: c.type === 'HALAQA' ? 'circle' : c.type === 'STAFF' ? 'staff' : 'parent_teacher',
+          title: c.title,
+          subtitle: c.type === 'HALAQA' ? 'حلقة تحفيظ' : c.type === 'STAFF' ? 'طاقم العمل' : 'قناة تواصل',
+          icon: c.type === 'HALAQA' ? '📖' : c.type === 'STAFF' ? '🏛️' : '👨‍👧',
+          isRestricted: true,
+          unreadCount: { [userId]: c.unreadCount },
+          lastMessage: c.lastMessage?.text || '',
+          lastMessageTime: c.lastMessage?.createdAt ? new Date(c.lastMessage.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '',
+          members: []
+        }));
+        setConversations(prev => {
+          const merged = [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))];
+          return merged;
+        });
+        if (mapped.length > 0 && (!selectedConvId || selectedConvId === 'conv-staff')) {
+          setSelectedConvId(mapped[0].id);
         }
       })
       .catch(() => {});
-  }, []);
+    return () => { isMounted = false; };
+  }, [selectedConvId]);
 
   // Filter visible conversations according to role permissions and targeted user restrictions
   const visibleConversations = conversations.filter(conv => {
@@ -274,6 +293,32 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
   const activeConv = conversations.find(c => c.id === selectedConvId) || visibleConversations[0];
   const activeMessages = selectedConvId ? (messages[selectedConvId] || []) : [];
 
+  // Fetch messages from backend API when selectedConvId changes
+  useEffect(() => {
+    if (!selectedConvId || selectedConvId.startsWith('conv-staff') || selectedConvId.startsWith('conv-circle')) return;
+    let isMounted = true;
+    getChatMessages(selectedConvId)
+      .then(res => {
+        if (!isMounted || !res?.items) return;
+        const mapped: ChatMessage[] = res.items.reverse().map(m => ({
+          id: m.id,
+          conversationId: m.conversationId,
+          senderId: m.senderId,
+          senderName: m.senderName,
+          senderRole: m.isMe ? 'أنت' : 'عضو',
+          content: m.text,
+          timestamp: new Date(m.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+        }));
+        setMessages(prev => ({
+          ...prev,
+          [selectedConvId]: mapped
+        }));
+        markChatAsRead(selectedConvId).catch(() => {});
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [selectedConvId]);
+
   // Scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -285,13 +330,14 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
     if (!messageInput.trim() && !selectedFile) return;
     if (!selectedConvId) return;
 
+    const text = messageInput.trim();
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       conversationId: selectedConvId,
       senderId: userId,
       senderName: currentUser?.name || 'مستخدم النظام',
       senderRole: currentUser?.roleName || (userType === 'parent' ? 'ولي أمر' : userType === 'student' ? 'طالب' : 'معلم'),
-      content: messageInput,
+      content: text,
       timestamp: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
       attachmentName: selectedFile ? selectedFile.name : undefined,
       attachmentUrl: selectedFile ? '#' : undefined
@@ -318,12 +364,8 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
     setMessageInput('');
     setSelectedFile(null);
 
-    // Sync to backend API
-    fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMsg)
-    }).catch(() => {});
+    // Sync to backend NestJS API
+    sendChatMessage(selectedConvId, text).catch(() => {});
   };
 
   // Create Custom Restricted Conversation Handler (For Director General / Executives)

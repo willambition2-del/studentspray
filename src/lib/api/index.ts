@@ -23,3 +23,6 @@ export * from './exams';
 export * from './student-evaluations';
 export * from './student-portal';
 export * from './parent-portal';
+export * from './notifications';
+export * from './chat';
+

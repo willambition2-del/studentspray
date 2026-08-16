@@ -24,7 +24,6 @@ describe('Exams, Grades & Evaluations Engine (e2e)', () => {
   let gmToken: string;
   let teacherToken: string;
   let studentAToken: string;
-  let _studentBToken: string;
   let parentToken: string;
 
   let halaqaAId: string;
@@ -191,7 +190,7 @@ describe('Exams, Grades & Evaluations Engine (e2e)', () => {
     gmToken = await loginUser(gmUser.username);
     teacherToken = await loginUser(teacherUser.username);
     studentAToken = await loginUser(stuAUser.username);
-    _studentBToken = await loginUser(stuBUser.username);
+    await loginUser(stuBUser.username);
     parentToken = await loginUser(parentUser.username);
   });
 

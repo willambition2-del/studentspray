@@ -1,26 +1,32 @@
 # Backend migration plan
 
-## Current state — Phase 6 Complete (Flutter Foundation + Teacher Mobile App)
+## Current state — Phase 12 Complete (Notifications + FCM & Realtime Chat + Socket.IO)
 
 The platform consists of:
-1. A production-ready NestJS API backend (`backend/`) backed by PostgreSQL & Redis.
+1. A production-ready NestJS API backend (`backend/`) backed by PostgreSQL, Redis, and Socket.IO.
 2. A React 19 Admin Web Dashboard (Vite) for General Managers and Executive Managers.
-3. A unified Flutter Mobile App (`mobile/`) with Arabic RTL support, Riverpod state management, Drift offline queue, GoRouter role-based routing, and a complete **Teacher Mobile Experience** (`TEACHER`).
+3. A unified Flutter Mobile App (`mobile/`) with Arabic RTL support, Riverpod state management, Drift offline queue, GoRouter role-based routing, and dedicated experiences for:
+   - `TEACHER` (Halaqat, Attendance, Recitation, Progress, Offline Sync)
+   - `TECHNICAL_SUPERVISOR` (Halaqat, Teachers, Field Visits, Evaluations, Recommendations)
+   - `STUDENT` (Daily Plan, Attendance, Recitation, Exams, Evaluations, Cumulative Progress)
+   - `PARENT` (Multi-child switcher, Attendance, Recitations, Exams, Evaluations, Progress)
+   - **Centralized Notifications Center** (In-App notifications, device tokens, FCM push dispatch)
+   - **Realtime Chat & Channels** (Socket.IO with JWT auth, role-scoped Halaqa group, Staff group, and Parent channels)
 
 ```text
-React 19 Admin Web Dashboard (Vite)
+React 19 Admin Web Dashboard (Vite) / Flutter Mobile App (Riverpod + Socket.IO)
              │
              │ [Authorization: Bearer <in-memory token>]
-             │ [Transparent 401 Refresh via HttpOnly cookie]
+             │ [Socket.IO namespace: /chat with JWT Handshake Auth]
              ▼
-  Centralized API Client Layer (`src/lib/api/`)
+Centralized API Client Layer (`src/lib/api/` & `mobile/lib/core/network/`)
              │
              ▼
 NestJS Core API (`http://localhost:4000/api/v1`)
              │
-      ┌──────┴──────┐
-      ▼             ▼
- PostgreSQL       Redis
+      ┌──────┴──────┬──────────────┐
+      ▼             ▼              ▼
+ PostgreSQL       Redis       Socket.IO / FCM
 ```
 
 ## Module Status Matrix
@@ -39,26 +45,28 @@ NestJS Core API (`http://localhost:4000/api/v1`)
 | **Technical Supervisors** | `MIGRATED` | `GET /supervisors`, `POST /supervisors`, `POST /halaqas/:id/supervisors` | Backend and API client ready; supervisor account provisioning handled via User Management UI. |
 | **Academic Years & Terms** | `MIGRATED` | `GET /academic-years`, `POST /academic-years`, `PATCH /academic-years/:id`, `POST /academic-years/:id/activate`, `POST /academic-years/:id/terms`, `PATCH /academic-years/terms/:termId` | Single active year enforced transactionally, term date boundary validation, audit logged. |
 | **Educational Plans** | `MIGRATED` | `GET /educational-plans`, `POST /educational-plans`, `PATCH /educational-plans/:id`, `POST /educational-plans/:id/activate`, `POST /educational-plans/:id/archive`, `POST /educational-plans/:id/items`, `PATCH /educational-plans/items/:itemId`, `DELETE /educational-plans/items/:itemId` | Supports HIFZ, MURAJAAH, and CUSTOM templates, scoped by forum/branch/halaqa/student, items ordering and targets. |
-| **Attendance Sessions & Records** | `MIGRATED` | `POST /halaqas/:halaqaId/attendance/sessions`, `PUT /attendance/sessions/:sessionId/records`, `GET /halaqas/:halaqaId/attendance`, `GET /students/:studentId/attendance`, `GET /halaqas/:halaqaId/attendance/summary` | Bulk record upserting, IDOR security checks, attendance metrics and rate calculations. |
+| **Attendance Sessions & Records** | `MIGRATED` | `POST /halaqas/:halaqaId/attendance/sessions`, `PUT /attendance/sessions/:sessionId/records`, `GET /halaqas/:halaqaId/attendance`, `GET /students/:studentId/attendance`, `GET /halaqas/:halaqaId/attendance/summary` | Bulk record upserting, IDOR security checks, attendance metrics and rate calculations. Triggers parent absence notifications. |
 | **Memorization & Revision** | `MIGRATED` | `POST /memorization`, `GET /memorization`, `POST /revision`, `GET /revision` | Surah/Ayah/Page ranges, evaluation score, rating enum, mistake count, idempotent submission via `clientMutationId`. |
 | **Student Progress & Indicators** | `MIGRATED` | `GET /students/:studentId/progress` | Dynamically aggregates attendance rate, total recitation sessions, avg scores, active educational plan progress. |
 | **Teacher Workspace (Mobile-Ready)**| `MIGRATED` | `GET /teacher/me/halaqas`, `GET /teacher/me/halaqas/:halaqaId/today` | Dedicated endpoint returning today's snapshot (session, plan, recitations, enrolled students). |
-| **Exams, Final Grades & Certificates** | `RESERVED` | — | Reserved for subsequent phase. |
-| **Field Visits & Supervision Notes** | `RESERVED` | — | Reserved for subsequent phase. |
-| **Realtime Chat & Notifications**| `RESERVED` | — | Reserved for subsequent phase. |
+| **Exams, Final Grades & Evaluations** | `MIGRATED` | `GET /exams`, `POST /exams`, `POST /exams/:id/publish`, `POST /exams/:id/grade`, `GET /student-evaluations`, `POST /student-evaluations` | Role-guarded exam lifecycle, bulk grading, weighted calculations, and automatic student/parent notifications. |
+| **Field Visits & Supervision Notes** | `MIGRATED` | `GET /supervisor/me/halaqas`, `GET /supervisor/me/teachers`, `GET /field-visits`, `POST /field-visits`, `POST /field-visits/:id/complete`, `GET /recommendations` | Complete supervisor workspace with multi-dimensional rubrics and action tracker. |
+| **Notifications & Firebase FCM** | `MIGRATED` | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `POST /notifications/devices`, `DELETE /notifications/devices/:token` | Multi-channel in-app and push notification system supporting all 4 roles with deep links. |
+| **Realtime Chat & Socket.IO** | `MIGRATED` | `GET /chat/conversations`, `GET /chat/conversations/:id/messages`, `POST /chat/conversations/:id/messages`, `POST /chat/conversations/:id/read`, `GET /chat/unread-count`, WS Gateway `/chat` | Domain-scoped Halaqa group, Staff group, and Parent channel chats. Message persistence before socket emission. |
 
 ## Verified Integration Points
 
 1. **Security & In-Memory Tokens**:
-   - Access tokens are strictly stored in JavaScript module memory (`src/lib/api/client.ts`).
-   - No sensitive token material persisted in `localStorage` or `sessionStorage`.
+   - Access tokens are strictly stored in JavaScript module memory (`src/lib/api/client.ts`) and Flutter `TokenStorage`.
    - Refresh tokens are delivered and refreshed via HttpOnly Cookies with strict CORS origin verification.
+   - Socket.IO gateway authenticates connections via JWT handshake auth verification.
 2. **Transactional Invariants & Exclusivity**:
    - AcademicYear activation transactionally deactivates all other years for the same forum.
    - Attendance sessions enforce unique `(halaqaId, sessionDate)` compound index.
-   - Memorization and Revision records enforce unique `clientMutationId` for idempotent submissions.
+   - Chat messages enforce idempotent creation via unique `clientMessageId`.
+   - Notifications and messages persist to PostgreSQL before pushing or broadcasting.
 3. **Auditing & IDOR Protection**:
-   - All Phase 5 write operations write detailed entries to `AuditLog`.
-   - Teachers cannot record attendance or recitations for halaqas/students they do not teach.
+   - All critical write operations write detailed entries to `AuditLog`.
+   - Chat gateway and controllers authorize membership per conversation to prevent unauthorized access.
 4. **Zero Mock Fallbacks**:
-   - UI components (`EducationalPlanning.tsx`, `StudentPlanManagement.tsx`, `StudentMeasurementCenter.tsx`) fetch directly from the real NestJS API and throw standard `ApiError` instances rather than silently falling back to mock or demo data on failure.
+   - Both Web Dashboard and Flutter mobile app fetch directly from real NestJS APIs with structured error handling.

@@ -32,6 +32,8 @@ import { TeacherWorkspaceModule } from "./teacher-workspace/teacher-workspace.mo
 import { UsersModule } from "./users/users.module";
 import { AuditModule } from "./audit/audit.module";
 import { BranchesModule } from "./branches/branches.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { BranchesModule } from "./branches/branches.module";
     PrismaModule,
     RedisModule,
     AuditModule,
+    NotificationsModule,
+    ChatModule,
     ProfilesModule,
     AuthorizationModule,
     AuthModule,
