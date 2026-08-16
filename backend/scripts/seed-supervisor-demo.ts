@@ -34,6 +34,37 @@ async function main() {
   const branch = await prisma.branch.findFirstOrThrow({ where: { forumId: forum.id, code: 'MAIN' } });
   const supervisorRole = await prisma.role.findFirstOrThrow({ where: { forumId: forum.id, name: 'TECHNICAL_SUPERVISOR' } });
 
+  const supervisorPermissions = [
+    'field_visits.read',
+    'field_visits.write',
+    'evaluations.read',
+    'evaluations.write',
+    'evaluation_templates.read',
+    'evaluation_templates.manage',
+    'recommendations.read',
+    'recommendations.write',
+    'supervisor_reports.read',
+    'halaqas.read',
+    'teachers.read',
+    'students.read',
+  ];
+
+  for (const code of supervisorPermissions) {
+    const perm = await prisma.permission.upsert({
+      where: { code },
+      update: {},
+      create: { code, description: code },
+    });
+    const existing = await prisma.rolePermission.findFirst({
+      where: { roleId: supervisorRole.id, permissionId: perm.id },
+    });
+    if (!existing) {
+      await prisma.rolePermission.create({
+        data: { roleId: supervisorRole.id, permissionId: perm.id },
+      });
+    }
+  }
+
   // 1. Seed Default Evaluation Template if not exists
   let template = await prisma.evaluationTemplate.findFirst({
     where: { forumId: forum.id, isDefault: true, deletedAt: null },
