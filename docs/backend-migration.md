@@ -1,8 +1,8 @@
 # Backend migration plan
 
-## Current state — Phase 4 Complete
+## Current state — Phase 4 Verified
 
-The root application is a React 19 + Vite dashboard connected to the NestJS production API in `backend/`. Core admin management modules have been migrated from mock storage/legacy Express endpoints to the real NestJS API backed by PostgreSQL and Redis.
+The root application is a React 19 + Vite dashboard connected to the NestJS production API in `backend/`. Core admin management modules are migrated from mock storage/legacy Express endpoints to the real NestJS API backed by PostgreSQL and Redis.
 
 ```text
 React 19 Admin Web Dashboard (Vite)
@@ -20,34 +20,33 @@ NestJS Core API (`http://localhost:4000/api/v1`)
  PostgreSQL       Redis
 ```
 
-## Phase 4 Migrated Core Modules
+## Module Status Matrix
 
-1. **Centralized API Client Layer (`src/lib/api/`)**:
-   - `client.ts`: Core HTTP wrapper with automatic Bearer token injection, single-flight refresh lock on 401 responses, and listener-based session invalidation without infinite redirect loops.
-   - `auth.ts`: Authentication routines (`loginWeb`, `restoreWebSession`, `logoutWeb`, `readMe`).
-   - `forums.ts`: `getCurrentForum`, `updateCurrentForum`.
-   - `branches.ts`: `getBranches`, `getBranch`, `createBranch`, `updateBranch`, `archiveBranch`, `restoreBranch`.
-   - `users.ts`: `getUsers`, `getUser`, `createUser`, `updateUser`, `assignUserRole`, `activateUser`, `suspendUser`, `forcePasswordChange`, `revokeUserSessions`.
-   - `roles.ts`: `getRoles`, `getRole`, `createRole`, `updateRole`, `setRolePermissions`, `getPermissions`.
-   - `students.ts`: `getStudents`, `getStudent`, `createStudent`, `updateStudent`, `archiveStudent`, `restoreStudent`, `transferStudentHalaqa`.
-   - `parents.ts`: `getParents`, `getParent`, `createParent`, `updateParent`, `getParentStudents`, `linkStudentToParent`, `updateGuardianLink`, `unlinkStudentFromParent`.
-   - `teachers.ts`: `getTeachers`, `getTeacher`, `createTeacher`, `updateTeacher`.
-   - `supervisors.ts`: `getSupervisors`, `getSupervisor`, `createSupervisor`, `updateSupervisor`.
-   - `halaqas.ts`: `getHalaqas`, `getHalaqa`, `createHalaqa`, `updateHalaqa`, `archiveHalaqa`, `restoreHalaqa`, memberships, teacher assignments, and supervisor assignments.
+| Domain Module | Migration Status | Backend Endpoints | Notes |
+| :--- | :--- | :--- | :--- |
+| **Authentication & Session** | `MIGRATED` | `POST /auth/web/login`, `POST /auth/web/refresh`, `POST /auth/web/logout`, `GET /auth/me` | In-memory access token, HttpOnly refresh cookie (`qf_refresh`), automatic 401 retry queue. |
+| **Forum Identity** | `MIGRATED` | `GET /forums/current`, `PATCH /forums/current` | Forum name and logo persisted in PostgreSQL; local UI cosmetic theme state preserved. |
+| **Branches** | `MIGRATED` | `GET /branches`, `POST /branches`, `PATCH /branches/:id`, `POST /branches/:id/archive` | Scoped by current forum. |
+| **Users Management** | `MIGRATED` | `GET /users`, `POST /users`, `PATCH /users/:id`, `POST /users/:id/suspend`, `POST /users/:id/activate`, `POST /users/:id/force-password-change`, `POST /users/:id/revoke-sessions` | Full server pagination, search, branch & role assignment, security status management. |
+| **Roles & Permissions** | `MIGRATED` | `GET /roles`, `POST /roles`, `PATCH /roles/:id`, `PUT /roles/:id/permissions`, `GET /permissions` | Dynamic backend permission catalog, live assignment, system role protection. |
+| **Student Management** | `MIGRATED` | `GET /students`, `POST /students`, `PATCH /students/:id`, `POST /students/:id/archive`, `POST /students/:id/transfer-halaqa`, `POST /halaqas/:id/students` | Real student profile creation, multi-tab modal integration, atomic halaqa transfers. |
+| **Teachers Management** | `MIGRATED` | `GET /teachers`, `POST /teachers`, `PATCH /teachers/:id`, `POST /halaqas/:id/teachers` | Profile registration and halaqa assignment. |
+| **Halaqat Management** | `MIGRATED` | `GET /halaqas`, `POST /halaqas`, `PATCH /halaqas/:id`, `POST /halaqas/:id/archive`, `POST /halaqas/:id/restore` | Real halaqa creation, branch association, soft-archival and restore. |
+| **Parents Management** | `BACKEND READY / ADMIN USER UI MIGRATED` | `GET /parents`, `POST /parents`, `POST /parents/:id/students/:studentId` | Backend and API client ready; parents account provisioning handled via User Management UI (`PARENT` role). Standalone parent admin UI not present in original dashboard. |
+| **Technical Supervisors** | `BACKEND READY / ADMIN USER UI MIGRATED` | `GET /supervisors`, `POST /supervisors`, `POST /halaqas/:id/supervisors` | Backend and API client ready; supervisor account provisioning handled via User Management UI (`TECHNICAL_SUPERVISOR` role). Standalone supervisor admin UI not present in original dashboard. |
+| **Attendance & Memorization** | `LEGACY / PHASE 5 RESERVED` | Legacy `server.ts` | Reserved for Phase 5. |
+| **Exams, Grades & Reports** | `LEGACY / PHASE 5 RESERVED` | Legacy `server.ts` | Reserved for Phase 5. |
+| **Field Visits & Supervision** | `LEGACY / PHASE 5 RESERVED` | Legacy `server.ts` | Reserved for Phase 5. |
+| **Realtime Chat & Notifications**| `LEGACY / PHASE 5 RESERVED` | Legacy `server.ts` | Reserved for Phase 5. |
+| **Print Center & Strategic Plan**| `LEGACY / PHASE 5 RESERVED` | Legacy `server.ts` | Reserved for Phase 5. |
 
-2. **Core Admin Screens Migrated**:
-   - **User Management (`UserManagement.tsx`)**: Real user creation with explicit DTO mapping, dynamic branch and role assignment, server-side search and filtering, activate/suspend status toggles, and mandatory password change protocol.
-   - **Roles & Permissions (`RolesManagement.tsx`)**: Dynamic system permissions matrix fetched directly from backend metadata, categorized Arabic display, custom role creation, and live permission assignment.
-   - **Forum Settings & Identity (`VisualIdentity.tsx` & `App.tsx`)**: Real forum name and logo persistence via `PATCH /api/v1/forums/current`.
-   - **Student Management (`StudentManagement.tsx` & `NewStudentModal.tsx`)**: Server-backed student registration, halaqa membership assignment, and atomic student transfer between halaqas with full database audit logging.
-   - **Teacher Management (`TeachersManagement.tsx`)**: Real teacher record creation and profile loading backed by PostgreSQL.
-   - **Halaqat Management (`HalaqatManagement.tsx`)**: Real halaqa creation, branch association, soft-archival (closure), and restoration.
+## Verified Integration Points
 
-## Phase 5 Boundaries
-
-Features reserved for Phase 5 (not migrated in Phase 4):
-- Daily Attendance & Memorization/Revision recording
-- Exams, Grading & Evaluation sheets
-- Field Supervision Visits
-- Interactive Chat & Real-time Notifications
-- Strategic Plan and Print Center
+1. **Security & In-Memory Tokens**:
+   - Access tokens are strictly stored in JavaScript module memory (`src/lib/api/client.ts`).
+   - No sensitive token material persisted in `localStorage` or `sessionStorage`.
+   - Refresh tokens are delivered and refreshed via HttpOnly Cookies with strict CORS origin verification.
+2. **Atomic Student Transfers**:
+   - Transferred via atomic `POST /api/v1/students/:id/transfer-halaqa` endpoint rather than multi-request delete/create cycles.
+3. **Zero Mock Fallbacks**:
+   - Migrated modules throw standard `ApiError` instances rather than silently falling back to mock or demo data on failure.

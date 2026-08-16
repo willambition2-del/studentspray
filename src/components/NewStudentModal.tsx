@@ -13,13 +13,15 @@ interface NewStudentModalProps {
   onClose: () => void;
   onSave: (studentData: Partial<Student>, keepOpenForAnother?: boolean) => void;
   nextStudentId: string;
+  availableHalaqas?: Array<{ id: string; name: string; teachers?: any[] }>;
 }
 
 export default function NewStudentModal({
   isOpen,
   onClose,
   onSave,
-  nextStudentId
+  nextStudentId,
+  availableHalaqas = []
 }: NewStudentModalProps) {
   // Active Tab Index (0 to 5)
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -446,15 +448,34 @@ export default function NewStudentModal({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Current Halaqa (Auto Assigned) */}
+                  {/* Current Halaqa Selection */}
                   <div className="space-y-1.5">
                     <label className="font-bold text-slate-700 block">الحلقة المخصصة للطالب</label>
-                    <div className="w-full p-3 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-emerald-950 flex items-center justify-between shadow-2xs">
-                      <span>{formData.circle}</span>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
-                        إضافة تلقائية لحلقة المعلم
-                      </span>
-                    </div>
+                    {availableHalaqas.length > 0 ? (
+                      <select
+                        value={formData.circle}
+                        onChange={(e) => {
+                          const selectedName = e.target.value;
+                          const found = availableHalaqas.find(h => h.name === selectedName || h.id === selectedName);
+                          const assignedTeacher = found?.teachers?.find((t: any) => t.isActive)?.teacher?.user?.displayName || 'الشيخ عبد الرحمن السعيد';
+                          setFormData({ ...formData, circle: selectedName, teacher: assignedTeacher });
+                        }}
+                        className="w-full p-2.5 bg-slate-50/50 border border-slate-250 rounded-xl text-xs font-bold text-emerald-950 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      >
+                        {availableHalaqas.map(h => (
+                          <option key={h.id} value={h.name}>
+                            {h.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="w-full p-3 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-bold text-emerald-950 flex items-center justify-between shadow-2xs">
+                        <span>{formData.circle}</span>
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                          إضافة تلقائية لحلقة المعلم
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Assigned Teacher */}

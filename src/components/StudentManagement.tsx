@@ -2040,6 +2040,7 @@ export default function StudentManagement({ currentUser }: { currentUser?: any }
         onClose={() => setShowAddStudentModal(false)}
         onSave={handleSaveStudentFromModal}
         nextStudentId={`ST-${String(students.length + 1).padStart(6, '0')}`}
+        availableHalaqas={availableHalaqas}
       />
 
       {/* MODAL 2: TRANSFER STUDENT (نقل الطالب بين الحلقات مع سبب إلزامي) */}
