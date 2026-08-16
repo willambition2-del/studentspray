@@ -1,0 +1,396 @@
+import 'demo_models.dart';
+
+class DemoData {
+  // Demo Personas for Entry Selector
+  static const List<DemoPersona> personas = [
+    DemoPersona(
+      id: 'teacher',
+      title: 'المعلم',
+      subtitle: 'أ. أحمد محمد — حلقة الإمام عاصم (24 طالباً)',
+      icon: '👨‍🏫',
+      route: '/demo/teacher',
+    ),
+    DemoPersona(
+      id: 'supervisor',
+      title: 'المشرف الفني',
+      subtitle: 'أ. عبد الرحمن — إشراف على 8 حلقات و 12 معلماً',
+      icon: '🧐',
+      route: '/demo/supervisor',
+    ),
+    DemoPersona(
+      id: 'student',
+      title: 'الطالب',
+      subtitle: 'محمد أحمد — خطة سورة البقرة وإنجاز 82%',
+      icon: '🎓',
+      route: '/demo/student',
+    ),
+    DemoPersona(
+      id: 'parent',
+      title: 'ولي الأمر',
+      subtitle: 'عبد الله محمد — متابعة 3 أبناء (محمد، أحمد، يوسف)',
+      icon: '👨‍👧‍👦',
+      route: '/demo/parent',
+    ),
+  ];
+
+  // 1. Teacher Persona Dataset
+  static const DemoTeacherData teacher = DemoTeacherData(
+    name: 'أ. أحمد محمد',
+    roleTitle: 'معلم حلقات القرآن الكريم',
+    centerName: 'ملتقى الهدى القرآني النموذجي',
+    halaqaName: 'حلقة الإمام عاصم',
+    totalStudents: 24,
+    presentToday: 22,
+    targetSurah: 'سورة البقرة (الربع الثالث)',
+    pendingTasks: 3,
+    unreadMessages: 4,
+    notificationsCount: 2,
+    students: [
+      DemoStudentListItem(
+        id: 'st-1',
+        name: 'محمد أحمد عبد الله',
+        currentSurah: 'البقرة (120-135)',
+        attendanceStatus: 'PRESENT',
+        score: 98,
+        evaluationRating: 'ممتاز',
+      ),
+      DemoStudentListItem(
+        id: 'st-2',
+        name: 'عمر خالد السعيد',
+        currentSurah: 'البقرة (100-119)',
+        attendanceStatus: 'PRESENT',
+        score: 95,
+        evaluationRating: 'ممتاز',
+      ),
+      DemoStudentListItem(
+        id: 'st-3',
+        name: 'سعد فهد المنصور',
+        currentSurah: 'البقرة (85-99)',
+        attendanceStatus: 'LATE',
+        score: 88,
+        evaluationRating: 'جيد جداً',
+      ),
+      DemoStudentListItem(
+        id: 'st-4',
+        name: 'إبراهيم يوسف الناصر',
+        currentSurah: 'البقرة (70-84)',
+        attendanceStatus: 'ABSENT',
+        score: 0,
+        evaluationRating: 'غير متوفر',
+      ),
+      DemoStudentListItem(
+        id: 'st-5',
+        name: 'عبد العزيز صالح القحطاني',
+        currentSurah: 'البقرة (136-150)',
+        attendanceStatus: 'PRESENT',
+        score: 99,
+        evaluationRating: 'ممتاز',
+      ),
+      DemoStudentListItem(
+        id: 'st-6',
+        name: 'خالد إبراهيم الدوسري',
+        currentSurah: 'البقرة (55-69)',
+        attendanceStatus: 'EXCUSED',
+        score: 0,
+        evaluationRating: 'بعذر رسمي',
+      ),
+      DemoStudentListItem(
+        id: 'st-7',
+        name: 'يوسف عبد الله التميمي',
+        currentSurah: 'البقرة (40-54)',
+        attendanceStatus: 'PRESENT',
+        score: 92,
+        evaluationRating: 'ممتاز',
+      ),
+      DemoStudentListItem(
+        id: 'st-8',
+        name: 'فيصل ناصر الرشيد',
+        currentSurah: 'البقرة (25-39)',
+        attendanceStatus: 'PRESENT',
+        score: 90,
+        evaluationRating: 'جيد جداً',
+      ),
+    ],
+    tasks: [
+      DemoTask(
+        id: 'tsk-1',
+        title: 'رصد درجات الاختبار الفتري الأول',
+        deadline: 'اليوم، 06:00 م',
+        priority: 'HIGH',
+        isCompleted: false,
+      ),
+      DemoTask(
+        id: 'tsk-2',
+        title: 'اعتماد خطط الحفظ الأسبوعية للطلاب الجدد',
+        deadline: 'غداً، 08:00 م',
+        priority: 'NORMAL',
+        isCompleted: false,
+      ),
+      DemoTask(
+        id: 'tsk-3',
+        title: 'مراجعة تقرير الزيارة الإشرافية الميدانية',
+        deadline: 'بعد غد',
+        priority: 'NORMAL',
+        isCompleted: true,
+      ),
+    ],
+  );
+
+  // 2. Supervisor Persona Dataset
+  static const DemoSupervisorData supervisor = DemoSupervisorData(
+    name: 'أ. عبد الرحمن بن سعود',
+    roleTitle: 'المشرف التعليمي الفني',
+    centerName: 'ملتقى الهدى القرآني النموذجي',
+    assignedHalaqasCount: 8,
+    assignedTeachersCount: 12,
+    visitsThisMonth: 14,
+    completedEvaluations: 11,
+    openRecommendations: 3,
+    halaqas: [
+      DemoHalaqaSummary(
+        id: 'hlq-1',
+        name: 'حلقة الإمام عاصم',
+        teacherName: 'أ. أحمد محمد',
+        studentsCount: 24,
+        time: 'العصر (04:00 - 06:00 م)',
+      ),
+      DemoHalaqaSummary(
+        id: 'hlq-2',
+        name: 'حلقة الإمام نافع',
+        teacherName: 'أ. خالد التميمي',
+        studentsCount: 20,
+        time: 'المغرب (06:30 - 08:00 م)',
+      ),
+      DemoHalaqaSummary(
+        id: 'hlq-3',
+        name: 'حلقة الإمام الشاطبي (المتقنين)',
+        teacherName: 'أ. فهد الغامدي',
+        studentsCount: 18,
+        time: 'الفجر (05:00 - 06:30 ص)',
+      ),
+      DemoHalaqaSummary(
+        id: 'hlq-4',
+        name: 'حلقة الإمام ابن كثير',
+        teacherName: 'أ. ياسر الحربي',
+        studentsCount: 22,
+        time: 'العصر (04:00 - 06:00 م)',
+      ),
+    ],
+    teachers: [
+      DemoTeacherSummary(
+        id: 'tch-1',
+        name: 'أ. أحمد محمد',
+        phone: '0551234567',
+        halaqaName: 'حلقة الإمام عاصم',
+        performanceRating: 96,
+      ),
+      DemoTeacherSummary(
+        id: 'tch-2',
+        name: 'أ. خالد التميمي',
+        phone: '0559876543',
+        halaqaName: 'حلقة الإمام نافع',
+        performanceRating: 92,
+      ),
+      DemoTeacherSummary(
+        id: 'tch-3',
+        name: 'أ. فهد الغامدي',
+        phone: '0501122334',
+        halaqaName: 'حلقة الإمام الشاطبي',
+        performanceRating: 98,
+      ),
+    ],
+    recentVisits: [
+      DemoVisitSummary(
+        id: 'vst-1',
+        halaqaName: 'حلقة الإمام عاصم',
+        teacherName: 'أ. أحمد محمد',
+        date: '1447/02/10 هـ',
+        scorePercentage: 96,
+        status: 'مكتملة ومعتمدة',
+      ),
+      DemoVisitSummary(
+        id: 'vst-2',
+        halaqaName: 'حلقة الإمام نافع',
+        teacherName: 'أ. خالد التميمي',
+        date: '1447/02/08 هـ',
+        scorePercentage: 91,
+        status: 'مكتملة ومعتمدة',
+      ),
+      DemoVisitSummary(
+        id: 'vst-3',
+        halaqaName: 'حلقة الإمام ابن كثير',
+        teacherName: 'أ. ياسر الحربي',
+        date: '1447/02/05 هـ',
+        scorePercentage: 88,
+        status: 'توصيات قيد المتابعة',
+      ),
+    ],
+  );
+
+  // 3. Student Persona Dataset
+  static const DemoStudentData student = DemoStudentData(
+    name: 'محمد أحمد عبد الله',
+    roleTitle: 'طالب حلقة تحفيظ',
+    halaqaName: 'حلقة الإمام عاصم (المستوى النموذجي)',
+    teacherName: 'أ. أحمد محمد',
+    centerName: 'ملتقى الهدى القرآني النموذجي',
+    attendanceRate: 94,
+    planProgress: 82,
+    lastMemorization: 'سورة البقرة (الآيات 120–135)',
+    lastRevision: 'سورة البقرة (الآيات 1–50)',
+    lastEvaluationRating: 'ممتاز مرتفع (98%)',
+    lastExamScore: 92,
+    totalAwards: 5,
+    planItems: [
+      DemoPlanItem(surah: 'سورة البقرة', verses: '120 - 135', type: 'HIFZ', isDone: true, targetPages: 2),
+      DemoPlanItem(surah: 'سورة البقرة', verses: '136 - 150', type: 'HIFZ', isDone: false, targetPages: 2),
+      DemoPlanItem(surah: 'سورة البقرة', verses: '151 - 165', type: 'HIFZ', isDone: false, targetPages: 2),
+      DemoPlanItem(surah: 'سورة البقرة', verses: '1 - 50', type: 'MURAJAAH', isDone: true, targetPages: 5),
+      DemoPlanItem(surah: 'سورة البقرة', verses: '51 - 100', type: 'MURAJAAH', isDone: false, targetPages: 5),
+    ],
+    recentAttendance: [
+      DemoAttendanceItem(date: '1447/02/16 هـ', dayName: 'الأحد', status: 'PRESENT'),
+      DemoAttendanceItem(date: '1447/02/15 هـ', dayName: 'السبت', status: 'PRESENT'),
+      DemoAttendanceItem(date: '1447/02/13 هـ', dayName: 'الخميس', status: 'LATE'),
+      DemoAttendanceItem(date: '1447/02/12 هـ', dayName: 'الأربعاء', status: 'PRESENT'),
+      DemoAttendanceItem(date: '1447/02/11 هـ', dayName: 'الثلاثاء', status: 'PRESENT'),
+    ],
+    exams: [
+      DemoExamItem(
+        title: 'اختبار الحزب الأول من سورة البقرة',
+        date: '1447/02/01 هـ',
+        scope: 'البقرة (1 - 74)',
+        maxScore: 100,
+        score: 92,
+        status: 'PUBLISHED',
+      ),
+      DemoExamItem(
+        title: 'اختبار نصف الفصل الدراسي الأول',
+        date: '1447/02/25 هـ',
+        scope: 'البقرة (1 - 141)',
+        maxScore: 100,
+        score: null,
+        status: 'UPCOMING',
+      ),
+    ],
+    awards: [
+      DemoAwardItem(
+        title: 'وسام الطالب المتميز بالحفظ',
+        reason: 'إتقان تلاوة وحفظ ربع يس دون أي خطأ',
+        date: '1447/02/10 هـ',
+        icon: '🏆',
+      ),
+      DemoAwardItem(
+        title: 'وسام الانضباط والمواظبة',
+        reason: 'حضور كامل لمدة شهر متواصل دون غياب',
+        date: '1447/01/28 هـ',
+        icon: '⭐',
+      ),
+      DemoAwardItem(
+        title: 'وسام الترتيل والتجويد',
+        reason: 'تطبيق متقن لأحكام النون الساكنة والمدود',
+        date: '1447/01/15 هـ',
+        icon: '🎖️',
+      ),
+    ],
+  );
+
+  // 4. Parent Persona Dataset (3 Children)
+  static const DemoParentData parent = DemoParentData(
+    guardianName: 'عبد الله محمد المنصور',
+    roleTitle: 'ولي أمر',
+    children: [
+      DemoChildData(
+        id: 'ch-1',
+        name: 'محمد عبد الله',
+        ageGrade: 'الصف الثالث المتوسط',
+        halaqaName: 'حلقة الإمام عاصم',
+        teacherName: 'أ. أحمد محمد',
+        attendanceRate: 94,
+        planProgress: 82,
+        lastMemorization: 'سورة البقرة (120-135)',
+        lastRevision: 'سورة البقرة (1-50)',
+        lastEvaluationRating: 'ممتاز (98%)',
+        lastExamScore: 92,
+        awardsCount: 5,
+        planItems: [
+          DemoPlanItem(surah: 'سورة البقرة', verses: '120 - 135', type: 'HIFZ', isDone: true, targetPages: 2),
+          DemoPlanItem(surah: 'سورة البقرة', verses: '136 - 150', type: 'HIFZ', isDone: false, targetPages: 2),
+          DemoPlanItem(surah: 'سورة البقرة', verses: '1 - 50', type: 'MURAJAAH', isDone: true, targetPages: 5),
+        ],
+        recentAttendance: [
+          DemoAttendanceItem(date: '1447/02/16 هـ', dayName: 'الأحد', status: 'PRESENT'),
+          DemoAttendanceItem(date: '1447/02/15 هـ', dayName: 'السبت', status: 'PRESENT'),
+          DemoAttendanceItem(date: '1447/02/13 هـ', dayName: 'الخميس', status: 'LATE'),
+        ],
+        exams: [
+          DemoExamItem(title: 'اختبار الحزب الأول', date: '1447/02/01 هـ', scope: 'البقرة (1 - 74)', maxScore: 100, score: 92, status: 'PUBLISHED'),
+        ],
+        awards: [
+          DemoAwardItem(title: 'وسام الطالب المتميز بالحفظ', reason: 'إتقان تلاوة وحفظ ربع يس', date: '1447/02/10 هـ', icon: '🏆'),
+        ],
+      ),
+      DemoChildData(
+        id: 'ch-2',
+        name: 'أحمد عبد الله',
+        ageGrade: 'الصف الأول المتوسط',
+        halaqaName: 'حلقة الإمام نافع',
+        teacherName: 'أ. خالد التميمي',
+        attendanceRate: 98,
+        planProgress: 90,
+        lastMemorization: 'سورة آل عمران (50-70)',
+        lastRevision: 'سورة البقرة كاملة',
+        lastEvaluationRating: 'ممتاز مرتفع (100%)',
+        lastExamScore: 97,
+        awardsCount: 7,
+        planItems: [
+          DemoPlanItem(surah: 'سورة آل عمران', verses: '50 - 70', type: 'HIFZ', isDone: true, targetPages: 2),
+          DemoPlanItem(surah: 'سورة آل عمران', verses: '71 - 92', type: 'HIFZ', isDone: false, targetPages: 2),
+          DemoPlanItem(surah: 'سورة البقرة', verses: '1 - 100', type: 'MURAJAAH', isDone: true, targetPages: 10),
+        ],
+        recentAttendance: [
+          DemoAttendanceItem(date: '1447/02/16 هـ', dayName: 'الأحد', status: 'PRESENT'),
+          DemoAttendanceItem(date: '1447/02/15 هـ', dayName: 'السبت', status: 'PRESENT'),
+          DemoAttendanceItem(date: '1447/02/13 هـ', dayName: 'الخميس', status: 'PRESENT'),
+        ],
+        exams: [
+          DemoExamItem(title: 'اختبار سورة البقرة الشامل', date: '1447/01/20 هـ', scope: 'سورة البقرة', maxScore: 100, score: 97, status: 'PUBLISHED'),
+        ],
+        awards: [
+          DemoAwardItem(title: 'وسام خاتم سورة البقرة', reason: 'إتمام حفظ وإتقان سورة البقرة كاملة', date: '1447/01/22 هـ', icon: '👑'),
+          DemoAwardItem(title: 'وسام المواظبة المثالية', reason: 'حضور بنسبة 100% لفصلين دراسيين', date: '1447/02/01 هـ', icon: '⭐'),
+        ],
+      ),
+      DemoChildData(
+        id: 'ch-3',
+        name: 'يوسف عبد الله',
+        ageGrade: 'الصف الخامس الابتدائي',
+        halaqaName: 'حلقة البراعم (جزء عم)',
+        teacherName: 'أ. فهد الغامدي',
+        attendanceRate: 88,
+        planProgress: 75,
+        lastMemorization: 'سورة النبأ (الآيات 1-20)',
+        lastRevision: 'قصار السور (الضحى إلى الناس)',
+        lastEvaluationRating: 'جيد جداً (89%)',
+        lastExamScore: 86,
+        awardsCount: 3,
+        planItems: [
+          DemoPlanItem(surah: 'سورة النبأ', verses: '1 - 20', type: 'HIFZ', isDone: true, targetPages: 1),
+          DemoPlanItem(surah: 'سورة النبأ', verses: '21 - 40', type: 'HIFZ', isDone: false, targetPages: 1),
+          DemoPlanItem(surah: 'قصار السور', verses: 'الضحى - الناس', type: 'MURAJAAH', isDone: true, targetPages: 3),
+        ],
+        recentAttendance: [
+          DemoAttendanceItem(date: '1447/02/16 هـ', dayName: 'الأحد', status: 'PRESENT'),
+          DemoAttendanceItem(date: '1447/02/15 هـ', dayName: 'السبت', status: 'EXCUSED'),
+          DemoAttendanceItem(date: '1447/02/13 هـ', dayName: 'الخميس', status: 'PRESENT'),
+        ],
+        exams: [
+          DemoExamItem(title: 'اختبار قصار السور', date: '1447/02/05 هـ', scope: 'الضحى إلى الناس', maxScore: 100, score: 86, status: 'PUBLISHED'),
+        ],
+        awards: [
+          DemoAwardItem(title: 'وسام برعم القرآن الواعد', reason: 'إتقان مخارج الحروف والتلاوة العذبة', date: '1447/02/08 هـ', icon: '🌱'),
+        ],
+      ),
+    ],
+  );
+}

@@ -1,9 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/config/env.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/placeholders/unsupported_role_screen.dart';
+import '../demo/screens/demo_home_screen.dart';
+import '../demo/screens/teacher_demo_screen.dart';
+import '../demo/screens/supervisor_demo_screen.dart';
+import '../demo/screens/student_demo_screen.dart';
+import '../demo/screens/parent_demo_screen.dart';
+import '../demo/screens/design_gallery_screen.dart';
 import '../features/teacher/screens/attendance_screen.dart';
 import '../features/teacher/screens/halaqa_detail_screen.dart';
 import '../features/teacher/screens/halaqas_list_screen.dart';
@@ -49,8 +56,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: Env.enableDemoMode ? '/demo' : '/splash',
     redirect: (context, state) {
+      if (Env.enableDemoMode) {
+        if (state.matchedLocation.startsWith('/demo')) {
+          return null;
+        }
+      }
       final status = authState.status;
       final isSplash = state.matchedLocation == '/splash';
       final isLogin = state.matchedLocation == '/login';
@@ -94,6 +106,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/unsupported-role',
         builder: (context, state) => const UnsupportedRoleScreen(),
+      ),
+
+      // Demo & UI Preview Routes
+      GoRoute(
+        path: '/demo',
+        builder: (context, state) => const DemoHomeScreen(),
+      ),
+      GoRoute(
+        path: '/demo/teacher',
+        builder: (context, state) => const TeacherDemoScreen(),
+      ),
+      GoRoute(
+        path: '/demo/supervisor',
+        builder: (context, state) => const SupervisorDemoScreen(),
+      ),
+      GoRoute(
+        path: '/demo/student',
+        builder: (context, state) => const StudentDemoScreen(),
+      ),
+      GoRoute(
+        path: '/demo/parent',
+        builder: (context, state) => const ParentDemoScreen(),
+      ),
+      GoRoute(
+        path: '/demo/gallery',
+        builder: (context, state) => const DesignGalleryScreen(),
       ),
 
       // Teacher Routes
