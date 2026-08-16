@@ -97,7 +97,7 @@ export class TeacherWorkspaceService {
     });
 
     // Get today's recitations for students in this halaqa
-    const studentIds = halaqa.members.map((m: any) => m.studentId);
+    const studentIds = halaqa.members.map((m) => m.studentId);
     const [todayMemos, todayRevs] = await Promise.all([
       this.prisma.memorizationRecord.findMany({
         where: {
@@ -121,7 +121,7 @@ export class TeacherWorkspaceService {
       todaySession?.records.map((r) => [r.studentId, r.status]) || [],
     );
 
-    const studentsWorkspace = halaqa.members.map((member: any) => ({
+    const studentsWorkspace = halaqa.members.map((member) => ({
       studentId: member.student.id,
       studentNumber: member.student.studentNumber,
       displayName: member.student.user.displayName,
@@ -137,7 +137,7 @@ export class TeacherWorkspaceService {
         id: halaqa.id,
         name: halaqa.name,
         code: halaqa.code,
-        branch: (halaqa as any).branch,
+        branch: halaqa.branch,
       },
       todayDate: todayDate.toISOString().split('T')[0],
       session: todaySession

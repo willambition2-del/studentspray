@@ -24,15 +24,8 @@ describe('Educational Operations APIs (e2e)', () => {
   let managerToken: string;
   let teacherToken: string;
   let otherTeacherToken: string;
-  let managerId: string;
-  let teacherUserId: string;
-  let otherTeacherUserId: string;
-  let teacherProfileId: string;
-  let otherTeacherProfileId: string;
   let studentProfileId: string;
-  let studentUserId: string;
   let halaqaId: string;
-  let otherHalaqaId: string;
 
   const bearer = (token = managerToken) => ({
     Authorization: `Bearer ${token}`,
@@ -136,7 +129,6 @@ describe('Educational Operations APIs (e2e)', () => {
         passwordHash,
       },
     });
-    managerId = gm.id;
     await prisma.userRole.create({
       data: { userId: gm.id, roleId: gmRole.id, branchId },
     });
@@ -152,12 +144,10 @@ describe('Educational Operations APIs (e2e)', () => {
         passwordHash,
       },
     });
-    teacherUserId = t1.id;
     await prisma.userRole.create({
       data: { userId: t1.id, roleId: teacherRole.id, branchId },
     });
     const tp1 = await prisma.teacherProfile.create({ data: { userId: t1.id } });
-    teacherProfileId = tp1.id;
 
     // Create Teacher 2 User & Profile (Other Halaqa)
     const t2 = await prisma.user.create({
@@ -170,12 +160,10 @@ describe('Educational Operations APIs (e2e)', () => {
         passwordHash,
       },
     });
-    otherTeacherUserId = t2.id;
     await prisma.userRole.create({
       data: { userId: t2.id, roleId: teacherRole.id, branchId },
     });
     const tp2 = await prisma.teacherProfile.create({ data: { userId: t2.id } });
-    otherTeacherProfileId = tp2.id;
 
     // Create Student User & Profile
     const s1 = await prisma.user.create({
@@ -188,7 +176,6 @@ describe('Educational Operations APIs (e2e)', () => {
         passwordHash,
       },
     });
-    studentUserId = s1.id;
     await prisma.userRole.create({
       data: { userId: s1.id, roleId: studentRole.id, branchId },
     });
@@ -220,7 +207,6 @@ describe('Educational Operations APIs (e2e)', () => {
         code: `H2_${Date.now().toString().slice(-4)}`,
       },
     });
-    otherHalaqaId = h2.id;
     await prisma.halaqaTeacher.create({
       data: { halaqaId: h2.id, teacherId: tp2.id },
     });

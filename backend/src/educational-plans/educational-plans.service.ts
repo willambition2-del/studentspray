@@ -10,7 +10,7 @@ import { AccessScopeService } from '../authorization/access-scope.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import type { AuthContext } from '../auth/types/auth-context';
 import { pageArgs, paginated } from '../common/dto/pagination-query.dto';
-import { EducationalPlanStatus } from '../generated/prisma/client';
+import { EducationalPlanStatus, Prisma } from '../generated/prisma/client';
 import {
   CreateEducationalPlanDto,
   CreatePlanItemDto,
@@ -28,7 +28,7 @@ export class EducationalPlansService {
   ) {}
 
   async list(user: AuthenticatedUser, query: EducationalPlanQueryDto) {
-    const where: any = {
+    const where: Prisma.EducationalPlanWhereInput = {
       forumId: user.forumId,
       deletedAt: null,
       ...(query.branchId ? { branchId: query.branchId } : {}),
@@ -279,6 +279,15 @@ export class EducationalPlansService {
       },
     });
 
+    await this.audit.record({
+      ...ctx,
+      actorUserId: user.id,
+      action: 'EDUCATIONAL_PLAN_ITEM_ADDED',
+      entityType: 'EducationalPlanItem',
+      entityId: item.id,
+      after: item,
+    });
+
     return item;
   }
 
@@ -313,6 +322,16 @@ export class EducationalPlansService {
       },
     });
 
+    await this.audit.record({
+      ...ctx,
+      actorUserId: user.id,
+      action: 'EDUCATIONAL_PLAN_ITEM_UPDATED',
+      entityType: 'EducationalPlanItem',
+      entityId: item.id,
+      before: item,
+      after: updated,
+    });
+
     return updated;
   }
 
@@ -337,6 +356,16 @@ export class EducationalPlansService {
 
     await this.get(user, item.planId);
     await this.prisma.educationalPlanItem.delete({ where: { id: itemId } });
+
+    await this.audit.record({
+      ...ctx,
+      actorUserId: user.id,
+      action: 'EDUCATIONAL_PLAN_ITEM_DELETED',
+      entityType: 'EducationalPlanItem',
+      entityId: item.id,
+      before: item,
+    });
+
     return { success: true };
   }
 }

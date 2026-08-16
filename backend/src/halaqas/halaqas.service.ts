@@ -290,6 +290,16 @@ export class HalaqasService {
     try {
       return await this.p.$transaction(
         async (tx) => {
+          const activeMembership = await tx.halaqaMember.findFirst({
+            where: { studentId, isActive: true, endedAt: null },
+          });
+          if (activeMembership) {
+            throw new ConflictException({
+              code: "STUDENT_ALREADY_IN_HALAQA",
+              message: "Student already belongs to an active halaqa",
+            });
+          }
+
           const m = await tx.halaqaMember.create({
             data: { halaqaId: id, studentId },
           });
@@ -393,6 +403,16 @@ export class HalaqasService {
       });
     try {
       return await this.p.$transaction(async (tx) => {
+        const active = await tx.halaqaTeacher.findFirst({
+          where: { halaqaId: id, teacherId, isActive: true, endedAt: null },
+        });
+        if (active) {
+          throw new ConflictException({
+            code: "TEACHER_ALREADY_ASSIGNED",
+            message: "Teacher is already assigned to this halaqa",
+          });
+        }
+
         const a = await tx.halaqaTeacher.create({
           data: { halaqaId: id, teacherId },
         });
@@ -468,6 +488,16 @@ export class HalaqasService {
       });
     try {
       return await this.p.$transaction(async (tx) => {
+        const active = await tx.halaqaSupervisor.findFirst({
+          where: { halaqaId: id, supervisorId, isActive: true, endedAt: null },
+        });
+        if (active) {
+          throw new ConflictException({
+            code: "SUPERVISOR_ALREADY_ASSIGNED",
+            message: "Supervisor is already assigned to this halaqa",
+          });
+        }
+
         const a = await tx.halaqaSupervisor.create({
           data: { halaqaId: id, supervisorId },
         });

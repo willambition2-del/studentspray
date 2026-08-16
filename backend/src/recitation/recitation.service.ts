@@ -10,7 +10,7 @@ import { AccessScopeService } from '../authorization/access-scope.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import type { AuthContext } from '../auth/types/auth-context';
 import { pageArgs, paginated } from '../common/dto/pagination-query.dto';
-import { AttendanceStatus, EducationalPlanStatus } from '../generated/prisma/client';
+import { AttendanceStatus, EducationalPlanStatus, Prisma } from '../generated/prisma/client';
 import {
   CreateMemorizationRecordDto,
   CreateRevisionRecordDto,
@@ -111,7 +111,7 @@ export class RecitationService {
       throw new ForbiddenException('Cannot access requested student memorization');
     }
 
-    const where: any = {
+    const where: Prisma.MemorizationRecordWhereInput = {
       forumId: user.forumId,
       ...(query.halaqaId ? { halaqaId: query.halaqaId } : {}),
       ...(query.studentId ? { studentId: query.studentId } : {}),
@@ -235,7 +235,7 @@ export class RecitationService {
       throw new ForbiddenException('Cannot access requested student revision');
     }
 
-    const where: any = {
+    const where: Prisma.RevisionRecordWhereInput = {
       forumId: user.forumId,
       ...(query.halaqaId ? { halaqaId: query.halaqaId } : {}),
       ...(query.studentId ? { studentId: query.studentId } : {}),

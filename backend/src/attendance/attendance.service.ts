@@ -10,7 +10,7 @@ import { AccessScopeService } from '../authorization/access-scope.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import type { AuthContext } from '../auth/types/auth-context';
 import { pageArgs, paginated } from '../common/dto/pagination-query.dto';
-import { AttendanceStatus } from '../generated/prisma/client';
+import { AttendanceStatus, Prisma } from '../generated/prisma/client';
 import {
   AttendanceQueryDto,
   CreateAttendanceSessionDto,
@@ -231,7 +231,7 @@ export class AttendanceService {
       throw new ForbiddenException('Cannot access attendance for this halaqa');
     }
 
-    const where: any = {
+    const where: Prisma.AttendanceSessionWhereInput = {
       halaqaId,
       forumId: user.forumId,
       ...(query.dateFrom || query.dateTo
@@ -279,7 +279,7 @@ export class AttendanceService {
       throw new ForbiddenException('Cannot access attendance for this student');
     }
 
-    const where: any = {
+    const where: Prisma.AttendanceRecordWhereInput = {
       studentId,
       session: {
         forumId: user.forumId,
