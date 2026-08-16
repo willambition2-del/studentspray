@@ -46,6 +46,17 @@ import FieldVisitsManagement from './components/FieldVisitsManagement';
 import GlobalSearchModal from './components/GlobalSearchModal';
 import { ApiError, loginWeb, logoutWeb, restoreWebSession, type WebAccount } from './lib/api/auth';
 import { getCurrentForum, updateCurrentForum } from './lib/api/forums';
+import {
+  getAdminRequests,
+  createAdminRequest,
+  reviewAdminRequest,
+  getAdminDecisions,
+  createAdminDecision,
+  updateAdminDecision,
+  getAdminAlerts,
+  resolveAdminAlert,
+  acknowledgeAdminAlert,
+} from './lib/api/administrative';
 
 const LEGACY_SEARCH_USERS = [
   {
@@ -347,6 +358,69 @@ export default function App() {
       setAlerts(resAlerts);
       setDecisions(resDecisions);
       setAuditLogs(resLogs);
+
+      // Connect real NestJS Phase 14 Administrative data
+      const [realReqsRes, realDecsRes, realAltsRes] = await Promise.allSettled([
+        getAdminRequests(),
+        getAdminDecisions(),
+        getAdminAlerts(),
+      ]);
+
+      if (realReqsRes.status === 'fulfilled' && realReqsRes.value.items?.length > 0) {
+        const mappedApprovals: ApprovalRequest[] = realReqsRes.value.items.map((req) => ({
+          id: req.id,
+          title: req.title,
+          type: (req.type.toLowerCase() === 'leave' ? 'student_plan' : req.type.toLowerCase() === 'activity_proposal' ? 'activity' : 'admin_decision') as any,
+          department: req.branch?.name || 'إدارة الشؤون التعليمية',
+          requesterName: req.requestedBy?.displayName || req.requestedBy?.username || 'مقدم الطلب',
+          requesterRole: 'عضو هيئة التدريس',
+          createdAt: req.createdAt,
+          urgency: (req.priority.toLowerCase() === 'urgent' ? 'urgent' : req.priority.toLowerCase() === 'high' ? 'high' : 'normal') as any,
+          status: (req.status === 'APPROVED' ? 'approved' : req.status === 'REJECTED' ? 'rejected' : 'pending') as any,
+          details: req.description,
+          attachments: [],
+          targetBranch: req.branch?.name,
+          auditTrail: (req.approvalActions || []).map((act) => ({
+            id: act.id,
+            timestamp: act.createdAt,
+            author: act.actor?.displayName || act.actor?.username || 'المسؤول',
+            role: 'الإدارة',
+            action: act.action.toLowerCase(),
+            notes: act.comment || undefined,
+          })),
+        }));
+        setApprovals(mappedApprovals);
+      }
+
+      if (realDecsRes.status === 'fulfilled' && realDecsRes.value.items?.length > 0) {
+        const mappedDecisions: AdminDecision[] = realDecsRes.value.items.map((dec) => ({
+          id: dec.id,
+          decisionNumber: dec.decisionNumber,
+          title: dec.title,
+          type: 'general',
+          targetEntity: dec.branch?.name || 'المركز العام',
+          date: dec.issuedAt ? dec.issuedAt.split('T')[0] : dec.createdAt.split('T')[0],
+          content: dec.content,
+          status: (dec.status === 'ACTIVE' || dec.status === 'ISSUED' ? 'approved' : 'draft') as any,
+          attachments: [],
+          createdAt: dec.createdAt,
+        }));
+        setDecisions(mappedDecisions);
+      }
+
+      if (realAltsRes.status === 'fulfilled' && realAltsRes.value.items?.length > 0) {
+        const mappedAlerts: CriticalAlert[] = realAltsRes.value.items.map((alt) => ({
+          id: alt.id,
+          title: alt.title,
+          type: (alt.type === 'TASK_OVERDUE' ? 'overdue_approvals' : 'low_attendance') as any,
+          severity: (alt.severity === 'CRITICAL' ? 'critical' : alt.severity === 'HIGH' ? 'high' : 'medium') as any,
+          details: alt.message,
+          assignedTo: alt.assignedTo?.displayName || alt.assignedTo?.username,
+          createdAt: alt.createdAt,
+          status: (alt.status === 'RESOLVED' || alt.status === 'DISMISSED' ? 'resolved' : 'active') as any,
+        }));
+        setAlerts(mappedAlerts);
+      }
     } catch (err: any) {
       console.error("Error loading server-side seed context:", err);
       setErrorState("عذراً، فشل الاتصال بقاعدة بيانات الخادم. يرجى إعادة محاولة تحميل الصفحة.");
@@ -458,27 +532,26 @@ export default function App() {
     extraData?: Partial<ApprovalRequest>
   ) => {
     try {
-      await fetch(`/api/approvals/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, notes, ...extraData })
-      });
+      const action = status === 'approved' || status === 'conditional_approved' ? 'APPROVED' : status === 'rejected' ? 'REJECTED' : 'RETURNED';
+      await reviewAdminRequest(id, { action, comment: notes });
       loadAllData();
     } catch (err) {
-      console.error(err);
+      console.error('Error reviewing approval request:', err);
     }
   };
 
   const handleCreateApproval = async (newReq: Partial<ApprovalRequest>) => {
     try {
-      await fetch('/api/approvals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newReq)
+      await createAdminRequest({
+        title: newReq.title || 'طلب إداري جديد',
+        description: newReq.details || 'تفاصيل الطلب الإداري',
+        type: 'GENERAL',
+        priority: newReq.urgency === 'urgent' ? 'URGENT' : newReq.urgency === 'high' ? 'HIGH' : 'NORMAL',
+        submitNow: true,
       });
       loadAllData();
     } catch (err) {
-      console.error(err);
+      console.error('Error creating approval request:', err);
     }
   };
 
@@ -530,41 +603,42 @@ export default function App() {
   // Alerts Handlers
   const handleAlertAction = async (id: string, updates: Partial<CriticalAlert>) => {
     try {
-      await fetch(`/api/alerts/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
+      if (updates.status === 'resolved') {
+        await resolveAdminAlert(id, { status: 'RESOLVED' });
+      } else {
+        await acknowledgeAdminAlert(id);
+      }
       loadAllData();
     } catch (err) {
-      console.error(err);
+      console.error('Error handling alert action:', err);
     }
   };
 
   // Decisions Handlers
   const handleAddDecision = async (data: Partial<AdminDecision>) => {
     try {
-      await fetch('/api/decisions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+      await createAdminDecision({
+        title: data.title || 'قرار إداري جديد',
+        content: data.content || '',
+        type: 'GENERAL_DIRECTIVE',
+        issueNow: data.status === 'approved' || data.status === 'ongoing',
       });
       loadAllData();
     } catch (err) {
-      console.error(err);
+      console.error('Error creating admin decision:', err);
     }
   };
 
   const handleUpdateDecision = async (id: string, updates: Partial<AdminDecision>) => {
     try {
-      await fetch(`/api/decisions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+      await updateAdminDecision(id, {
+        title: updates.title,
+        content: updates.content,
+        status: updates.status === 'approved' ? 'ACTIVE' : updates.status === 'draft' ? 'DRAFT' : undefined,
       });
       loadAllData();
     } catch (err) {
-      console.error(err);
+      console.error('Error updating admin decision:', err);
     }
   };
 

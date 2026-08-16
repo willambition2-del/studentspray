@@ -222,6 +222,10 @@ model Forum {
   awards              Award[]
   shelfSections       ShelfSection[]
   shelfItems          ShelfItem[]
+  adminRequests       AdministrativeRequest[]
+  adminDecisions      AdminDecision[]
+  adminAlerts         AdminAlert[]
+  adminTasks          AdminTask[]
 
   @@index([isActive, deletedAt])
 }
@@ -236,7 +240,7 @@ model Branch {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  forum            Forum             @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  forum            Forum                   @relation(fields: [forumId], references: [id], onDelete: Restrict)
   users            User[]
   halaqas          Halaqa[]
   roleScopes       UserRole[]
@@ -246,6 +250,10 @@ model Branch {
   exams            Exam[]
   activities       Activity[]
   competitions     Competition[]
+  adminRequests    AdministrativeRequest[]
+  adminDecisions   AdminDecision[]
+  adminAlerts      AdminAlert[]
+  adminTasks       AdminTask[]
 
   @@unique([forumId, code])
   @@index([forumId, isActive, deletedAt])
@@ -305,6 +313,14 @@ model User {
   grantedAwards             StudentAward[]           @relation("AwardGrantor")
   authoredShelfItems        ShelfItem[]              @relation("ShelfItemAuthor")
   shelfPublisherRules       ShelfPublisherRule[]
+  adminRequestsRequested    AdministrativeRequest[]  @relation("AdminRequestRequester")
+  approvalActions           ApprovalAction[]         @relation("ApprovalActionActor")
+  adminDecisionsIssued      AdminDecision[]          @relation("AdminDecisionIssuer")
+  adminAlertsAssigned       AdminAlert[]             @relation("AdminAlertAssignee")
+  adminAlertsResolved       AdminAlert[]             @relation("AdminAlertResolver")
+  adminTasksAssigned        AdminTask[]              @relation("AdminTaskAssignee")
+  adminTasksCreated         AdminTask[]              @relation("AdminTaskCreator")
+  taskFollowUps             TaskFollowUp[]           @relation("TaskFollowUpActor")
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -1141,6 +1157,10 @@ enum NotificationType {
   FIELD_VISIT
   RECOMMENDATION
   NEW_MESSAGE
+  ADMIN_REQUEST
+  ADMIN_DECISION
+  ADMIN_ALERT
+  ADMIN_TASK
   SYSTEM
 }
 
@@ -1566,4 +1586,263 @@ model ShelfPublisherRule {
   @@unique([sectionId, roleId, userId])
   @@index([sectionId])
   @@index([userId])
+}
+
+enum AdminRequestType {
+  LEAVE
+  TRANSFER
+  EXCEPTION
+  CURRICULUM_MODIFICATION
+  ACTIVITY_PROPOSAL
+  BUDGET_REQUEST
+  GENERAL
+}
+
+enum AdminRequestStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AdminPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ApprovalActionType {
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+}
+
+enum AdminDecisionType {
+  HIRE_TEACHER
+  TRANSFER_TEACHER
+  HIRE_SUPERVISOR
+  OPEN_HALAQA
+  CLOSE_HALAQA
+  MERGE_HALAQAT
+  TRANSFER_STUDENT
+  APPROVE_PROJECT
+  APPROVE_ACTIVITY
+  GENERAL_DIRECTIVE
+}
+
+enum AdminDecisionStatus {
+  DRAFT
+  ISSUED
+  ACTIVE
+  CANCELLED
+  ARCHIVED
+}
+
+enum DecisionTargetType {
+  ALL_FORUM
+  BRANCH
+  ROLE
+  HALAQA
+  USER
+}
+
+enum AdminAlertType {
+  TASK_OVERDUE
+  REQUEST_PENDING
+  RECOMMENDATION_OVERDUE
+  ATTENDANCE_CRITICAL
+  EXAM_REVIEW_NEEDED
+  CUSTOM
+}
+
+enum AdminAlertSeverity {
+  INFO
+  WARNING
+  HIGH
+  CRITICAL
+}
+
+enum AdminAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum AdminTaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model AdministrativeRequest {
+  id                String             @id @default(uuid()) @db.Uuid
+  forumId           String             @db.Uuid
+  branchId          String?            @db.Uuid
+  type              AdminRequestType   @default(GENERAL)
+  title             String             @db.VarChar(255)
+  description       String             @db.Text
+  requestedById     String             @db.Uuid
+  relatedEntityType String?            @db.VarChar(80)
+  relatedEntityId   String?            @db.VarChar(128)
+  status            AdminRequestStatus @default(DRAFT)
+  priority          AdminPriority      @default(NORMAL)
+  submittedAt       DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  forum           Forum            @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch          Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  requestedBy     User             @relation("AdminRequestRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  approvalActions ApprovalAction[]
+  decisions       AdminDecision[]
+  tasks           AdminTask[]
+
+  @@index([forumId, branchId, status, deletedAt])
+  @@index([requestedById, status])
+  @@index([createdAt])
+}
+
+model ApprovalAction {
+  id        String             @id @default(uuid()) @db.Uuid
+  requestId String             @db.Uuid
+  actorId   String             @db.Uuid
+  action    ApprovalActionType
+  comment   String?            @db.Text
+  createdAt DateTime           @default(now())
+
+  request AdministrativeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor   User                  @relation("ApprovalActionActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([requestId, createdAt])
+  @@index([actorId])
+}
+
+model AdminDecision {
+  id               String              @id @default(uuid()) @db.Uuid
+  forumId          String              @db.Uuid
+  branchId         String?             @db.Uuid
+  decisionNumber   String              @db.VarChar(50)
+  title            String              @db.VarChar(255)
+  content          String              @db.Text
+  type             AdminDecisionType   @default(GENERAL_DIRECTIVE)
+  status           AdminDecisionStatus @default(DRAFT)
+  issuedById       String              @db.Uuid
+  issuedAt         DateTime            @default(now())
+  effectiveFrom    DateTime?
+  effectiveUntil   DateTime?
+  relatedRequestId String?             @db.Uuid
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  forum          Forum                  @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch         Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  issuedBy       User                   @relation("AdminDecisionIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  relatedRequest AdministrativeRequest? @relation(fields: [relatedRequestId], references: [id], onDelete: SetNull)
+  audiences      DecisionAudience[]
+  tasks          AdminTask[]
+
+  @@unique([forumId, decisionNumber])
+  @@index([forumId, branchId, status, deletedAt])
+  @@index([issuedById])
+  @@index([issuedAt])
+}
+
+model DecisionAudience {
+  id         String             @id @default(uuid()) @db.Uuid
+  decisionId String             @db.Uuid
+  targetType DecisionTargetType
+  targetId   String?            @db.VarChar(128)
+
+  decision AdminDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@index([decisionId, targetType])
+}
+
+model AdminAlert {
+  id                String             @id @default(uuid()) @db.Uuid
+  forumId           String             @db.Uuid
+  branchId          String?            @db.Uuid
+  type              AdminAlertType     @default(CUSTOM)
+  severity          AdminAlertSeverity @default(INFO)
+  title             String             @db.VarChar(255)
+  message           String             @db.Text
+  relatedEntityType String?            @db.VarChar(80)
+  relatedEntityId   String?            @db.VarChar(128)
+  assignedToId      String?            @db.Uuid
+  status            AdminAlertStatus   @default(OPEN)
+  dueAt             DateTime?
+  resolvedAt        DateTime?
+  resolvedById      String?            @db.Uuid
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  forum      Forum       @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch     Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  assignedTo User?       @relation("AdminAlertAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedBy User?       @relation("AdminAlertResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  tasks      AdminTask[]
+
+  @@index([forumId, branchId, status, severity])
+  @@index([assignedToId, status])
+  @@index([createdAt])
+}
+
+model AdminTask {
+  id                String          @id @default(uuid()) @db.Uuid
+  forumId           String          @db.Uuid
+  branchId          String?         @db.Uuid
+  title             String          @db.VarChar(255)
+  description       String?         @db.Text
+  assignedToId      String          @db.Uuid
+  createdById       String          @db.Uuid
+  relatedDecisionId String?         @db.Uuid
+  relatedRequestId  String?         @db.Uuid
+  relatedAlertId    String?         @db.Uuid
+  priority          AdminPriority   @default(NORMAL)
+  status            AdminTaskStatus @default(OPEN)
+  dueAt             DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+
+  forum           Forum                  @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch          Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  assignedTo      User                   @relation("AdminTaskAssignee", fields: [assignedToId], references: [id], onDelete: Restrict)
+  createdBy       User                   @relation("AdminTaskCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  relatedDecision AdminDecision?         @relation(fields: [relatedDecisionId], references: [id], onDelete: SetNull)
+  relatedRequest  AdministrativeRequest? @relation(fields: [relatedRequestId], references: [id], onDelete: SetNull)
+  relatedAlert    AdminAlert?            @relation(fields: [relatedAlertId], references: [id], onDelete: SetNull)
+  followUps       TaskFollowUp[]
+
+  @@index([forumId, branchId, status, deletedAt])
+  @@index([assignedToId, status])
+  @@index([createdById])
+  @@index([dueAt])
+}
+
+model TaskFollowUp {
+  id        String           @id @default(uuid()) @db.Uuid
+  taskId    String           @db.Uuid
+  actorId   String           @db.Uuid
+  status    AdminTaskStatus?
+  note      String           @db.Text
+  createdAt DateTime         @default(now())
+
+  task  AdminTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User      @relation("TaskFollowUpActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
+  @@index([actorId])
 }

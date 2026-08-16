@@ -29,4 +29,5 @@ export * from './activities';
 export * from './competitions';
 export * from './awards';
 export * from './shelf';
+export * from './administrative';
 

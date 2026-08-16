@@ -38,6 +38,7 @@ import { ActivitiesModule } from "./activities/activities.module";
 import { CompetitionsModule } from "./competitions/competitions.module";
 import { AwardsModule } from "./awards/awards.module";
 import { ShelfModule } from "./shelf/shelf.module";
+import { AdministrativeModule } from "./administrative/administrative.module";
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { ShelfModule } from "./shelf/shelf.module";
     CompetitionsModule,
     AwardsModule,
     ShelfModule,
+    AdministrativeModule,
     ProfilesModule,
     AuthorizationModule,
     AuthModule,

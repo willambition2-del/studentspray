@@ -25,6 +25,11 @@ class TeacherHomeScreen extends ConsumerWidget {
         title: const Text('الملتقى القرآني — المعلم'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.assignment_outlined),
+            tooltip: 'الشؤون الإدارية والتكليفات',
+            onPressed: () => context.push('/admin-hub'),
+          ),
+          IconButton(
             icon: const Icon(Icons.menu_book_rounded),
             tooltip: 'الرف العام',
             onPressed: () => context.push('/shelf'),
