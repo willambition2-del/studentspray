@@ -155,6 +155,43 @@ enum CriterionInputType {
   YES_NO
 }
 
+enum ExamType {
+  MONTHLY
+  MIDTERM
+  FINAL
+  CONTINUOUS
+  MEMORIZATION
+  RECITATION
+  REVISION
+}
+
+enum ExamStatus {
+  DRAFT
+  SCHEDULED
+  OPEN
+  COMPLETED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExamResultStatus {
+  ENTERED
+  PASSED
+  FAILED
+  ABSENT
+  NOT_TESTED
+  POSTPONED
+  EXEMPT
+}
+
+enum StudentEvaluationRating {
+  EXCELLENT
+  VERY_GOOD
+  GOOD
+  ACCEPTABLE
+  NEEDS_IMPROVEMENT
+}
+
 model Forum {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
@@ -177,6 +214,8 @@ model Forum {
   evaluationTemplates EvaluationTemplate[]
   fieldVisits         FieldVisit[]
   recommendations     Recommendation[]
+  exams               Exam[]
+  studentEvaluations  StudentEvaluation[]
 
   @@index([isActive, deletedAt])
 }
@@ -198,6 +237,7 @@ model Branch {
   educationalPlans EducationalPlan[]
   fieldVisits      FieldVisit[]
   recommendations  Recommendation[]
+  exams            Exam[]
 
   @@unique([forumId, code])
   @@index([forumId, isActive, deletedAt])
@@ -244,6 +284,9 @@ model User {
   createdRecommendations    Recommendation[]         @relation("RecommendationCreator")
   createdFollowUps          RecommendationFollowUp[] @relation("FollowUpCreator")
   createdSupervisorNotes    SupervisorVisitNote[]    @relation("SupervisorNoteCreator")
+  createdExams              Exam[]                   @relation("ExamCreator")
+  gradedExamResults         ExamResult[]             @relation("ResultGrader")
+  evaluatedStudents         StudentEvaluation[]      @relation("StudentEvaluator")
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -393,6 +436,8 @@ model StudentProfile {
   attendanceRecords   AttendanceRecord[]
   memorizationRecords MemorizationRecord[]
   revisionRecords     RevisionRecord[]
+  examResults         ExamResult[]
+  studentEvaluations  StudentEvaluation[]
 
   @@index([studentNumber])
 }
@@ -485,6 +530,8 @@ model Halaqa {
   revisionRecords     RevisionRecord[]
   fieldVisits         FieldVisit[]
   recommendations     Recommendation[]
+  exams               Exam[]
+  studentEvaluations  StudentEvaluation[]
 
   @@unique([branchId, code])
   @@index([forumId, branchId, isActive, deletedAt])
@@ -553,8 +600,10 @@ model AcademicYear {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  forum Forum  @relation(fields: [forumId], references: [id], onDelete: Restrict)
-  terms Term[]
+  forum              Forum               @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  terms              Term[]
+  exams              Exam[]
+  studentEvaluations StudentEvaluation[]
 
   @@unique([forumId, name])
   @@index([forumId, isActive, deletedAt])
@@ -572,8 +621,10 @@ model Term {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  academicYear AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  plans        EducationalPlan[]
+  academicYear       AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  plans              EducationalPlan[]
+  exams              Exam[]
+  studentEvaluations StudentEvaluation[]
 
   @@index([academicYearId, isActive, deletedAt])
 }
@@ -938,4 +989,119 @@ model SupervisorVisitNote {
   creator User?      @relation("SupervisorNoteCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([visitId])
+}
+
+model Exam {
+  id             String     @id @default(uuid()) @db.Uuid
+  forumId        String     @db.Uuid
+  branchId       String?    @db.Uuid
+  academicYearId String?    @db.Uuid
+  termId         String?    @db.Uuid
+  halaqaId       String?    @db.Uuid
+  title          String
+  description    String?
+  curriculum     String?
+  examType       ExamType   @default(MONTHLY)
+  scheduledDate  DateTime?  @db.Date
+  startsAt       DateTime?
+  endsAt         DateTime?
+  maxScore       Decimal    @default(100.0) @db.Decimal(5, 2)
+  passScore      Decimal    @default(60.0) @db.Decimal(5, 2)
+  status         ExamStatus @default(DRAFT)
+  isPublished    Boolean    @default(false)
+  publishedAt    DateTime?
+  createdById    String?    @db.Uuid
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  forum        Forum           @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch       Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  academicYear AcademicYear?   @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  term         Term?           @relation(fields: [termId], references: [id], onDelete: SetNull)
+  halaqa       Halaqa?         @relation(fields: [halaqaId], references: [id], onDelete: SetNull)
+  creator      User?           @relation("ExamCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  results      ExamResult[]
+  criteria     ExamCriterion[]
+
+  @@index([forumId, branchId, status])
+  @@index([halaqaId, status])
+  @@index([scheduledDate])
+}
+
+model ExamCriterion {
+  id          String   @id @default(uuid()) @db.Uuid
+  examId      String   @db.Uuid
+  name        String
+  description String?
+  maxScore    Decimal  @default(10.0) @db.Decimal(5, 2)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId, order])
+}
+
+model ExamResult {
+  id               String           @id @default(uuid()) @db.Uuid
+  examId           String           @db.Uuid
+  studentId        String           @db.Uuid
+  score            Decimal          @default(0.0) @db.Decimal(5, 2)
+  percentage       Decimal          @default(0.0) @db.Decimal(5, 2)
+  status           ExamResultStatus @default(ENTERED)
+  isPassed         Boolean          @default(false)
+  notes            String?
+  criterionScores  Json?
+  gradedById       String?          @db.Uuid
+  gradedAt         DateTime?
+  isPublished      Boolean          @default(false)
+  publishedAt      DateTime?
+  clientMutationId String?          @unique @db.Uuid
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  exam    Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  grader  User?          @relation("ResultGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([examId, studentId])
+  @@index([studentId, isPublished])
+  @@index([examId, isPublished])
+}
+
+model StudentEvaluation {
+  id             String                  @id @default(uuid()) @db.Uuid
+  forumId        String                  @db.Uuid
+  studentId      String                  @db.Uuid
+  halaqaId       String                  @db.Uuid
+  academicYearId String?                 @db.Uuid
+  termId         String?                 @db.Uuid
+  evaluationDate DateTime                @db.Date
+  period         String?
+  behaviorScore  Decimal?                @db.Decimal(5, 2)
+  discipline     Decimal?                @db.Decimal(5, 2)
+  participation  Decimal?                @db.Decimal(5, 2)
+  overallScore   Decimal?                @db.Decimal(5, 2)
+  rating         StudentEvaluationRating @default(VERY_GOOD)
+  teacherNotes   String?
+  actionLabel    String?
+  isPublished    Boolean                 @default(true)
+  publishedAt    DateTime?               @default(now())
+  evaluatorId    String?                 @db.Uuid
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  deletedAt      DateTime?
+
+  forum        Forum          @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  halaqa       Halaqa         @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  academicYear AcademicYear?  @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  term         Term?          @relation(fields: [termId], references: [id], onDelete: SetNull)
+  evaluator    User?          @relation("StudentEvaluator", fields: [evaluatorId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, evaluationDate])
+  @@index([halaqaId, evaluationDate])
 }

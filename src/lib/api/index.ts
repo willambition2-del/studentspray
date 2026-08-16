@@ -19,3 +19,7 @@ export * from './teacher-workspace';
 export * from './evaluation-templates';
 export * from './field-visits';
 export * from './supervisor-workspace';
+export * from './exams';
+export * from './student-evaluations';
+export * from './student-portal';
+export * from './parent-portal';

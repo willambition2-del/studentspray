@@ -11,15 +11,19 @@ import { environmentValidationSchema } from "./config/environment";
 import { PrismaModule } from "./database/prisma.module";
 import { EducationalPlansModule } from "./educational-plans/educational-plans.module";
 import { EvaluationTemplatesModule } from "./evaluation-templates/evaluation-templates.module";
+import { ExamsModule } from "./exams/exams.module";
 import { FieldVisitsModule } from "./field-visits/field-visits.module";
 import { ForumsModule } from "./forums/forums.module";
 import { HalaqasModule } from "./halaqas/halaqas.module";
 import { HealthModule } from "./health/health.module";
+import { ParentPortalModule } from "./parent-portal/parent-portal.module";
 import { ParentsModule } from "./parents/parents.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { RecitationModule } from "./recitation/recitation.module";
 import { RedisModule } from "./redis/redis.module";
 import { RolesModule } from "./roles/roles.module";
+import { StudentEvaluationsModule } from "./student-evaluations/student-evaluations.module";
+import { StudentPortalModule } from "./student-portal/student-portal.module";
 import { StudentsModule } from "./students/students.module";
 import { SupervisorsModule } from "./supervisors/supervisors.module";
 import { SupervisorWorkspaceModule } from "./supervisor-workspace/supervisor-workspace.module";
@@ -58,6 +62,10 @@ import { BranchesModule } from "./branches/branches.module";
     RecitationModule,
     EvaluationTemplatesModule,
     FieldVisitsModule,
+    ExamsModule,
+    StudentEvaluationsModule,
+    StudentPortalModule,
+    ParentPortalModule,
     TeacherWorkspaceModule,
     SupervisorWorkspaceModule,
     HealthModule,

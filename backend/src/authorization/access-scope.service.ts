@@ -205,4 +205,81 @@ export class AccessScopeService {
     });
     return assignments.map((a) => a.halaqaId);
   }
+
+  async canAccessExam(user: AuthenticatedUser, examId: string): Promise<boolean> {
+    const exam = await this.prisma.exam.findFirst({
+      where: { id: examId, forumId: user.forumId, deletedAt: null },
+      select: { id: true, branchId: true, halaqaId: true, isPublished: true },
+    });
+    if (!exam) return false;
+    if (this.authorization.hasRole(user, 'GENERAL_MANAGER')) return true;
+    if (this.authorization.hasRole(user, 'EXECUTIVE_MANAGER')) {
+      return !exam.branchId || this.canAccessBranch(user, exam.branchId);
+    }
+    if (this.authorization.hasRole(user, 'TEACHER')) {
+      if (!exam.halaqaId) return true;
+      return this.canAccessHalaqa(user, exam.halaqaId);
+    }
+    if (this.authorization.hasRole(user, 'TECHNICAL_SUPERVISOR')) {
+      if (!exam.halaqaId) return true;
+      return this.canAccessHalaqa(user, exam.halaqaId);
+    }
+    if (this.authorization.hasRole(user, 'STUDENT') || this.authorization.hasRole(user, 'PARENT')) {
+      return exam.isPublished;
+    }
+    return false;
+  }
+
+  async canAccessExamResult(user: AuthenticatedUser, resultId: string): Promise<boolean> {
+    const result = await this.prisma.examResult.findFirst({
+      where: { id: resultId, deletedAt: null, exam: { forumId: user.forumId, deletedAt: null } },
+      select: { id: true, studentId: true, isPublished: true, exam: { select: { branchId: true, halaqaId: true } } },
+    });
+    if (!result) return false;
+    if (this.authorization.hasRole(user, 'GENERAL_MANAGER')) return true;
+    if (this.authorization.hasRole(user, 'EXECUTIVE_MANAGER')) {
+      return !result.exam.branchId || this.canAccessBranch(user, result.exam.branchId);
+    }
+    if (this.authorization.hasRole(user, 'STUDENT') || this.authorization.hasRole(user, 'PARENT')) {
+      if (!result.isPublished) return false;
+      return this.canAccessStudent(user, result.studentId);
+    }
+    if (this.authorization.hasRole(user, 'TEACHER') || this.authorization.hasRole(user, 'TECHNICAL_SUPERVISOR')) {
+      return this.canAccessStudent(user, result.studentId);
+    }
+    return false;
+  }
+
+  async canAccessStudentEvaluation(user: AuthenticatedUser, evaluationId: string): Promise<boolean> {
+    const ev = await this.prisma.studentEvaluation.findFirst({
+      where: { id: evaluationId, forumId: user.forumId, deletedAt: null },
+      select: { id: true, studentId: true, halaqaId: true, isPublished: true },
+    });
+    if (!ev) return false;
+    if (this.authorization.hasRole(user, 'GENERAL_MANAGER')) return true;
+    if (this.authorization.hasRole(user, 'EXECUTIVE_MANAGER')) {
+      return this.canAccessHalaqa(user, ev.halaqaId);
+    }
+    if (this.authorization.hasRole(user, 'STUDENT') || this.authorization.hasRole(user, 'PARENT')) {
+      if (!ev.isPublished) return false;
+      return this.canAccessStudent(user, ev.studentId);
+    }
+    if (this.authorization.hasRole(user, 'TEACHER') || this.authorization.hasRole(user, 'TECHNICAL_SUPERVISOR')) {
+      return this.canAccessHalaqa(user, ev.halaqaId);
+    }
+    return false;
+  }
+
+  async getParentChildrenIds(user: AuthenticatedUser): Promise<string[]> {
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (!parent) return [];
+    const guardians = await this.prisma.studentGuardian.findMany({
+      where: { parentId: parent.id, student: { deletedAt: null, user: { forumId: user.forumId, isActive: true, deletedAt: null } } },
+      select: { studentId: true },
+    });
+    return guardians.map((g) => g.studentId);
+  }
 }
