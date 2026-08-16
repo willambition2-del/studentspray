@@ -10,7 +10,8 @@ import { AccessScopeService } from '../authorization/access-scope.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import type { AuthContext } from '../auth/types/auth-context';
 import { pageArgs, paginated } from '../common/dto/pagination-query.dto';
-import { AttendanceStatus, Prisma } from '../generated/prisma/client';
+import { AttendanceStatus, NotificationType, Prisma } from '../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   AttendanceQueryDto,
   CreateAttendanceSessionDto,
@@ -23,6 +24,7 @@ export class AttendanceService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly accessScope: AccessScopeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async createOrUpdateSession(
@@ -63,7 +65,7 @@ export class AttendanceService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const sessionResult = await this.prisma.$transaction(async (tx) => {
       let session = await tx.attendanceSession.findUnique({
         where: { halaqaId_sessionDate: { halaqaId, sessionDate } },
       });
@@ -147,6 +149,16 @@ export class AttendanceService {
 
       return result;
     });
+
+    // Notify parents for absent students
+    const absentIds = (dto.records || [])
+      .filter((r) => r.status === AttendanceStatus.ABSENT)
+      .map((r) => r.studentId);
+    if (absentIds.length > 0) {
+      this.sendAbsenceNotifications(absentIds, halaqaId, sessionDate).catch(() => {});
+    }
+
+    return sessionResult;
   }
 
   async updateSessionRecords(
@@ -164,7 +176,7 @@ export class AttendanceService {
       throw new ForbiddenException('Cannot edit attendance for this halaqa');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const sessionResult = await this.prisma.$transaction(async (tx) => {
       for (const record of dto.records) {
         await tx.attendanceRecord.upsert({
           where: {
@@ -220,6 +232,15 @@ export class AttendanceService {
 
       return updated;
     });
+
+    const absentIds = (dto.records || [])
+      .filter((r) => r.status === AttendanceStatus.ABSENT)
+      .map((r) => r.studentId);
+    if (absentIds.length > 0) {
+      this.sendAbsenceNotifications(absentIds, session.halaqaId, session.sessionDate).catch(() => {});
+    }
+
+    return sessionResult;
   }
 
   async getHalaqaAttendance(
@@ -353,5 +374,49 @@ export class AttendanceService {
       excused,
       attendanceRate,
     };
+  }
+
+  private async sendAbsenceNotifications(studentIds: string[], halaqaId: string, sessionDate: Date) {
+    try {
+      const studentsWithGuardians = await this.prisma.studentProfile.findMany({
+        where: { id: { in: studentIds } },
+        include: {
+          user: { select: { displayName: true, username: true } },
+          guardians: {
+            where: { receivesAcademicReports: true },
+            include: { parent: { include: { user: { select: { id: true } } } } },
+          },
+        },
+      });
+
+      const halaqa = await this.prisma.halaqa.findUnique({
+        where: { id: halaqaId },
+        select: { name: true },
+      });
+
+      const dateStr = sessionDate instanceof Date ? sessionDate.toISOString().split('T')[0] : String(sessionDate);
+
+      for (const stu of studentsWithGuardians) {
+        const studentName = stu.user?.displayName || stu.user?.username || 'الطالب';
+        for (const g of stu.guardians) {
+          if (g.parent?.user?.id) {
+            await this.notifications.createNotification({
+              userId: g.parent.user.id,
+              type: NotificationType.ATTENDANCE,
+              title: 'إشعار غياب عن الحلقة',
+              body: `نحيطكم علماً بغياب الطالب (${studentName}) عن حلقة ${halaqa?.name ?? ''} بتاريخ ${dateStr}.`,
+              data: {
+                type: 'ATTENDANCE',
+                studentId: stu.id,
+                halaqaId,
+                sessionDate: dateStr,
+              },
+            });
+          }
+        }
+      }
+    } catch {
+      // Non-blocking notification failure
+    }
   }
 }

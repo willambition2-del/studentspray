@@ -16,13 +16,15 @@ import {
   UpdateExamDto,
   UpdateExamResultDto,
 } from './dto/exam.dto';
-import { ExamResultStatus, ExamStatus, Prisma } from '../generated/prisma/client';
+import { ExamResultStatus, ExamStatus, NotificationType, Prisma } from '../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ExamsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessScope: AccessScopeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(user: AuthenticatedUser, dto: CreateExamDto, ctx: AuthContext) {
@@ -332,6 +334,10 @@ export class ExamsService {
       return e;
     });
 
+    if (dto.isPublished) {
+      this.sendExamPublishedNotifications(id).catch(() => {});
+    }
+
     return {
       id: updated.id,
       isPublished: updated.isPublished,
@@ -550,5 +556,68 @@ export class ExamsService {
       score: Number(updated.score),
       percentage: Number(updated.percentage),
     };
+  }
+
+  private async sendExamPublishedNotifications(examId: string) {
+    try {
+      const exam = await this.prisma.exam.findUnique({
+        where: { id: examId },
+        include: {
+          results: {
+            include: {
+              student: {
+                include: {
+                  user: { select: { id: true, displayName: true, username: true } },
+                  guardians: {
+                    where: { receivesAcademicReports: true },
+                    include: { parent: { include: { user: { select: { id: true } } } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!exam || !exam.results) return;
+
+      for (const result of exam.results) {
+        const studentName = result.student.user?.displayName || result.student.user?.username || 'الطالب';
+        const scoreStr = `${Number(result.score)}/${Number(exam.maxScore)}`;
+
+        if (result.student.user?.id) {
+          await this.notifications.createNotification({
+            userId: result.student.user.id,
+            type: NotificationType.EXAM_RESULT,
+            title: 'صدور نتيجة اختبار',
+            body: `تم اعتماد ونشر نتيجتك في (${exam.title}): ${scoreStr}`,
+            data: {
+              type: 'EXAM_RESULT',
+              examId: exam.id,
+              resultId: result.id,
+              studentId: result.student.id,
+            },
+          });
+        }
+
+        for (const g of result.student.guardians) {
+          if (g.parent?.user?.id) {
+            await this.notifications.createNotification({
+              userId: g.parent.user.id,
+              type: NotificationType.EXAM_RESULT,
+              title: 'صدور نتيجة اختبار الابن',
+              body: `تم اعتماد ونشر نتيجة الطالب (${studentName}) في (${exam.title}): ${scoreStr}`,
+              data: {
+                type: 'EXAM_RESULT',
+                examId: exam.id,
+                resultId: result.id,
+                studentId: result.student.id,
+              },
+            });
+          }
+        }
+      }
+    } catch {
+      // Non-blocking notification failure
+    }
   }
 }

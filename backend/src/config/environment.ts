@@ -27,6 +27,10 @@ export const environmentValidationSchema = Joi.object({
   AUTH_RATE_LIMIT_WINDOW_SECONDS: Joi.number().integer().min(10).max(3600).default(60),
   AUTH_COOKIE_NAME: Joi.string().pattern(/^[A-Za-z0-9_-]+$/).default('qf_refresh'),
   AUTH_COOKIE_SAME_SITE: Joi.string().valid('strict', 'lax', 'none').default('strict'),
+  FCM_ENABLED: Joi.boolean().truthy('true', '1').falsy('false', '0').default(false),
+  FIREBASE_PROJECT_ID: Joi.string().allow('').optional(),
+  FIREBASE_CLIENT_EMAIL: Joi.string().allow('').optional(),
+  FIREBASE_PRIVATE_KEY: Joi.string().allow('').optional(),
 });
 
 export function parseCorsOrigins(value: string): string[] {

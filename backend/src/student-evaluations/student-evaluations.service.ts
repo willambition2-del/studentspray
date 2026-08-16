@@ -12,13 +12,15 @@ import {
   StudentEvaluationQueryDto,
   UpdateStudentEvaluationDto,
 } from './dto/student-evaluation.dto';
-import { Prisma, StudentEvaluationRating } from '../generated/prisma/client';
+import { NotificationType, Prisma, StudentEvaluationRating } from '../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class StudentEvaluationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessScope: AccessScopeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(user: AuthenticatedUser, dto: CreateStudentEvaluationDto, ctx: AuthContext) {
@@ -77,6 +79,10 @@ export class StudentEvaluationsService {
 
       return created;
     });
+
+    if (evaluation.isPublished) {
+      this.sendEvaluationNotification(evaluation.id).catch(() => {});
+    }
 
     return evaluation;
   }
@@ -260,5 +266,60 @@ export class StudentEvaluationsService {
     });
 
     return { success: true };
+  }
+
+  private async sendEvaluationNotification(evaluationId: string) {
+    try {
+      const evalRecord = await this.prisma.studentEvaluation.findUnique({
+        where: { id: evaluationId },
+        include: {
+          halaqa: { select: { name: true } },
+          student: {
+            include: {
+              user: { select: { id: true, displayName: true, username: true } },
+              guardians: {
+                where: { receivesAcademicReports: true },
+                include: { parent: { include: { user: { select: { id: true } } } } },
+              },
+            },
+          },
+        },
+      });
+      if (!evalRecord || !evalRecord.student) return;
+
+      const studentName = evalRecord.student.user?.displayName || evalRecord.student.user?.username || 'الطالب';
+
+      if (evalRecord.student.user?.id) {
+        await this.notifications.createNotification({
+          userId: evalRecord.student.user.id,
+          type: NotificationType.STUDENT_EVALUATION,
+          title: 'تقييم تربوي جديد',
+          body: `تم تسجيل تقييم تربوي جديد لك في حلقة ${evalRecord.halaqa?.name ?? ''}: ${evalRecord.rating}`,
+          data: {
+            type: 'STUDENT_EVALUATION',
+            evaluationId: evalRecord.id,
+            studentId: evalRecord.student.id,
+          },
+        });
+      }
+
+      for (const g of evalRecord.student.guardians) {
+        if (g.parent?.user?.id) {
+          await this.notifications.createNotification({
+            userId: g.parent.user.id,
+            type: NotificationType.STUDENT_EVALUATION,
+            title: 'تقييم تربوي للابن',
+            body: `تم تسجيل تقييم تربوي جديد للطالب (${studentName}) في حلقة ${evalRecord.halaqa?.name ?? ''}: ${evalRecord.rating}`,
+            data: {
+              type: 'STUDENT_EVALUATION',
+              evaluationId: evalRecord.id,
+              studentId: evalRecord.student.id,
+            },
+          });
+        }
+      }
+    } catch {
+      // Non-blocking notification failure
+    }
   }
 }
