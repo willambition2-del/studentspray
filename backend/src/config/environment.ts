@@ -8,6 +8,7 @@ export const environmentValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().port().default(6379),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   REDIS_DB: Joi.number().integer().min(0).default(0),
+  REDIS_ALLOW_MEMORY_FALLBACK: Joi.boolean().truthy('true', '1').falsy('false', '0').optional(),
   CORS_ORIGINS: Joi.string().required(),
   SWAGGER_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   TRUST_PROXY: Joi.boolean().truthy('true').falsy('false').default(false),
