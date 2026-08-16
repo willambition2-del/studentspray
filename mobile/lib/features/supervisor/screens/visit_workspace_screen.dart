@@ -258,7 +258,7 @@ class _VisitWorkspaceScreenState extends ConsumerState<VisitWorkspaceScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: priority,
+                initialValue: priority,
                 decoration: const InputDecoration(labelText: 'مستوى الأولوية', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'LOW', child: Text('منخفضة')),

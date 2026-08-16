@@ -13,6 +13,7 @@ import {
   getStoredAllGrades, saveStoredAllGrades, getStoredAuditLogs, saveStoredAuditLogs,
   syncGradesToStudents, DEFAULT_MASTER_STUDENTS
 } from '../lib/gradesStorage';
+import { getExams as apiGetExams, createExam as apiCreateExam, publishExam as apiPublishExam, bulkGradeExam as apiBulkGradeExam } from '../lib/api/exams';
 import { Student, User } from '../types';
 
 interface GradesManagementProps {
@@ -144,6 +145,48 @@ export default function GradesManagement({
     ];
   }, [circlesList]);
 
+  // LOAD EXAMS FROM BACKEND NESTJS API
+  useEffect(() => {
+    let isMounted = true;
+    apiGetExams()
+      .then(apiExams => {
+        if (!isMounted || !apiExams || apiExams.length === 0) return;
+        const mapped: Exam[] = apiExams.map(ae => ({
+          id: ae.id,
+          periodId: ae.termId || ae.academicYearId || 'p-1',
+          title: ae.title,
+          curriculum: ae.curriculum || 'منهج الحفظ والمراجعة المكثف',
+          periodName: 'فترة التقييم',
+          examType: ae.examType === 'MONTHLY' ? 'شهري' : ae.examType === 'MIDTERM' ? 'فصلي' : ae.examType === 'FINAL' ? 'نهائي' : 'تقييم مستمر',
+          maxTotalScore: ae.maxScore || 100,
+          passScore: ae.passScore || 60,
+          date: ae.scheduledDate ? new Date(ae.scheduledDate).toLocaleDateString('ar-SA') : new Date(ae.createdAt).toLocaleDateString('ar-SA'),
+          circleIds: ae.halaqaId ? [ae.halaqaId] : ['c1', 'c2', 'c3'],
+          circleName: ae.halaqa?.name || availableCircles.map(c => c.name).join('، '),
+          criteria: (ae.criteria && ae.criteria.length > 0)
+            ? ae.criteria.map(c => ({ id: c.id || c.name, name: c.name, maxScore: c.maxScore }))
+            : [
+                { id: 'crit-1', name: 'الحفظ والتسميع', maxScore: 40 },
+                { id: 'crit-2', name: 'حسن التلاوة والترتيل', maxScore: 20 },
+                { id: 'crit-3', name: 'أحكام التجويد والنطق', maxScore: 20 },
+                { id: 'crit-4', name: 'الانضباط والحضور', maxScore: 10 },
+                { id: 'crit-5', name: 'السلوك والتميز التربوي', maxScore: 10 }
+              ],
+          responsibleName: 'إدارة الاختبارات والتقييم',
+          status: ae.isPublished ? 'approved' : ae.status === 'ARCHIVED' ? 'archived' : 'in_progress',
+        }));
+        setExams(prev => {
+          const merged = [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))];
+          saveStoredExams(merged);
+          return merged;
+        });
+      })
+      .catch(() => {
+        // Fallback to local storage
+      });
+    return () => { isMounted = false; };
+  }, [availableCircles]);
+
   // SYNC DEFAULT SELECTIONS
   useEffect(() => {
     if (periods.length > 0 && !selectedPeriodId) {
@@ -182,13 +225,25 @@ export default function GradesManagement({
     return (studentsList && studentsList.length > 0) ? studentsList : DEFAULT_MASTER_STUDENTS;
   }, [studentsList]);
 
-  // AUTO-PERSIST ALL GRADES & SYNC DIRECTLY TO PROFILES
+  // AUTO-PERSIST ALL GRADES & SYNC DIRECTLY TO PROFILES & BACKEND API
   useEffect(() => {
     saveStoredAllGrades(allGrades);
     if (activeExam) {
       const examRecords = Object.values(allGrades[activeExam.id] || {}) as StudentGradeRecord[];
       if (examRecords.length > 0) {
         syncGradesToStudents(activeExam, examRecords, currentUser?.name || 'الإدارة', masterStudentsList);
+        
+        // Sync to backend if UUID format exam
+        if (activeExam.id.length > 20) {
+          const payload = examRecords.map(r => ({
+            studentId: r.studentId,
+            score: r.totalScore,
+            status: r.status === 'passed' ? 'PASSED' : r.status === 'failed' ? 'FAILED' : r.status === 'absent' ? 'ABSENT' : 'ENTERED',
+            notes: r.notes,
+            criterionScores: r.scores
+          }));
+          apiBulkGradeExam(activeExam.id, payload).catch(() => {});
+        }
       }
     }
   }, [allGrades, activeExam, currentUser?.name, masterStudentsList]);
@@ -732,6 +787,22 @@ export default function GradesManagement({
     saveStoredExams(updated);
     setSelectedExamId(created.id);
     setShowNewExamModal(false);
+
+    // Call backend API
+    apiCreateExam({
+      title: created.title,
+      description: created.curriculum,
+      curriculum: created.curriculum,
+      examType: 'MONTHLY',
+      maxScore: created.maxTotalScore,
+      passScore: created.passScore,
+      criteria: created.criteria.map((c, idx) => ({ name: c.name, maxScore: c.maxScore, order: idx }))
+    }).then(backendExam => {
+      if (backendExam?.id) {
+        setExams(currentExams => currentExams.map(e => e.id === created.id ? { ...e, id: backendExam.id } : e));
+      }
+    }).catch(() => {});
+
     setSuccessMessage('تم إنشاء الاختبار وتجهيز استعراض الحلقات بنجاح.');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
@@ -776,6 +847,14 @@ export default function GradesManagement({
     });
     setPeriods(updated);
     saveStoredPeriods(updated);
+
+    // Publish all exams under this period
+    exams.forEach(ex => {
+      if (ex.periodId === periodId && ex.id.length > 20) {
+        apiPublishExam(ex.id, true).catch(() => {});
+      }
+    });
+
     setSuccessMessage('تم اعتماد تقرير هذا المنهج رسمياً وإصدار ختم التوثيق القيادي.');
     setTimeout(() => setSuccessMessage(null), 4000);
   };

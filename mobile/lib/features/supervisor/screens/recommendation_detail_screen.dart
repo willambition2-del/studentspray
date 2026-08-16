@@ -175,7 +175,7 @@ class _RecommendationDetailScreenState
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _followUpStatus,
+                        initialValue: _followUpStatus,
                         decoration: const InputDecoration(
                           labelText: 'تحديث حالة التوصية',
                           border: OutlineInputBorder(),

@@ -106,7 +106,7 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
             // Halaqa Selector
             halaqasAsync.when(
               data: (halaqas) => DropdownButtonFormField<String>(
-                value: _selectedHalaqaId,
+                initialValue: _selectedHalaqaId,
                 decoration: const InputDecoration(
                   labelText: 'الحلقة المستهدفة *',
                   border: OutlineInputBorder(),
@@ -138,7 +138,7 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
             // Teacher Selector
             teachersAsync.when(
               data: (teachers) => DropdownButtonFormField<String>(
-                value: _selectedTeacherId,
+                initialValue: _selectedTeacherId,
                 decoration: const InputDecoration(
                   labelText: 'المعلم المستهدف *',
                   border: OutlineInputBorder(),
@@ -160,7 +160,7 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
 
             // Visit Type Selector
             DropdownButtonFormField<String>(
-              value: _visitType,
+              initialValue: _visitType,
               decoration: const InputDecoration(
                 labelText: 'نوع الزيارة',
                 border: OutlineInputBorder(),
