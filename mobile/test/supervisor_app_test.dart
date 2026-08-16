@@ -1,7 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:quran_forum/core/database/app_database.dart';
@@ -10,7 +8,6 @@ import 'package:quran_forum/core/storage/token_storage.dart';
 import 'package:quran_forum/core/sync/sync_service.dart';
 import 'package:quran_forum/features/auth/models/user_profile.dart';
 import 'package:quran_forum/features/supervisor/models/supervisor_models.dart';
-import 'package:quran_forum/features/supervisor/screens/supervisor_home_screen.dart';
 
 class MockConnectivity extends Mock implements Connectivity {}
 

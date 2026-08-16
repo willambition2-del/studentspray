@@ -21,6 +21,13 @@ import '../features/supervisor/screens/visit_workspace_screen.dart';
 import '../features/supervisor/screens/evaluation_screen.dart';
 import '../features/supervisor/screens/recommendations_list_screen.dart';
 import '../features/supervisor/screens/recommendation_detail_screen.dart';
+import '../features/student/screens/student_home_screen.dart';
+import '../features/student/screens/student_plan_screen.dart';
+import '../features/student/screens/student_attendance_screen.dart';
+import '../features/student/screens/student_recitation_screen.dart';
+import '../features/student/screens/student_exams_screen.dart';
+import '../features/student/screens/student_evaluations_screen.dart';
+import '../features/student/screens/student_progress_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -47,6 +54,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             return '/teacher/home';
           } else if (user != null && user.isTechnicalSupervisor) {
             return '/supervisor/home';
+          } else if (user != null && user.isStudent) {
+            return '/student/home';
           } else {
             return '/unsupported-role';
           }
@@ -197,6 +206,40 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id'] ?? '';
           return RecommendationDetailScreen(recommendationId: id);
         },
+      ),
+
+      // Student Routes
+      GoRoute(
+        path: '/student',
+        redirect: (_, __) => '/student/home',
+      ),
+      GoRoute(
+        path: '/student/home',
+        builder: (context, state) => const StudentHomeScreen(),
+      ),
+      GoRoute(
+        path: '/student/plan',
+        builder: (context, state) => const StudentPlanScreen(),
+      ),
+      GoRoute(
+        path: '/student/attendance',
+        builder: (context, state) => const StudentAttendanceScreen(),
+      ),
+      GoRoute(
+        path: '/student/recitation',
+        builder: (context, state) => const StudentRecitationScreen(),
+      ),
+      GoRoute(
+        path: '/student/exams',
+        builder: (context, state) => const StudentExamsScreen(),
+      ),
+      GoRoute(
+        path: '/student/evaluations',
+        builder: (context, state) => const StudentEvaluationsScreen(),
+      ),
+      GoRoute(
+        path: '/student/progress',
+        builder: (context, state) => const StudentPortalProgressScreen(),
       ),
     ],
   );
