@@ -112,4 +112,4 @@ Copy `.env.example` to `.env` and adjust values locally. `CORS_ORIGINS` is a com
 
 ## Phase boundary
 
-Phase 3 implements the core management APIs and real React admin login. Attendance, memorization, grades, Flutter, S3, Firebase, Socket.IO, and migration of the management page data sources remain deferred.
+Phase 15 implements derived reporting services, server-side Arabic RTL PDF generation with font asset bundling, UTF-8 CSV exports with formula injection protection, print-friendly A4 layout, executive dashboard KPIs, and role-scoped reporting authorization. Phase 16 handles final legacy code removal.

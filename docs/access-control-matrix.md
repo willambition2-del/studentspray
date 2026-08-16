@@ -37,6 +37,14 @@ A role or permission never grants access to every record by itself. Forum, branc
   - `GENERAL_MANAGER` / `EXECUTIVE_MANAGER`: Full management of sections, publisher rules, and posts.
 - `canAccessActivitiesAndCompetitions`: Managers follow branch scope; Teachers/Supervisors follow assigned halaqas/branches; Students see published activities/competitions and their own registrations/results; Parents see their linked children's registrations and results.
 - `canGrantAwards`: Managers and authorized Teachers/Supervisors only. Students and Parents cannot grant awards. Historical student awards are permanent and preserved across halaqa transfers.
+- `canAccessReports`:
+  - `GENERAL_MANAGER`: Full forum-wide reporting access across all branches, halaqas, students, and staff.
+  - `EXECUTIVE_MANAGER`: Reporting access scoped by assigned branch.
+  - `TECHNICAL_SUPERVISOR`: Scoped reports for supervised halaqat and teachers.
+  - `TEACHER`: Scoped reports for assigned halaqat and enrolled students.
+  - `PARENT`: Scoped reports for linked children only.
+  - `STUDENT`: Scoped report for own student profile only.
+  - `reports.export`: Permission required for PDF generation and CSV exports. Formula injection protection enforced on all CSV rows.
 
 Phase 3 business APIs declare permissions with `@RequirePermissions(...)` and resolve forum, branch, Halaqa, student, assignment, and guardian scope server-side. `branches.read` and `branches.manage` are part of the system-controlled permission catalog. Role mutation also applies a no-escalation policy: non-General Managers cannot grant a permission they do not hold or assign `GENERAL_MANAGER`.
 

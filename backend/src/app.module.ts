@@ -39,6 +39,7 @@ import { CompetitionsModule } from "./competitions/competitions.module";
 import { AwardsModule } from "./awards/awards.module";
 import { ShelfModule } from "./shelf/shelf.module";
 import { AdministrativeModule } from "./administrative/administrative.module";
+import { ReportsModule } from "./reports/reports.module";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AdministrativeModule } from "./administrative/administrative.module";
     AwardsModule,
     ShelfModule,
     AdministrativeModule,
+    ReportsModule,
     ProfilesModule,
     AuthorizationModule,
     AuthModule,

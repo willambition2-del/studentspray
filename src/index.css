@@ -40,7 +40,23 @@ body {
 /* Print simulation styling */
 @media print {
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  header, nav, aside, .no-print, button, .no-print-area {
+    display: none !important;
+  }
+  #printable-preview-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
   }
 }

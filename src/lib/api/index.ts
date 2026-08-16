@@ -30,4 +30,5 @@ export * from './competitions';
 export * from './awards';
 export * from './shelf';
 export * from './administrative';
+export * from './reports';
 

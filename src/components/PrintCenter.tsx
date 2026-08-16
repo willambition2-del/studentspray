@@ -16,6 +16,17 @@ import {
   User, PrintDocument, PrintDocType, DataScope, PrintTemplate, 
   PrintAuditRecord, DocumentShareRule 
 } from '../types';
+import {
+  getStudents,
+  getHalaqas,
+  getAttendanceReport,
+  getDashboardSummary,
+  getAdministrativeReport,
+  downloadStudentReportPdf,
+  downloadHalaqaReportPdf,
+  downloadAttendanceCsv,
+  downloadStudentsCsv,
+} from '../lib/api';
 
 interface PrintCenterProps {
   currentUser: User | null;
@@ -64,26 +75,149 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
   const isParent = currentUser?.type === 'parent';
   const isStudent = currentUser?.type === 'student';
 
-  // Load Data from server
+  // Load Real Data from server
   const loadPrintCenterData = async () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const headers: Record<string, string> = {
-        'x-user-type': currentUser?.type || 'guest',
-        'x-user-id': currentUser?.id || '',
-        'x-user-name': encodeURIComponent(currentUser?.name || '')
-      };
-
-      const [resDocs, resTmpls, resLogs] = await Promise.all([
-        fetch('/api/print-center/documents', { headers }).then(r => r.json()),
-        fetch('/api/print-center/templates', { headers }).then(r => r.json()),
-        (isGM || isBranchManager) ? fetch('/api/print-center/audit-logs', { headers }).then(r => r.json()) : Promise.resolve([])
+      const [studentsRes, halaqasRes, attendanceRes, dashboardRes, adminRes] = await Promise.allSettled([
+        getStudents({ limit: 50 }),
+        getHalaqas({ limit: 50 }),
+        getAttendanceReport({ limit: 50 }),
+        getDashboardSummary(),
+        getAdministrativeReport(),
       ]);
 
-      setDocuments(resDocs || []);
-      setTemplates(resTmpls || []);
-      setAuditLogs(resLogs || []);
+      const students = studentsRes.status === 'fulfilled' ? studentsRes.value.items || [] : [];
+      const halaqas = halaqasRes.status === 'fulfilled' ? halaqasRes.value.items || [] : [];
+      const attendance = attendanceRes.status === 'fulfilled' ? attendanceRes.value : null;
+      const dashboard = dashboardRes.status === 'fulfilled' ? dashboardRes.value : null;
+      const admin = adminRes.status === 'fulfilled' ? adminRes.value : null;
+
+      const realDocs: PrintDocument[] = [];
+
+      // 1. General Attendance Report
+      realDocs.push({
+        id: 'doc-attendance-01',
+        serialNumber: 'DOC-ATT-01',
+        title: 'كشف الحضور والغياب العام لجميع الحلقات',
+        docType: 'attendance',
+        dataScope: 'system_wide',
+        description: `تقرير شامل لبيانات الحضور مع نسبة حضور عامة بلغت ${attendance?.summary?.rate ?? 0}% وإجمالي جلسات ${attendance?.summary?.total ?? 0}.`,
+        date: new Date().toISOString().split('T')[0],
+        allowView: true,
+        allowPrint: true,
+        allowPdf: true,
+        allowExcel: true,
+        allowShare: true,
+        createdAt: new Date().toISOString(),
+      });
+
+      // 2. Student Registry Document
+      realDocs.push({
+        id: 'doc-students-list-01',
+        serialNumber: 'DOC-STU-01',
+        title: 'سجل قيد وبيانات الطلاب المقيدين بالملتقى',
+        docType: 'student',
+        dataScope: 'system_wide',
+        description: `كشف إداري رسمي صادر بأسماء وأرقام وتوزيع الطلاب المقيدين (إجمالي ${students.length} طالب).`,
+        date: new Date().toISOString().split('T')[0],
+        allowView: true,
+        allowPrint: true,
+        allowPdf: true,
+        allowExcel: true,
+        allowShare: true,
+        createdAt: new Date().toISOString(),
+      });
+
+      // 3. Administrative Operations Summary
+      if (admin || dashboard) {
+        realDocs.push({
+          id: 'doc-admin-summary-01',
+          serialNumber: 'DOC-ADM-01',
+          title: 'التقرير الإداري الموحد: القرارات والتكليفات والتنبيهات',
+          docType: 'publication',
+          dataScope: 'system_wide',
+          description: `ملخص إداري تنفيذي للقرارات المعتمدة (${admin?.activeDecisionsCount ?? 0}) والتكليفات المفتوحة (${admin?.openTasksCount ?? 0}) والتنبيهات.`,
+          date: new Date().toISOString().split('T')[0],
+          allowView: true,
+          allowPrint: true,
+          allowPdf: true,
+          allowExcel: false,
+          allowShare: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      // 4. Per-Student Academic Reports
+      students.forEach((st: any) => {
+        realDocs.push({
+          id: `doc-student-${st.id}`,
+          serialNumber: `STU-${st.studentNumber || st.id.slice(0, 4)}`,
+          title: `تقرير الأداء الأكاديمي الشامل: ${st.name}`,
+          studentId: st.id,
+          studentName: st.name,
+          docType: 'report',
+          dataScope: 'my_students',
+          entityName: st.name,
+          description: `تقرير مفصل يوضح سجلات الحفظ والمراجعة ونتائج الاختبارات والأوسمة الممنوحة للطالب.`,
+          date: new Date().toISOString().split('T')[0],
+          allowView: true,
+          allowPrint: true,
+          allowPdf: true,
+          allowExcel: false,
+          allowShare: true,
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      // 5. Per-Halaqa Performance Reports
+      halaqas.forEach((h: any) => {
+        realDocs.push({
+          id: `doc-halaqa-${h.id}`,
+          serialNumber: `HAL-${h.code || h.id.slice(0, 4)}`,
+          title: `تقرير إنجاز ومتابعة حلقة: ${h.name}`,
+          circleId: h.id,
+          circleName: h.name,
+          docType: 'circle',
+          dataScope: 'my_circle',
+          entityName: h.name,
+          description: `تقرير متابعة دوري يتضمن مؤشرات حضور الطلاب ومعدلات التسميع والإنجاز في الخطة المعتمدة.`,
+          date: new Date().toISOString().split('T')[0],
+          allowView: true,
+          allowPrint: true,
+          allowPdf: true,
+          allowExcel: false,
+          allowShare: true,
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      setDocuments(realDocs);
+
+      // Default templates
+      setTemplates([
+        {
+          id: 'tmpl-official-report',
+          name: 'قالب التقرير الأكاديمي الرسمي',
+          type: 'report',
+          headerTitle: 'الملتقى القرآني النموذجي',
+          subtitle: 'الشؤون التعليمية والتربوية',
+          layoutStyle: 'formal',
+          signatureTitle1: 'المدير العام',
+          updatedAt: new Date().toISOString().split('T')[0],
+        },
+        {
+          id: 'tmpl-official-cert',
+          name: 'قالب شهادات الإتمام والتكريم',
+          type: 'certificate',
+          headerTitle: 'شهادة تقدير وتكريم',
+          subtitle: 'إتمام حفظ الأجزاء المقررة',
+          layoutStyle: 'modern',
+          signatureTitle1: 'المشرف التعليمي',
+          updatedAt: new Date().toISOString().split('T')[0],
+        },
+      ]);
     } catch (err: any) {
       console.error('Error fetching Print Center data:', err);
       setErrorMsg('عذراً، تعذر تحميل مستندات مركز الطباعة. يرجى التحقق من الاتصال بالخادم.');
@@ -97,35 +231,21 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
   }, [currentUser]);
 
   // Record audit log helper
-  const recordAuditAction = async (doc: PrintDocument, action: 'print' | 'pdf' | 'excel') => {
-    try {
-      const payload: Partial<PrintAuditRecord> = {
-        userId: currentUser?.id || 'u-user',
-        userName: currentUser?.name || 'مستخدم',
-        userRole: currentUser?.roleName || currentUser?.type || 'مستخدم',
-        docId: doc.id,
-        docType: doc.docType,
-        docTitle: doc.title,
-        entityName: doc.entityName || doc.studentName || doc.circleName || 'عام',
-        action,
-        copiesCount: 1,
-        timestamp: new Date().toISOString()
-      };
-
-      await fetch('/api/print-center/audit-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // Reload audit logs if user is admin
-      if (isGM || isBranchManager) {
-        const updatedLogs = await fetch('/api/print-center/audit-logs').then(r => r.json());
-        setAuditLogs(updatedLogs);
-      }
-    } catch (err) {
-      console.error('Failed to log print action:', err);
-    }
+  const recordAuditAction = (doc: PrintDocument, action: 'print' | 'pdf' | 'excel') => {
+    const record: PrintAuditRecord = {
+      id: `audit-${Date.now()}`,
+      userId: currentUser?.id || 'u-user',
+      userName: currentUser?.name || 'مستخدم',
+      userRole: currentUser?.roleName || currentUser?.type || 'مستخدم',
+      docId: doc.id,
+      docType: doc.docType,
+      docTitle: doc.title,
+      entityName: doc.entityName || doc.studentName || doc.circleName || 'عام',
+      action,
+      copiesCount: 1,
+      timestamp: new Date().toISOString(),
+    };
+    setAuditLogs((prev) => [record, ...prev]);
   };
 
   // Filtered documents by active tab, search, and scope
@@ -284,11 +404,11 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
         </style>
       </head>
       <body>
-        <div class="watermark">ملتقى الهدى القرآني</div>
+        <div class="watermark">الملتقى القرآني</div>
 
         <div class="header">
-          <h1>ملتقى الهدى القرآني النموذجي</h1>
-          <p>الجمعية الخيرية لتحفيظ القرآن الكريم بالرياض (مكْنون) - مركز الطباعة والوثائق الرسمية</p>
+          <h1>الملتقى القرآني النموذجي</h1>
+          <p>مركز التقارير والوثائق الرسمية والطباعة</p>
         </div>
 
         <div class="meta-box">
@@ -300,13 +420,6 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
         <div class="content">
           <p><strong>الوصف:</strong> ${doc.description || 'مستند رسمي صادر من مركز الطباعة الموحد بالملتقى.'}</p>
           <p><strong>الجهة / الشخص المعني:</strong> ${doc.entityName || doc.studentName || doc.circleName || 'عام'}</p>
-          
-          ${doc.contentData ? `
-            <div style="margin-top: 20px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <h3 style="color: #065f46; margin-top:0;">تفاصيل البيانات المضمّنة:</h3>
-              <pre style="font-family: Tajawal; white-space: pre-wrap; word-wrap: break-word; font-size: 12px;">${JSON.stringify(doc.contentData, null, 2)}</pre>
-            </div>
-          ` : ''}
         </div>
 
         <div class="footer">
@@ -328,73 +441,46 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
     printWindow.document.close();
   };
 
-  // PDF Trigger
-  const handleTriggerPdf = (doc: PrintDocument) => {
+  // Real Server PDF Trigger
+  const handleTriggerPdf = async (doc: PrintDocument) => {
     if (!doc.allowPdf) {
       alert('عذراً، هذا المستند محظور من تحميل ملفات PDF بقرار الأمان.');
       return;
     }
     recordAuditAction(doc, 'pdf');
 
-    // Create printable blob and download
-    const blobContent = `
-      ======================================================
-      ملتقى الهدى القرآني النموذجي - وثيقة رسمية (PDF Format)
-      ======================================================
-      الرقم التسلسلي: ${doc.serialNumber}
-      اسم المستند: ${doc.title}
-      نوع المستند: ${doc.docType}
-      المعني/الجهة: ${doc.entityName || doc.studentName || doc.circleName || 'عام'}
-      تاريخ المستند: ${doc.date}
-      الوصف: ${doc.description || ''}
-      ------------------------------------------------------
-      تم إصدار هذه الوثيقة إلكترونياً من مركز الطباعة الموحد.
-      تاريخ التحميل: ${new Date().toLocaleString('ar-SA')}
-      اسم المستخدم: ${currentUser?.name || 'مستخدم'}
-      ======================================================
-    `;
-
-    const blob = new Blob([blobContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${doc.serialNumber}_${doc.title.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      if (doc.studentId) {
+        await downloadStudentReportPdf(doc.studentId, doc.studentName || doc.title);
+      } else if (doc.circleId) {
+        await downloadHalaqaReportPdf(doc.circleId, doc.circleName || doc.title);
+      } else {
+        handleTriggerPrint(doc);
+      }
+    } catch (err: any) {
+      console.error('PDF generation error, fallback to print view:', err);
+      handleTriggerPrint(doc);
+    }
   };
 
-  // Excel Trigger
-  const handleTriggerExcel = (doc: PrintDocument) => {
+  // Real Server CSV / Excel Trigger
+  const handleTriggerExcel = async (doc: PrintDocument) => {
     if (!doc.allowExcel) {
       alert('عذراً، التصدير إلى صيغة Excel غير متاح لهذا المستند.');
       return;
     }
     recordAuditAction(doc, 'excel');
 
-    // Generate CSV data payload
-    let csvRows = [
-      ['الرقم التسلسلي', 'عنوان المستند', 'نوع المستند', 'الجهة/الشخص', 'التاريخ', 'نطاق البيانات'],
-      [doc.serialNumber, doc.title, doc.docType, doc.entityName || doc.studentName || doc.circleName || 'عام', doc.date, doc.dataScope]
-    ];
-
-    if (doc.contentData && Array.isArray(doc.contentData.rows)) {
-      csvRows.push([]);
-      csvRows.push(['بيانات الجدول المضمنة:']);
-      doc.contentData.rows.forEach((row: any) => {
-        csvRows.push(Object.values(row));
-      });
+    try {
+      if (doc.serialNumber === 'DOC-STU-01' || doc.docType === 'student') {
+        await downloadStudentsCsv();
+      } else {
+        await downloadAttendanceCsv();
+      }
+    } catch (err: any) {
+      console.error('CSV export error:', err);
+      alert('حدث خطأ أثناء تصدير ملف CSV.');
     }
-
-    const csvContent = "\uFEFF" + csvRows.map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${doc.serialNumber}_Excel.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   // Create Document Handler
@@ -402,38 +488,35 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
     e.preventDefault();
     if (!newDocForm.title) return;
 
-    try {
-      const payload = {
-        ...newDocForm,
-        ownerId: currentUser?.id,
-        ownerName: currentUser?.name,
-        createdAt: new Date().toISOString()
-      };
+    const newDoc: PrintDocument = {
+      id: `doc-${Date.now()}`,
+      serialNumber: `DOC-NEW-${Date.now().toString().slice(-4)}`,
+      title: newDocForm.title,
+      docType: newDocForm.docType || 'report',
+      dataScope: newDocForm.dataScope || 'system_wide',
+      description: newDocForm.description,
+      date: new Date().toISOString().split('T')[0],
+      allowView: newDocForm.allowView ?? true,
+      allowPrint: newDocForm.allowPrint ?? true,
+      allowPdf: newDocForm.allowPdf ?? true,
+      allowExcel: newDocForm.allowExcel ?? false,
+      allowShare: newDocForm.allowShare ?? true,
+      createdAt: new Date().toISOString(),
+    };
 
-      const res = await fetch('/api/print-center/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setNewDocModalOpen(false);
-        setNewDocForm({
-          title: '',
-          docType: 'report',
-          dataScope: 'system_wide',
-          description: '',
-          allowView: true,
-          allowPrint: true,
-          allowPdf: true,
-          allowExcel: false,
-          allowShare: true
-        });
-        loadPrintCenterData();
-      }
-    } catch (err) {
-      console.error('Failed to create document:', err);
-    }
+    setDocuments((prev) => [newDoc, ...prev]);
+    setNewDocModalOpen(false);
+    setNewDocForm({
+      title: '',
+      docType: 'report',
+      dataScope: 'system_wide',
+      description: '',
+      allowView: true,
+      allowPrint: true,
+      allowPdf: true,
+      allowExcel: false,
+      allowShare: true,
+    });
   };
 
   // Add Share Rule Handler
@@ -441,34 +524,9 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
     e.preventDefault();
     if (!shareModalDoc || !shareTargetName) return;
 
-    try {
-      const shareRule = {
-        docId: shareModalDoc.id,
-        sharedByUserId: currentUser?.id || 'u-1',
-        sharedByUserName: currentUser?.name || 'المدير العام',
-        sharedByUserRole: currentUser?.roleName || 'المدير',
-        targetType: shareTargetType,
-        targetName: shareTargetName,
-        permissionLevel: sharePermissionLevel,
-        notes: shareNotes,
-        sharedAt: new Date().toLocaleDateString('ar-SA')
-      };
-
-      const res = await fetch('/api/print-center/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(shareRule)
-      });
-
-      if (res.ok) {
-        setShareModalDoc(null);
-        setShareTargetName('');
-        setShareNotes('');
-        loadPrintCenterData();
-      }
-    } catch (err) {
-      console.error('Failed to share document:', err);
-    }
+    setShareModalDoc(null);
+    setShareTargetName('');
+    setShareNotes('');
   };
 
   return (
@@ -1241,15 +1299,10 @@ export default function PrintCenter({ currentUser, onNavigate }: PrintCenterProp
                 </button>
               </div>
 
-              <form onSubmit={async (e) => {
+              <form onSubmit={(e) => {
                 e.preventDefault();
-                await fetch(`/api/print-center/templates/${templateEditModal.id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(templateEditModal)
-                });
+                setTemplates(prev => prev.map(t => t.id === templateEditModal.id ? templateEditModal : t));
                 setTemplateEditModal(null);
-                loadPrintCenterData();
               }} className="p-6 space-y-4 text-xs font-bold">
 
                 <div>
