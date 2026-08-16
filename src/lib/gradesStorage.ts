@@ -529,89 +529,59 @@ export const DEFAULT_GRADES_MAP: Record<string, Record<string, StudentGradeRecor
   }
 };
 
+// In-memory runtime state store (No localStorage business state)
+let inMemoryPeriods: EvaluationPeriod[] = [...DEFAULT_PERIODS];
+let inMemoryExams: Exam[] = [...DEFAULT_EXAMS];
+let inMemoryAllGrades: Record<string, Record<string, StudentGradeRecord>> = { ...DEFAULT_GRADES_MAP };
+let inMemoryGradeAuditLogs: GradeAuditEntry[] = [
+  {
+    id: 'aud-1',
+    studentId: 'ST-000006',
+    studentName: 'خالد بن أحمد الغامدي',
+    examId: 'exam-1',
+    examTitle: 'اختبار شهر محرم المجمع - سورة البقرة والنساء',
+    periodId: 'p-1447-1',
+    periodName: 'الفصل الأول 1447هـ - الفترة الأولى',
+    curriculumName: 'منهج الحفظ والمراجعة المكثف',
+    previousScore: 50,
+    newScore: 54,
+    modifiedBy: 'الشيخ عبدالرحمن بن محمد السعيد',
+    timestamp: '1447/01/17 10:30 ص',
+    reason: 'إعادة تصحيح بند التجويد بعد المراجعة'
+  }
+];
+
 // STORAGE UTILITIES
 export function getStoredPeriods(): EvaluationPeriod[] {
-  try {
-    const saved = localStorage.getItem('alhudacenter_periods');
-    return saved ? JSON.parse(saved) : DEFAULT_PERIODS;
-  } catch {
-    return DEFAULT_PERIODS;
-  }
+  return inMemoryPeriods;
 }
 
 export function saveStoredPeriods(periods: EvaluationPeriod[]): void {
-  try {
-    localStorage.setItem('alhudacenter_periods', JSON.stringify(periods));
-  } catch (err) {
-    console.error('Failed to save periods:', err);
-  }
+  inMemoryPeriods = periods;
 }
 
 export function getStoredExams(): Exam[] {
-  try {
-    const saved = localStorage.getItem('alhudacenter_exams');
-    return saved ? JSON.parse(saved) : DEFAULT_EXAMS;
-  } catch {
-    return DEFAULT_EXAMS;
-  }
+  return inMemoryExams;
 }
 
 export function saveStoredExams(exams: Exam[]): void {
-  try {
-    localStorage.setItem('alhudacenter_exams', JSON.stringify(exams));
-  } catch (err) {
-    console.error('Failed to save exams:', err);
-  }
+  inMemoryExams = exams;
 }
 
 export function getStoredAllGrades(): Record<string, Record<string, StudentGradeRecord>> {
-  try {
-    const saved = localStorage.getItem('alhudacenter_all_grades');
-    return saved ? JSON.parse(saved) : DEFAULT_GRADES_MAP;
-  } catch {
-    return DEFAULT_GRADES_MAP;
-  }
+  return inMemoryAllGrades;
 }
 
 export function saveStoredAllGrades(allGrades: Record<string, Record<string, StudentGradeRecord>>): void {
-  try {
-    localStorage.setItem('alhudacenter_all_grades', JSON.stringify(allGrades));
-  } catch (err) {
-    console.error('Failed to save grades map:', err);
-  }
+  inMemoryAllGrades = allGrades;
 }
 
 export function getStoredAuditLogs(): GradeAuditEntry[] {
-  try {
-    const saved = localStorage.getItem('alhudacenter_grade_audit_logs');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'aud-1',
-        studentId: 'ST-000006',
-        studentName: 'خالد بن أحمد الغامدي',
-        examId: 'exam-1',
-        examTitle: 'اختبار شهر محرم المجمع - سورة البقرة والنساء',
-        periodId: 'p-1447-1',
-        periodName: 'الفصل الأول 1447هـ - الفترة الأولى',
-        curriculumName: 'منهج الحفظ والمراجعة المكثف',
-        previousScore: 50,
-        newScore: 54,
-        modifiedBy: 'الشيخ عبدالرحمن بن محمد السعيد',
-        timestamp: '1447/01/17 10:30 ص',
-        reason: 'إعادة تصحيح بند التجويد بعد المراجعة'
-      }
-    ];
-  } catch {
-    return [];
-  }
+  return inMemoryGradeAuditLogs;
 }
 
 export function saveStoredAuditLogs(logs: GradeAuditEntry[]): void {
-  try {
-    localStorage.setItem('alhudacenter_grade_audit_logs', JSON.stringify(logs));
-  } catch (err) {
-    console.error('Failed to save audit logs:', err);
-  }
+  inMemoryGradeAuditLogs = logs;
 }
 
 export function syncGradesToStudents(
@@ -669,12 +639,6 @@ export function syncGradesToStudents(
       timeline: [newTimelineItem, ...(st.timeline || [])]
     };
   });
-
-  try {
-    localStorage.setItem('alhudacenter_students', JSON.stringify(updatedStudents));
-  } catch (err) {
-    console.error('Error saving updated students:', err);
-  }
 
   return updatedStudents;
 }

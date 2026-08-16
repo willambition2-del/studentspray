@@ -31,19 +31,8 @@ export default function FieldVisitsManagement({ currentUser, onNavigateToPrint }
   // State for visits data
   const [visits, setVisits] = useState<FieldVisitRecord[]>(() => getStoredFieldVisits());
   
-  // Custom Axes Weights configuration with local storage persistence
-  const [axesConfig, setAxesConfig] = useState<Array<{ id: string; name: string; description: string; defaultWeight: number }>>(() => {
-    try {
-      const saved = localStorage.getItem('alhudacenter_field_visit_axes_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.error('Failed to parse saved axes config', e);
-    }
-    return DEFAULT_EVALUATION_AXES_CONFIG;
-  });
+  // Custom Axes Weights configuration
+  const [axesConfig, setAxesConfig] = useState<Array<{ id: string; name: string; description: string; defaultWeight: number }>>(DEFAULT_EVALUATION_AXES_CONFIG);
   const [showConfigModal, setShowConfigModal] = useState(false);
 
   // States for adding/editing criteria in modal
@@ -56,11 +45,6 @@ export default function FieldVisitsManagement({ currentUser, onNavigateToPrint }
   // Helper to persist axesConfig
   const handleSaveAxesConfig = (newCfg: typeof axesConfig) => {
     setAxesConfig(newCfg);
-    try {
-      localStorage.setItem('alhudacenter_field_visit_axes_config', JSON.stringify(newCfg));
-    } catch (e) {
-      console.error('Failed to persist axes config:', e);
-    }
   };
 
   // Auto-balance weights to equal 100%

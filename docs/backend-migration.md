@@ -1,10 +1,10 @@
 # Backend migration plan
 
-## Current state — Phase 13 Complete (Activities, Competitions, Awards & General Shelf)
+## Current state — Phase 16 Complete (Final Legacy Removal & Production Consolidation)
 
 The platform consists of:
 1. A production-ready NestJS API backend (`backend/`) backed by PostgreSQL, Redis, and Socket.IO.
-2. A React 19 Admin Web Dashboard (Vite) for General Managers and Executive Managers.
+2. A React 19 Admin Web Dashboard (Vite) for General Managers and Executive Managers directly consuming NestJS APIs with zero legacy Express server dependencies.
 3. A unified Flutter Mobile App (`mobile/`) with Arabic RTL support, Riverpod state management, Drift offline queue, GoRouter role-based routing, and dedicated experiences for:
    - `TEACHER` (Halaqat, Attendance, Recitation, Progress, Offline Sync, Shelf)
    - `TECHNICAL_SUPERVISOR` (Halaqat, Teachers, Field Visits, Evaluations, Recommendations, Shelf)
@@ -15,6 +15,9 @@ The platform consists of:
    - **Activities & Competitions** (Lifecycle management, participant nominations, automatic score rankings, notifications)
    - **Awards & Honor Badges** (Templates, granting history preservation, multi-role notifications)
    - **General Shelf & Sections** (Role-based & user-specific publisher rules, audience visibility filtering)
+   - **Administrative Approvals, Decisions, Alerts & Tasks** (Formal workflow governance)
+   - **Reports, Printing & PDF Center** (Arabic RTL PDF generation & UTF-8 BOM CSV exports)
+   - **Final Legacy Eradication**: `server.ts` deleted, business `localStorage` eliminated, production mocks removed.
 
 ```text
 React 19 Admin Web Dashboard (Vite) / Flutter Mobile App (Riverpod + Socket.IO)

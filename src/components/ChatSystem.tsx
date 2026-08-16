@@ -412,19 +412,6 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
     }));
     setSelectedConvId(newConvId);
 
-    // Persist to server
-    fetch('/api/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newConv)
-    }).catch(() => {});
-
-    fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(initialMsg)
-    }).catch(() => {});
-
     // Reset form
     setNewChatTitle('');
     setNewChatSubtitle('');
@@ -457,12 +444,6 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
       })
     }));
 
-    fetch(`/api/messages/${selectedConvId}/${msgId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editingText.trim() })
-    }).catch(() => {});
-
     setEditingMessageId(null);
     setEditingText('');
   };
@@ -493,10 +474,6 @@ export default function ChatSystem({ currentUser, studentsList = [] }: ChatSyste
         [selectedConvId]: updatedList
       };
     });
-
-    fetch(`/api/messages/${selectedConvId}/${msgId}`, {
-      method: 'DELETE'
-    }).catch(() => {});
 
     setDeleteConfirmMsgId(null);
   };

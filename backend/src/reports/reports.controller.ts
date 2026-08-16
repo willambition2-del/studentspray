@@ -74,9 +74,8 @@ export class ReportsController {
   async getHalaqaReport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
-    @Query() query: ReportFilterDto,
   ) {
-    return this.reportsService.getHalaqaReport(user, id, query);
+    return this.reportsService.getHalaqaReport(user, id);
   }
 
   @Get('halaqas/:id/pdf')

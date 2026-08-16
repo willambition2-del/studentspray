@@ -604,24 +604,12 @@ export const INITIAL_MOCK_FIELD_VISITS: FieldVisitRecord[] = [
   }
 ];
 
-const LOCAL_STORAGE_KEY = 'alhudacenter_field_visits_data';
+let inMemoryFieldVisits: FieldVisitRecord[] = [...INITIAL_MOCK_FIELD_VISITS];
 
 export const getStoredFieldVisits = (): FieldVisitRecord[] => {
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch (e) {
-    console.error('Failed to parse field visits from localStorage', e);
-  }
-  return INITIAL_MOCK_FIELD_VISITS;
+  return inMemoryFieldVisits;
 };
 
 export const saveStoredFieldVisits = (visits: FieldVisitRecord[]) => {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(visits));
-  } catch (e) {
-    console.error('Failed to save field visits to localStorage', e);
-  }
+  inMemoryFieldVisits = visits;
 };

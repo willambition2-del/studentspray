@@ -161,24 +161,16 @@ import {
   EducationalPlan,
 } from '../lib/api';
 
+let inMemoryStudentPlans: Record<string, StudentPlanData> = { ...INITIAL_STUDENT_PLANS };
+
 export function getStoredPlans(): Record<string, StudentPlanData> {
-  try {
-    const data = localStorage.getItem('alhudacenter_student_plans');
-    if (data) {
-      return { ...INITIAL_STUDENT_PLANS, ...JSON.parse(data) };
-    }
-  } catch (e) {
-    console.error('Failed to parse plans from storage', e);
-  }
-  return INITIAL_STUDENT_PLANS;
+  return inMemoryStudentPlans;
 }
 
 export function saveStoredPlans(plans: Record<string, StudentPlanData>) {
-  try {
-    localStorage.setItem('alhudacenter_student_plans', JSON.stringify(plans));
+  inMemoryStudentPlans = plans;
+  if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('alhudacenter_plan_updated', { detail: plans }));
-  } catch (e) {
-    console.error('Failed to save plans to storage', e);
   }
 }
 

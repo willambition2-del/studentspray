@@ -27,13 +27,20 @@ export class PdfGeneratorService {
   private boldFontPath: string;
 
   constructor() {
-    this.fontPath = path.join(__dirname, '../../../assets/fonts/arial.ttf');
-    this.boldFontPath = path.join(__dirname, '../../../assets/fonts/arialbd.ttf');
+    const customFont = process.env.PDF_FONT_PATH;
+    const customBoldFont = process.env.PDF_BOLD_FONT_PATH;
 
-    if (!fs.existsSync(this.fontPath)) {
-      // Fallback path
-      this.fontPath = path.join(process.cwd(), 'assets/fonts/arial.ttf');
-      this.boldFontPath = path.join(process.cwd(), 'assets/fonts/arialbd.ttf');
+    if (customFont && fs.existsSync(customFont)) {
+      this.fontPath = customFont;
+      this.boldFontPath = customBoldFont && fs.existsSync(customBoldFont) ? customBoldFont : customFont;
+    } else {
+      this.fontPath = path.join(__dirname, '../../../assets/fonts/arial.ttf');
+      this.boldFontPath = path.join(__dirname, '../../../assets/fonts/arialbd.ttf');
+
+      if (!fs.existsSync(this.fontPath)) {
+        this.fontPath = path.join(process.cwd(), 'assets/fonts/arial.ttf');
+        this.boldFontPath = path.join(process.cwd(), 'assets/fonts/arialbd.ttf');
+      }
     }
   }
 

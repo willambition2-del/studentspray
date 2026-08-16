@@ -1,6 +1,6 @@
 # Quran Forum — Multi-Role Flutter Mobile Application
 
-تطبيق الجوال الموحد لمنصة الملتقى القرآني، مبني باستخدام Flutter وRiverpod ومجهز لدعم كافة الأدوار، مع التنفيذ الكامل لتجربة المعلم (**TEACHER**) في المرحلة السادسة.
+تطبيق الجوال الموحد لمنصة الملتقى القرآني، مبني باستخدام Flutter وRiverpod ومجهز لدعم كافة الأدوار: المعلم (`TEACHER`)، المشرف الفني (`TECHNICAL_SUPERVISOR`)، الطالب (`STUDENT`)، وولي الأمر (`PARENT`)، مع دعم كامل للعمل دون اتصال ومزامنة البيانات اللحظية وإشعارات FCM.
 
 ---
 
@@ -91,7 +91,7 @@ mobile/lib/
   cd mobile
   flutter test
   ```
-  *(النتيجة: All 12 unit and widget tests PASS)*
+  *(النتيجة: All 41 unit and widget tests PASS)*
 
 - **بناء حزمة أندرويد (Debug APK)**:
   ```powershell

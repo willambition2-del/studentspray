@@ -136,56 +136,34 @@ export function padZero(num: number, size = 2): string {
   return s;
 }
 
+// In-memory runtime state store (No localStorage business state)
+let inMemorySettings: NumberingPrefixSettings = { ...DEFAULT_PREFIX_SETTINGS };
+let inMemoryCounters: NumberingCounters = { ...DEFAULT_COUNTERS };
+let inMemoryCircleMaps: Record<string, CircleCodeRecord> = {};
+
 // 1. Settings & Storage Loaders
 export function getStoredPrefixSettings(): NumberingPrefixSettings {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return data ? { ...DEFAULT_PREFIX_SETTINGS, ...JSON.parse(data) } : DEFAULT_PREFIX_SETTINGS;
-  } catch (e) {
-    return DEFAULT_PREFIX_SETTINGS;
-  }
+  return inMemorySettings;
 }
 
 export function savePrefixSettings(settings: NumberingPrefixSettings): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  } catch (e) {
-    console.error('Error saving prefix settings:', e);
-  }
+  inMemorySettings = settings;
 }
 
 export function getStoredCounters(): NumberingCounters {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.COUNTERS);
-    return data ? { ...DEFAULT_COUNTERS, ...JSON.parse(data) } : DEFAULT_COUNTERS;
-  } catch (e) {
-    return DEFAULT_COUNTERS;
-  }
+  return inMemoryCounters;
 }
 
 export function saveCounters(counters: NumberingCounters): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.COUNTERS, JSON.stringify(counters));
-  } catch (e) {
-    console.error('Error saving numbering counters:', e);
-  }
+  inMemoryCounters = counters;
 }
 
 export function getStoredCircleCodeMaps(): Record<string, CircleCodeRecord> {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.CIRCLE_MAPS);
-    return data ? JSON.parse(data) : {};
-  } catch (e) {
-    return {};
-  }
+  return inMemoryCircleMaps;
 }
 
 export function saveCircleCodeMaps(maps: Record<string, CircleCodeRecord>): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.CIRCLE_MAPS, JSON.stringify(maps));
-  } catch (e) {
-    console.error('Error saving circle code maps:', e);
-  }
+  inMemoryCircleMaps = maps;
 }
 
 // 2. Circle Mapping & Code Generation

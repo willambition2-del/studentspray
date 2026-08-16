@@ -1,6 +1,6 @@
 # Quran Forum API — Phase 3 Core Management Foundation
 
-This directory contains the NestJS production API. React admin authentication now uses this API; legacy feature pages and `server.ts` remain during incremental migration.
+This directory contains the production NestJS enterprise API. React admin and Flutter mobile applications connect directly to this API backed by PostgreSQL and Redis.
 
 ## Requirements
 

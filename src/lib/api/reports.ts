@@ -1,4 +1,4 @@
-import { buildQuery, request } from './client';
+import { API_BASE_URL, buildQuery, getAccessToken, request } from './client';
 
 export interface DashboardSummaryResponse {
   totalStudents: number;
@@ -197,8 +197,8 @@ export async function getAdministrativeReport(
 }
 
 export async function downloadStudentReportPdf(studentId: string, studentName: string): Promise<void> {
-  const token = localStorage.getItem('token') || '';
-  const response = await fetch(`/api/v1/reports/students/${studentId}/pdf`, {
+  const token = getAccessToken() || '';
+  const response = await fetch(`${API_BASE_URL}/reports/students/${studentId}/pdf`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to download student PDF report');
@@ -214,8 +214,8 @@ export async function downloadStudentReportPdf(studentId: string, studentName: s
 }
 
 export async function downloadHalaqaReportPdf(halaqaId: string, halaqaName: string): Promise<void> {
-  const token = localStorage.getItem('token') || '';
-  const response = await fetch(`/api/v1/reports/halaqas/${halaqaId}/pdf`, {
+  const token = getAccessToken() || '';
+  const response = await fetch(`${API_BASE_URL}/reports/halaqas/${halaqaId}/pdf`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to download halaqa PDF report');
@@ -231,9 +231,9 @@ export async function downloadHalaqaReportPdf(halaqaId: string, halaqaName: stri
 }
 
 export async function downloadAttendanceCsv(params?: ReportFilterParams): Promise<void> {
-  const token = localStorage.getItem('token') || '';
+  const token = getAccessToken() || '';
   const query = buildQuery(params || {});
-  const response = await fetch(`/api/v1/reports/attendance/export${query}`, {
+  const response = await fetch(`${API_BASE_URL}/reports/attendance/export${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to download attendance CSV');
@@ -249,9 +249,9 @@ export async function downloadAttendanceCsv(params?: ReportFilterParams): Promis
 }
 
 export async function downloadStudentsCsv(params?: ReportFilterParams): Promise<void> {
-  const token = localStorage.getItem('token') || '';
+  const token = getAccessToken() || '';
   const query = buildQuery(params || {});
-  const response = await fetch(`/api/v1/reports/students/export${query}`, {
+  const response = await fetch(`${API_BASE_URL}/reports/students/export${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to download students CSV');

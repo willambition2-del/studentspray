@@ -244,27 +244,22 @@ export function notifyStudentCommUpdated() {
   }
 }
 
-// STORAGE HELPERS
+// In-memory runtime state store (No localStorage business state)
+let inMemoryTasks: StudentTaskOrProblem[] = [...INITIAL_TASKS];
+let inMemoryAlerts: StudentPrivateAlert[] = [...INITIAL_PRIVATE_ALERTS];
+let inMemoryProposals: StudentProposal[] = [...INITIAL_PROPOSALS];
+let inMemorySessions: StudentPrivateSessionRequest[] = [...INITIAL_SESSION_REQUESTS];
+let inMemoryCriteria: TeacherCircleCriteria = { ...DEFAULT_CIRCLE_CRITERIA };
+
+// STORAGE HELPERS (In-memory reactive store)
 export function getStoredStudentTasks(): StudentTaskOrProblem[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.TASKS);
-    return data ? JSON.parse(data) : INITIAL_TASKS;
-  } catch (e) {
-    console.error('Error reading student tasks:', e);
-    return INITIAL_TASKS;
-  }
+  return inMemoryTasks;
 }
 
 export function saveStudentTask(task: StudentTaskOrProblem): StudentTaskOrProblem[] {
-  const tasks = getStoredStudentTasks();
-  const updated = [task, ...tasks];
-  try {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error saving student task:', e);
-  }
-  return updated;
+  inMemoryTasks = [task, ...inMemoryTasks];
+  notifyStudentCommUpdated();
+  return inMemoryTasks;
 }
 
 export function updateStudentTaskStatus(
@@ -272,8 +267,7 @@ export function updateStudentTaskStatus(
   status: 'pending' | 'in_progress' | 'completed',
   response?: string
 ): StudentTaskOrProblem[] {
-  const tasks = getStoredStudentTasks();
-  const updated = tasks.map(t => {
+  inMemoryTasks = inMemoryTasks.map(t => {
     if (t.id === taskId) {
       return {
         ...t,
@@ -284,116 +278,57 @@ export function updateStudentTaskStatus(
     }
     return t;
   });
-  try {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error updating student task:', e);
-  }
-  return updated;
+  notifyStudentCommUpdated();
+  return inMemoryTasks;
 }
 
 export function deleteStudentTask(taskId: string): StudentTaskOrProblem[] {
-  const tasks = getStoredStudentTasks();
-  const updated = tasks.filter(t => t.id !== taskId);
-  try {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error deleting student task:', e);
-  }
-  return updated;
+  inMemoryTasks = inMemoryTasks.filter(t => t.id !== taskId);
+  notifyStudentCommUpdated();
+  return inMemoryTasks;
 }
 
 export function getStoredStudentPrivateAlerts(): StudentPrivateAlert[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.ALERTS);
-    return data ? JSON.parse(data) : INITIAL_PRIVATE_ALERTS;
-  } catch (e) {
-    console.error('Error reading private alerts:', e);
-    return INITIAL_PRIVATE_ALERTS;
-  }
+  return inMemoryAlerts;
 }
 
 export function saveStudentPrivateAlert(alert: StudentPrivateAlert): StudentPrivateAlert[] {
-  const alerts = getStoredStudentPrivateAlerts();
-  const updated = [alert, ...alerts];
-  try {
-    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error saving private alert:', e);
-  }
-  return updated;
+  inMemoryAlerts = [alert, ...inMemoryAlerts];
+  notifyStudentCommUpdated();
+  return inMemoryAlerts;
 }
 
 export function replyToPrivateAlert(alertId: string, reply: string): StudentPrivateAlert[] {
-  const alerts = getStoredStudentPrivateAlerts();
-  const updated = alerts.map(a => a.id === alertId ? { ...a, teacherReply: reply, status: 'reviewed_by_teacher' as const } : a);
-  try {
-    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error replying to private alert:', e);
-  }
-  return updated;
+  inMemoryAlerts = inMemoryAlerts.map(a => a.id === alertId ? { ...a, teacherReply: reply, status: 'reviewed_by_teacher' as const } : a);
+  notifyStudentCommUpdated();
+  return inMemoryAlerts;
 }
 
 export function getStoredStudentProposals(): StudentProposal[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.PROPOSALS);
-    return data ? JSON.parse(data) : INITIAL_PROPOSALS;
-  } catch (e) {
-    console.error('Error reading student proposals:', e);
-    return INITIAL_PROPOSALS;
-  }
+  return inMemoryProposals;
 }
 
 export function saveStudentProposal(proposal: StudentProposal): StudentProposal[] {
-  const proposals = getStoredStudentProposals();
-  const updated = [proposal, ...proposals];
-  try {
-    localStorage.setItem(STORAGE_KEYS.PROPOSALS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error saving student proposal:', e);
-  }
-  return updated;
+  inMemoryProposals = [proposal, ...inMemoryProposals];
+  notifyStudentCommUpdated();
+  return inMemoryProposals;
 }
 
 export function replyToStudentProposal(proposalId: string, feedback: string, status: 'accepted' | 'implemented' | 'closed' = 'accepted'): StudentProposal[] {
-  const proposals = getStoredStudentProposals();
-  const updated = proposals.map(p => p.id === proposalId ? { ...p, teacherFeedback: feedback, status } : p);
-  try {
-    localStorage.setItem(STORAGE_KEYS.PROPOSALS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error replying to proposal:', e);
-  }
-  return updated;
+  inMemoryProposals = inMemoryProposals.map(p => p.id === proposalId ? { ...p, teacherFeedback: feedback, status } : p);
+  notifyStudentCommUpdated();
+  return inMemoryProposals;
 }
 
 // PRIVATE SESSION REQUESTS HELPERS
 export function getStoredStudentSessionRequests(): StudentPrivateSessionRequest[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
-    return data ? JSON.parse(data) : INITIAL_SESSION_REQUESTS;
-  } catch (e) {
-    console.error('Error reading student session requests:', e);
-    return INITIAL_SESSION_REQUESTS;
-  }
+  return inMemorySessions;
 }
 
 export function saveStudentSessionRequest(req: StudentPrivateSessionRequest): StudentPrivateSessionRequest[] {
-  const list = getStoredStudentSessionRequests();
-  const updated = [req, ...list];
-  try {
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error saving student session request:', e);
-  }
-  return updated;
+  inMemorySessions = [req, ...inMemorySessions];
+  notifyStudentCommUpdated();
+  return inMemorySessions;
 }
 
 export function updateStudentSessionRequestStatus(
@@ -402,8 +337,7 @@ export function updateStudentSessionRequestStatus(
   scheduledDate?: string,
   teacherNote?: string
 ): StudentPrivateSessionRequest[] {
-  const list = getStoredStudentSessionRequests();
-  const updated = list.map(item => {
+  inMemorySessions = inMemorySessions.map(item => {
     if (item.id === reqId) {
       return {
         ...item,
@@ -415,42 +349,21 @@ export function updateStudentSessionRequestStatus(
     }
     return item;
   });
-  try {
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error updating student session request:', e);
-  }
-  return updated;
+  notifyStudentCommUpdated();
+  return inMemorySessions;
 }
 
 export function deleteStudentSessionRequest(reqId: string): StudentPrivateSessionRequest[] {
-  const list = getStoredStudentSessionRequests();
-  const updated = list.filter(item => item.id !== reqId);
-  try {
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
-    notifyStudentCommUpdated();
-  } catch (e) {
-    console.error('Error deleting student session request:', e);
-  }
-  return updated;
+  inMemorySessions = inMemorySessions.filter(item => item.id !== reqId);
+  notifyStudentCommUpdated();
+  return inMemorySessions;
 }
 
 export function getStoredCircleCriteria(): TeacherCircleCriteria {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.CRITERIA);
-    return data ? JSON.parse(data) : DEFAULT_CIRCLE_CRITERIA;
-  } catch (e) {
-    console.error('Error reading circle criteria:', e);
-    return DEFAULT_CIRCLE_CRITERIA;
-  }
+  return inMemoryCriteria;
 }
 
 export function saveCircleCriteria(criteria: TeacherCircleCriteria): TeacherCircleCriteria {
-  try {
-    localStorage.setItem(STORAGE_KEYS.CRITERIA, JSON.stringify(criteria));
-  } catch (e) {
-    console.error('Error saving circle criteria:', e);
-  }
-  return criteria;
+  inMemoryCriteria = criteria;
+  return inMemoryCriteria;
 }
