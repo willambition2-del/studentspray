@@ -1,4 +1,5 @@
 import {
+  Inject,
   Logger,
   UsePipes,
   ValidationPipe,
@@ -8,6 +9,7 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -34,56 +36,60 @@ interface AuthenticatedSocket extends Socket {
   namespace: '/chat',
 })
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
 
   constructor(
-    private readonly tokens: TokenService,
-    private readonly auth: AuthService,
-    private readonly prisma: PrismaService,
-    private readonly chatService: ChatService,
+    @Inject(TokenService) private readonly tokens: TokenService,
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ChatService) private readonly chatService: ChatService,
   ) {}
 
-  async handleConnection(client: AuthenticatedSocket) {
-    try {
-      // 1. Extract Bearer token from auth payload, headers, or query
-      const authObj = client.handshake.auth as Record<string, unknown> | undefined;
-      const headersObj = client.handshake.headers as Record<string, unknown> | undefined;
-      const queryObj = client.handshake.query as Record<string, unknown> | undefined;
+  afterInit(server: Server) {
+    server.use(async (socket: AuthenticatedSocket, next) => {
+      try {
+        const authObj = socket.handshake.auth as Record<string, unknown> | undefined;
+        const headersObj = socket.handshake.headers as Record<string, unknown> | undefined;
+        const queryObj = socket.handshake.query as Record<string, unknown> | undefined;
 
-      let token: unknown =
-        authObj?.token ??
-        headersObj?.authorization ??
-        queryObj?.token;
+        let token: unknown =
+          authObj?.token ??
+          headersObj?.authorization ??
+          queryObj?.token;
 
-      if (!token && typeof client.handshake.auth === 'string') {
-        token = client.handshake.auth;
+        if (!token && typeof socket.handshake.auth === 'string') {
+          token = socket.handshake.auth;
+        }
+
+        if (typeof token === 'string' && token.startsWith('Bearer ')) {
+          token = token.slice(7).trim();
+        }
+
+        if (!token || typeof token !== 'string') {
+          return next(new Error('Authentication token missing'));
+        }
+
+        const payload = await this.tokens.verifyAccessToken(token);
+        const user = await this.auth.validateAccessSession(payload.sub, payload.sid);
+        socket.data.user = user;
+        next();
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`[Socket.IO] Handshake auth failed: ${errMsg}`);
+        next(new Error('Authentication failed'));
       }
+    });
+    this.logger.log('[Socket.IO] /chat namespace initialized with handshake auth middleware');
+  }
 
-      if (typeof token === 'string' && token.startsWith('Bearer ')) {
-        token = token.slice(7).trim();
-      }
-
-      if (!token || typeof token !== 'string') {
-        this.logger.warn(`[Socket.IO] Connection rejected: Missing token from client ${client.id}`);
-        client.disconnect(true);
-        return;
-      }
-
-      // 2. Verify Access Token & Session
-      const payload = await this.tokens.verifyAccessToken(token);
-      const user = await this.auth.validateAccessSession(payload.sub, payload.sid);
-
-      // 3. Attach authenticated user to socket data
-      client.data.user = user;
+  handleConnection(client: AuthenticatedSocket) {
+    const user = client.data?.user;
+    if (user) {
       this.logger.log(`[Socket.IO] Authenticated connection: User ${user.username} (${user.id}) socket=${client.id}`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`[Socket.IO] Connection auth failed: ${errMsg} socket=${client.id}`);
-      client.disconnect(true);
     }
   }
 

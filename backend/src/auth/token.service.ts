@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomBytes } from 'node:crypto';
@@ -14,7 +14,10 @@ function durationSeconds(value: string): number {
 
 @Injectable()
 export class TokenService {
-  constructor(private readonly jwt: JwtService, private readonly config: ConfigService) {}
+  constructor(
+    @Inject(JwtService) private readonly jwt: JwtService,
+    @Inject(ConfigService) private readonly config: ConfigService,
+  ) {}
 
   async issueAccessToken(userId: string, sessionId: string) {
     const ttlSeconds = durationSeconds(this.config.getOrThrow<string>('JWT_ACCESS_TTL'));

@@ -1233,4 +1233,3 @@ model ChatMessage {
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])
 }
-

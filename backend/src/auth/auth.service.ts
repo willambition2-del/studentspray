@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { AuthClient, User } from '../generated/prisma/client';
@@ -18,17 +18,22 @@ const INVALID_CREDENTIALS = 'Invalid credentials';
 
 @Injectable()
 export class AuthService {
-  private readonly dummyHash: Promise<string>;
+  private dummyHash: Promise<string> | null = null;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
-    private readonly config: ConfigService,
-    private readonly passwords: PasswordService,
-    private readonly tokens: TokenService,
-    private readonly audit: AuthAuditService,
-  ) {
-    this.dummyHash = this.passwords.hashPassword('Dummy-Password-Only-2026!');
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(ConfigService) private readonly config: ConfigService,
+    @Inject(PasswordService) private readonly passwords: PasswordService,
+    @Inject(TokenService) private readonly tokens: TokenService,
+    @Inject(AuthAuditService) private readonly audit: AuthAuditService,
+  ) {}
+
+  private getDummyHash(): Promise<string> {
+    if (!this.dummyHash && this.passwords) {
+      this.dummyHash = this.passwords.hashPassword('Dummy-Password-Only-2026!');
+    }
+    return this.dummyHash ?? Promise.resolve('');
   }
 
   async login(input: LoginInput, client: AuthClient, context: AuthContext) {
@@ -44,7 +49,7 @@ export class AuthService {
     }) : null;
 
     if (!user?.passwordHash) {
-      await this.passwords.verifyPassword(await this.dummyHash, input.password).catch(() => false);
+      await this.passwords.verifyPassword(await this.getDummyHash(), input.password).catch(() => false);
       await this.audit.record('LOGIN_FAILED', false, context);
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }

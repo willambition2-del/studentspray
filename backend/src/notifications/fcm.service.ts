@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface PushNotificationPayload {
@@ -21,13 +21,13 @@ export class FcmService implements OnModuleInit {
   private fcmEnabled = false;
   private isConfigured = false;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(@Optional() @Inject(ConfigService) private readonly config?: ConfigService) {}
 
   onModuleInit() {
-    this.fcmEnabled = this.config.get<boolean>('FCM_ENABLED', false);
-    const projectId = this.config.get<string>('FIREBASE_PROJECT_ID');
-    const clientEmail = this.config.get<string>('FIREBASE_CLIENT_EMAIL');
-    const privateKey = this.config.get<string>('FIREBASE_PRIVATE_KEY');
+    this.fcmEnabled = this.config?.get<boolean>('FCM_ENABLED') ?? (process.env.FCM_ENABLED === 'true');
+    const projectId = this.config?.get<string>('FIREBASE_PROJECT_ID') ?? process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = this.config?.get<string>('FIREBASE_CLIENT_EMAIL') ?? process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = this.config?.get<string>('FIREBASE_PRIVATE_KEY') ?? process.env.FIREBASE_PRIVATE_KEY;
 
     if (this.fcmEnabled) {
       if (projectId && clientEmail && privateKey) {

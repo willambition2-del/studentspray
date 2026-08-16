@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
 } from '@nestjs/common';
@@ -20,8 +21,8 @@ export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly notifications: NotificationsService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
 
   // 1. Ensure / Synchronize conversations based on business roles

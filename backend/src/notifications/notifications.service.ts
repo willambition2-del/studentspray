@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { FcmService } from './fcm.service';
 import { RegisterDeviceTokenDto } from './dto/device-token.dto';
@@ -27,8 +27,8 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly fcmService: FcmService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(FcmService) private readonly fcmService: FcmService,
   ) {}
 
   // 1. Device Token Management
