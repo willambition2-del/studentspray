@@ -6,6 +6,15 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShelfPost, ShelfResource, ShelfAnnouncement, ShelfReflection, User } from '../types';
+import {
+  getShelfSections,
+  getShelfItems,
+  createShelfItem,
+  createShelfSection,
+  deleteShelfItem,
+  ShelfSection,
+  ShelfItem,
+} from '../lib/api/shelf';
 
 interface GeneralShelfProps {
   currentUser: User | any;
@@ -141,16 +150,80 @@ export default function GeneralShelf({ currentUser }: GeneralShelfProps) {
     }
   ]);
 
-  // Load backend data if available
+  const [sections, setSections] = useState<ShelfSection[]>([]);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Load backend data
+  const loadShelfData = async () => {
+    try {
+      setApiError(null);
+      let loadedSections = await getShelfSections();
+      if (!loadedSections || loadedSections.length === 0) {
+        // Ensure default section exists
+        try {
+          const defaultSec = await createShelfSection({
+            name: 'القسم العام',
+            slug: 'general',
+            description: 'المحتوى العام للملتقى القرآني',
+            visibility: 'ALL_USERS',
+            order: 1,
+            isActive: true,
+          });
+          loadedSections = [defaultSec];
+        } catch {
+          // ignore if already exists
+        }
+      }
+      setSections(loadedSections);
+      const secId = loadedSections[0]?.id;
+      setActiveSectionId(secId || null);
+
+      const itemsRes = await getShelfItems();
+      const items = itemsRes.items || [];
+
+      // Map to posts, resources, reflections
+      const mappedPosts: ShelfPost[] = items
+        .filter(it => it.type === 'ANNOUNCEMENT' || it.type === 'ARTICLE' || it.type === 'GENERAL')
+        .map(it => ({
+          id: it.id,
+          title: it.title,
+          content: it.content,
+          category: it.type === 'ANNOUNCEMENT' ? 'announcement' : 'general',
+          authorName: it.authorName || 'الإدارة',
+          authorRole: it.authorRole || 'مشرف',
+          authorId: it.authorId || '',
+          date: new Date(it.publishedAt || it.createdAt).toLocaleDateString('ar-SA'),
+          isPinned: it.isPinned,
+          targetAudience: it.targetAudience === 'PARENTS_ONLY' ? 'parents' : it.targetAudience === 'TEACHERS_ONLY' ? 'teachers' : 'all',
+          attachmentName: it.attachmentName || undefined,
+          attachmentUrl: it.attachmentUrl || undefined,
+        }));
+
+      const mappedResources: ShelfResource[] = items
+        .filter(it => it.type === 'BOOK' || it.type === 'CURRICULUM' || it.type === 'RESOURCE')
+        .map(it => ({
+          id: it.id,
+          title: it.title,
+          description: it.content,
+          fileType: it.fileType === 'pdf' ? 'pdf' : it.fileType === 'doc' ? 'doc' : 'book',
+          fileName: it.attachmentName || 'ملف_تعليمي.pdf',
+          fileUrl: it.attachmentUrl || '#',
+          fileSize: it.fileSize || '1.5 MB',
+          date: new Date(it.publishedAt || it.createdAt).toLocaleDateString('ar-SA'),
+          addedBy: it.authorName || 'إدارة الشؤون التعليمية',
+          downloadCount: it.downloadCount || 0,
+        }));
+
+      if (mappedPosts.length > 0) setPosts(mappedPosts);
+      if (mappedResources.length > 0) setResources(mappedResources);
+    } catch (err: any) {
+      setApiError(err.message || 'تعذر تحميل بيانات الرف العام من الخادم');
+    }
+  };
+
   useEffect(() => {
-    fetch('/api/shelf')
-      .then(res => res.json())
-      .then(data => {
-        if (data.posts) setPosts(data.posts);
-        if (data.resources) setResources(data.resources);
-        if (data.reflections) setReflections(data.reflections);
-      })
-      .catch(() => {});
+    loadShelfData();
   }, []);
 
   // Form States
@@ -195,35 +268,48 @@ export default function GeneralShelf({ currentUser }: GeneralShelfProps) {
   });
 
   // Action Handlers
-  const handleCreatePost = (e: React.FormEvent) => {
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title.trim() || !newPost.content.trim()) return;
 
-    const created: ShelfPost = {
-      id: `post-${Date.now()}`,
-      title: newPost.title,
-      content: newPost.content,
-      category: newPost.category,
-      authorName: currentUser?.name || 'مسؤول النظام',
-      authorRole: currentUser?.roleName || 'الإدارة',
-      authorId: currentUser?.id,
-      date: new Date().toLocaleDateString('ar-SA'),
-      isPinned: newPost.isPinned,
-      targetAudience: newPost.targetAudience,
-      attachmentName: newPost.attachmentName || undefined,
-      attachmentUrl: newPost.attachmentName ? '#' : undefined
-    };
+    try {
+      setApiError(null);
+      const targetSecId = activeSectionId || sections[0]?.id;
+      if (!targetSecId) throw new Error('لا يوجد قسم متاح للنشر');
 
-    setPosts(prev => [created, ...prev]);
-    setShowAddPostModal(false);
-    setNewPost({ title: '', content: '', category: 'general', targetAudience: 'all', attachmentName: '', isPinned: false });
+      const audience = newPost.targetAudience === 'parents' ? 'PARENTS_ONLY' : newPost.targetAudience === 'teachers' ? 'TEACHERS_ONLY' : 'ALL_USERS';
+      const createdItem = await createShelfItem({
+        sectionId: targetSecId,
+        title: newPost.title,
+        content: newPost.content,
+        type: newPost.category === 'announcement' ? 'ANNOUNCEMENT' : 'ARTICLE',
+        targetAudience: audience as any,
+        isPinned: newPost.isPinned,
+        isPublished: true,
+        attachmentName: newPost.attachmentName || undefined,
+      });
 
-    // Sync to API
-    fetch('/api/shelf/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(created)
-    }).catch(() => {});
+      const created: ShelfPost = {
+        id: createdItem.id,
+        title: createdItem.title,
+        content: createdItem.content,
+        category: newPost.category,
+        authorName: createdItem.authorName || currentUser?.name || 'مسؤول النظام',
+        authorRole: createdItem.authorRole || currentUser?.roleName || 'الإدارة',
+        authorId: createdItem.authorId || currentUser?.id,
+        date: new Date().toLocaleDateString('ar-SA'),
+        isPinned: createdItem.isPinned,
+        targetAudience: newPost.targetAudience,
+        attachmentName: createdItem.attachmentName || undefined,
+        attachmentUrl: createdItem.attachmentUrl || undefined
+      };
+
+      setPosts(prev => [created, ...prev]);
+      setShowAddPostModal(false);
+      setNewPost({ title: '', content: '', category: 'general', targetAudience: 'all', attachmentName: '', isPinned: false });
+    } catch (err: any) {
+      setApiError(err.message || 'تعذر إنشاء المنشور');
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,63 +328,103 @@ export default function GeneralShelf({ currentUser }: GeneralShelfProps) {
     }
   };
 
-  const handleCreateResource = (e: React.FormEvent) => {
+  const handleCreateResource = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newResource.title.trim() || !newResource.fileName) return;
 
-    const created: ShelfResource = {
-      id: `res-${Date.now()}`,
-      title: newResource.title,
-      description: newResource.description,
-      fileType: newResource.fileType,
-      fileName: newResource.fileName,
-      fileUrl: newResource.fileContent || 'data:text/plain;base64,2KfZhNmC2LHYo9mGINmE2YTZhdmE2YHZjA==',
-      fileSize: '1.2 MB',
-      date: new Date().toLocaleDateString('ar-SA'),
-      addedBy: currentUser?.name || 'إدارة المركز',
-      downloadCount: 0
-    };
+    try {
+      setApiError(null);
+      const targetSecId = activeSectionId || sections[0]?.id;
+      if (!targetSecId) throw new Error('لا يوجد قسم متاح لنشر المصدر');
 
-    setResources(prev => [created, ...prev]);
-    setShowAddResourceModal(false);
-    setNewResource({ title: '', description: '', fileType: 'pdf', fileName: '', fileContent: '' });
+      const createdItem = await createShelfItem({
+        sectionId: targetSecId,
+        title: newResource.title,
+        content: newResource.description || newResource.title,
+        type: newResource.fileType === 'book' ? 'BOOK' : 'RESOURCE',
+        targetAudience: 'ALL_USERS',
+        fileType: newResource.fileType,
+        attachmentName: newResource.fileName,
+        isPublished: true,
+      });
 
-    fetch('/api/shelf/resources', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(created)
-    }).catch(() => {});
-  };
+      const created: ShelfResource = {
+        id: createdItem.id,
+        title: createdItem.title,
+        description: createdItem.content,
+        fileType: newResource.fileType,
+        fileName: newResource.fileName,
+        fileUrl: createdItem.attachmentUrl || 'data:text/plain;base64,2KfZhNmC2LHYo9mGINmE2YTZhdmE2YHZjA==',
+        fileSize: '1.2 MB',
+        date: new Date().toLocaleDateString('ar-SA'),
+        addedBy: createdItem.authorName || currentUser?.name || 'إدارة المركز',
+        downloadCount: 0
+      };
 
-  const handleCreateReflection = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReflection.verseOrTitle.trim() || !newReflection.reflectionText.trim()) return;
-
-    const created: ShelfReflection = {
-      id: `ref-${Date.now()}`,
-      verseOrTitle: newReflection.verseOrTitle,
-      reflectionText: newReflection.reflectionText,
-      authorName: currentUser?.name || 'المشرف',
-      date: new Date().toLocaleDateString('ar-SA'),
-      category: newReflection.category
-    };
-
-    setReflections(prev => [created, ...prev]);
-    setShowAddReflectionModal(false);
-    setNewReflection({ verseOrTitle: '', reflectionText: '', category: 'قرآني' });
-  };
-
-  const handleDeletePost = (id: string) => {
-    if (confirm('هل أنت تأكد من رغبتك في حذف هذا المنشور؟')) {
-      setPosts(prev => prev.filter(p => p.id !== id));
-      fetch(`/api/shelf/posts/${id}`, { method: 'DELETE' }).catch(() => {});
+      setResources(prev => [created, ...prev]);
+      setShowAddResourceModal(false);
+      setNewResource({ title: '', description: '', fileType: 'pdf', fileName: '', fileContent: '' });
+    } catch (err: any) {
+      setApiError(err.message || 'تعذر إنشاء المورد التعليمي');
     }
   };
 
-  const handleDeleteResource = (id: string) => {
-    if (confirm('هل أنت تأكد من حذف هذا المصدر التعليمي؟')) {
-      setResources(prev => prev.filter(r => r.id !== id));
-      fetch(`/api/shelf/resources/${id}`, { method: 'DELETE' }).catch(() => {});
+  const handleCreateReflection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReflection.verseOrTitle.trim() || !newReflection.reflectionText.trim()) return;
+
+    try {
+      setApiError(null);
+      const targetSecId = activeSectionId || sections[0]?.id;
+      if (targetSecId) {
+        await createShelfItem({
+          sectionId: targetSecId,
+          title: newReflection.verseOrTitle,
+          content: newReflection.reflectionText,
+          type: 'ARTICLE',
+          targetAudience: 'ALL_USERS',
+          isPublished: true,
+        });
+      }
+
+      const created: ShelfReflection = {
+        id: `ref-${Date.now()}`,
+        verseOrTitle: newReflection.verseOrTitle,
+        reflectionText: newReflection.reflectionText,
+        authorName: currentUser?.name || 'المشرف',
+        date: new Date().toLocaleDateString('ar-SA'),
+        category: newReflection.category
+      };
+
+      setReflections(prev => [created, ...prev]);
+      setShowAddReflectionModal(false);
+      setNewReflection({ verseOrTitle: '', reflectionText: '', category: 'قرآني' });
+    } catch (err: any) {
+      setApiError(err.message || 'تعذر إضافة الوقفة التدبرية');
+    }
+  };
+
+  const handleDeletePost = async (id: string) => {
+    if (confirm('هل أنت متأكد من رغبتك في حذف هذا المنشور؟')) {
+      try {
+        setApiError(null);
+        await deleteShelfItem(id);
+        setPosts(prev => prev.filter(p => p.id !== id));
+      } catch (err: any) {
+        setApiError(err.message || 'تعذر حذف المنشور');
+      }
+    }
+  };
+
+  const handleDeleteResource = async (id: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا المصدر التعليمي؟')) {
+      try {
+        setApiError(null);
+        await deleteShelfItem(id);
+        setResources(prev => prev.filter(r => r.id !== id));
+      } catch (err: any) {
+        setApiError(err.message || 'تعذر حذف المصدر');
+      }
     }
   };
 
@@ -376,6 +502,13 @@ export default function GeneralShelf({ currentUser }: GeneralShelfProps) {
               المنصة الموحدة لنشر الإعلانات الرسمية، المصادر التعليمية، والفوائد والوقفات التدبرية لطلاب ومعلمي الملتقى.
             </p>
           </div>
+
+          {apiError && (
+            <div className="bg-rose-500/20 border border-rose-400 text-rose-100 text-xs px-3 py-2 rounded-xl flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>{apiError}</span>
+            </div>
+          )}
 
           {canPublish && (
             <div className="flex flex-wrap gap-2">

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Award, Star, Users, ClipboardList, CheckCircle, RefreshCw, Plus, 
   Calendar, AlertTriangle, TrendingUp, Printer, Download, Eye, 
@@ -15,6 +15,18 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { STAFF_DIRECTORY, PersonItem } from './TrackingAlertsHub';
+import {
+  getActivities,
+  createActivity,
+  updateActivity,
+  getAwards,
+  createAward,
+  grantAward,
+  getCompetitions,
+  createCompetition,
+  updateCompetition,
+  recordCompetitionResults,
+} from '../lib/api';
 
 // === ACTIVITY LIFECYCLE TYPES ===
 export type ActivityTypeCategory = 
@@ -1001,6 +1013,95 @@ export default function ActivitiesAwards({ currentUser, onNavigate }: { currentU
 
   // Auto Condition Evaluator Feedback State
   const [testRuleResult, setTestRuleResult] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setApiError(null);
+        const [actRes, awardRes] = await Promise.allSettled([
+          getActivities(),
+          getAwards(),
+        ]);
+
+        if (actRes.status === 'fulfilled' && actRes.value.items?.length > 0) {
+          const mapped: ActivityLifecycleItem[] = actRes.value.items.map((a: any) => ({
+            id: a.id,
+            name: a.title,
+            typeCategory: (a.type?.toLowerCase() || 'contest') as ActivityTypeCategory,
+            shortDescription: a.description || '',
+            detailedDescription: a.description || '',
+            mainGoal: a.title,
+            subGoals: [],
+            targetAudience: 'جميع الطلاب',
+            targetCount: a.capacity || 30,
+            plannedBudget: 0,
+            actualBudget: 0,
+            budgetType: 'financial',
+            location: a.location || 'القاعة الكبرى',
+            activityDate: a.startsAt ? a.startsAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            startTime: '16:00',
+            endTime: '18:00',
+            responsibleStaffId: 'p7',
+            responsibleStaffName: 'مسؤول النشاط',
+            responsibleStaffRole: 'مشرف الأنشطة',
+            taskStatus: 'accepted',
+            targetCircles: [a.halaqa?.name || 'جميع الحلقات'],
+            requiresParentApproval: true,
+            requiresAdminApproval: false,
+            hasRewardsOrPrizes: true,
+            attachments: [],
+            status: a.status === 'PUBLISHED' ? 'ready' : a.status === 'IN_PROGRESS' ? 'in_progress' : a.status === 'COMPLETED' ? 'completed' : a.status === 'CANCELLED' ? 'cancelled' : 'draft',
+            participants: (a.participants || []).map((p: any) => ({
+              id: p.id,
+              studentId: p.studentId,
+              studentName: p.student?.user?.displayName || p.student?.user?.username || 'طالب',
+              circleName: a.halaqa?.name || 'حلقة عامة',
+              isEligible: true,
+              nominationStatus: p.nominationStatus === 'NOMINATED' ? 'nominated' : 'nominated',
+              parentApprovalStatus: p.parentApprovalStatus === 'APPROVED' ? 'approved' : 'pending',
+              approvalStatus: p.nominationStatus === 'APPROVED' ? 'approved' : 'pending',
+              attendanceStatus: p.attendanceStatus?.toLowerCase() || 'not_recorded',
+            })),
+            budgetItems: [],
+            subTasks: [],
+            timeline: [],
+            createdAt: a.createdAt,
+            createdBy: 'الإدارة',
+          }));
+          setActivitiesLifecycle(mapped);
+        }
+
+        if (awardRes.status === 'fulfilled' && awardRes.value.items?.length > 0) {
+          const mappedTemplates: BadgeTemplate[] = awardRes.value.items.map((aw: any) => ({
+            id: aw.id,
+            name: aw.name,
+            honorificTitle: aw.name,
+            description: aw.description || '',
+            icon: aw.iconKey || '🏅',
+            badgeType: 'special',
+            targetAudience: 'students',
+            grantMethod: 'يدوي',
+            isAuto: false,
+            requiresApproval: false,
+            allowRepeat: true,
+            rewardType: 'honor',
+            rewardAmount: aw.points || 0,
+            rewardDescription: `${aw.points} نقطة`,
+            hasLevels: false,
+            status: aw.isActive ? 'active' : 'disabled',
+            createdAt: aw.createdAt,
+            grantedCount: aw._count?.studentAwards || 0,
+          }));
+          setBadgeTemplates(mappedTemplates);
+        }
+      } catch (err: any) {
+        setApiError(err.message || 'تعذر تحميل بيانات الأنشطة والأوسمة');
+      }
+    }
+
+    loadData();
+  }, []);
 
   // Helper: Filter Granted Badges based on User Role Perspective
   const visibleBadgesForRole = useMemo(() => {

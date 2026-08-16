@@ -171,30 +171,41 @@ export class ShelfService {
       throw new BadRequestException('Either roleId or userId must be specified for publisher rule');
     }
 
-    const rule = await this.prisma.shelfPublisherRule.upsert({
+    let rule = await this.prisma.shelfPublisherRule.findFirst({
       where: {
-        sectionId_roleId_userId: {
-          sectionId: dto.sectionId,
-          roleId: dto.roleId ?? '',
-          userId: dto.userId ?? '',
-        },
-      },
-      create: {
         sectionId: dto.sectionId,
-        roleId: dto.roleId,
-        userId: dto.userId,
-        canCreate: dto.canCreate ?? true,
-        canPublish: dto.canPublish ?? true,
-      },
-      update: {
-        canCreate: dto.canCreate ?? true,
-        canPublish: dto.canPublish ?? true,
-      },
-      include: {
-        role: { select: { id: true, name: true, displayName: true } },
-        user: { select: { id: true, displayName: true, username: true } },
+        ...(dto.roleId ? { roleId: dto.roleId } : { roleId: null }),
+        ...(dto.userId ? { userId: dto.userId } : { userId: null }),
       },
     });
+
+    if (rule) {
+      rule = await this.prisma.shelfPublisherRule.update({
+        where: { id: rule.id },
+        data: {
+          canCreate: dto.canCreate ?? true,
+          canPublish: dto.canPublish ?? true,
+        },
+        include: {
+          role: { select: { id: true, name: true, displayName: true } },
+          user: { select: { id: true, displayName: true, username: true } },
+        },
+      });
+    } else {
+      rule = await this.prisma.shelfPublisherRule.create({
+        data: {
+          sectionId: dto.sectionId,
+          roleId: dto.roleId,
+          userId: dto.userId,
+          canCreate: dto.canCreate ?? true,
+          canPublish: dto.canPublish ?? true,
+        },
+        include: {
+          role: { select: { id: true, name: true, displayName: true } },
+          user: { select: { id: true, displayName: true, username: true } },
+        },
+      });
+    }
 
     await this.audit.record({
       actorUserId: user.id,
