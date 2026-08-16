@@ -82,7 +82,7 @@ export class ParentsService {
             studentId,
             relationship: d.relationship,
             isPrimary: d.isPrimary ?? false,
-            canReceiveNotifications: d.canReceiveNotifications ?? true,
+            receivesAcademicReports: d.canReceiveNotifications ?? true,
           },
         });
         await this.audit.record(

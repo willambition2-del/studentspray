@@ -88,4 +88,24 @@ export class AccessScopeService {
     }
     return false;
   }
+
+  async getTeacherHalaqaIds(user: AuthenticatedUser): Promise<string[]> {
+    if (this.authorization.hasRole(user, 'GENERAL_MANAGER') || this.authorization.hasRole(user, 'EXECUTIVE_MANAGER')) {
+      const halaqas = await this.prisma.halaqa.findMany({
+        where: { forumId: user.forumId, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      return halaqas.map(h => h.id);
+    }
+    const assignments = await this.prisma.halaqaTeacher.findMany({
+      where: {
+        isActive: true,
+        endedAt: null,
+        teacher: { userId: user.id, deletedAt: null },
+        halaqa: { forumId: user.forumId, isActive: true, deletedAt: null }
+      },
+      select: { halaqaId: true },
+    });
+    return assignments.map(a => a.halaqaId);
+  }
 }

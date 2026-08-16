@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BookOpen, Sliders, Play, Award, ClipboardList, ShieldAlert, ArrowLeftRight, 
   Settings, Users, CheckCircle, RefreshCw, Plus, Calendar, AlertTriangle, 
@@ -429,6 +429,8 @@ const mockProgressHistory = [
   { id: 'log-4', studentId: 'st-103', studentName: 'معاذ الحارثي', date: '2026-06-22', type: 'hifz', amount: 'نصف صفحة (سورة الشمس والأعلى)', executor: 'المدرس: ياسر الحربي', notes: 'تجاوب رائع وتفاعل عائلي ملحوظ' }
 ];
 
+import { getEducationalPlans, createEducationalPlan, getAcademicYears } from '../lib/api';
+
 export default function EducationalPlanning() {
   // === STATE MANAGEMENT ===
   const [activeSubTab, setActiveSubTab] = useState<'health' | 'library' | 'generator' | 'execution' | 'comparisons' | 'print_portal'>('health');
@@ -437,6 +439,78 @@ export default function EducationalPlanning() {
   const [templates, setTemplates] = useState<PlanTemplate[]>(initialTemplates);
   const [studentPlans, setStudentPlans] = useState<StudentPlanInstance[]>(initialStudentPlans);
   const [progressLogs, setProgressLogs] = useState<typeof mockProgressHistory>(mockProgressHistory);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadBackendPlans() {
+      try {
+        setIsLoading(true);
+        const [plansRes, yearsRes] = await Promise.all([
+          getEducationalPlans({ limit: 50 }),
+          getAcademicYears({ limit: 20 }),
+        ]);
+
+        const rawPlans = plansRes.items || [];
+        if (rawPlans.length > 0) {
+          const mappedPlans: StudentPlanInstance[] = rawPlans.map((p, idx) => ({
+            id: p.id,
+            studentId: p.studentId || `ST-${String(idx + 1).padStart(6, '0')}`,
+            studentName: p.student?.user?.displayName || p.name,
+            studentAge: 14,
+            circleId: p.halaqaId || 'circle-1',
+            circleName: p.halaqa?.name || 'حلقة الإتقان',
+            templateId: 'tpl-1',
+            templateName: p.name,
+            type: p.type === 'HIFZ' ? 'hifz' : 'murajaah',
+            status: p.status === 'ACTIVE' ? 'active' : p.status === 'COMPLETED' ? 'completed' : 'stalled',
+            startDate: p.startDate || '2026-08-01',
+            endDate: p.endDate || '2026-11-01',
+            currentVersion: 1,
+            versions: [],
+            approvalStatus: 'approved',
+            approvalPath: 'teacher_supervisor',
+            approvalLogs: [],
+            executionMode: 'daily',
+            targets: {
+              dailyAmount: 'صفحة واحدة',
+              weeklyAmount: '5 صفحات',
+              monthlyAmount: '20 صفحة',
+              targetProgressRate: 85,
+            },
+            milestones: (p.items || []).map((it, mi) => ({
+              id: it.id,
+              title: `المرحلة ${mi + 1}`,
+              target: `سورة رقم ${it.surahNumber || 1}`,
+              progress: it.status === 'COMPLETED' ? 100 : 0,
+              status: it.status === 'COMPLETED' ? 'completed' : 'active',
+            })),
+            deviation: {
+              temporalDays: 2,
+              quantitativePages: 1,
+              relativePercentage: 5,
+              trend: 'improving',
+              forecastedCompletion: '2026-11-15',
+              successProbability: 95,
+            },
+            evaluation: {
+              points: 92,
+              percentage: 92,
+              level: 'excellent',
+            },
+          }));
+          setStudentPlans(mappedPlans);
+          if (mappedPlans[0]) {
+            setSelectedPlanId(mappedPlans[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load plans from backend API', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadBackendPlans();
+  }, []);
   
   // Custom states
   const [searchQuery, setSearchQuery] = useState('');

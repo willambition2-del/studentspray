@@ -50,6 +50,60 @@ enum SecurityAuditEvent {
   SESSION_REVOKED
 }
 
+enum EducationalPlanType {
+  HIFZ
+  MURAJAAH
+  CUSTOM
+}
+
+enum EducationalPlanStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum PlanItemType {
+  MEMORIZATION
+  REVISION
+  RECITATION
+  OTHER
+}
+
+enum PlanItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum TargetType {
+  VERSES
+  PAGES
+  JUZ
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum SessionStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+}
+
+enum RecitationRating {
+  EXCELLENT
+  VERY_GOOD
+  GOOD
+  ACCEPTABLE
+  NEEDS_REVIEW
+}
+
 model Forum {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
@@ -60,10 +114,15 @@ model Forum {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  branches Branch[]
-  users    User[]
-  roles    Role[]
-  halaqas  Halaqa[]
+  branches            Branch[]
+  users               User[]
+  roles               Role[]
+  halaqas             Halaqa[]
+  academicYears       AcademicYear[]
+  educationalPlans    EducationalPlan[]
+  attendanceSessions  AttendanceSession[]
+  memorizationRecords MemorizationRecord[]
+  revisionRecords     RevisionRecord[]
 
   @@index([isActive, deletedAt])
 }
@@ -78,10 +137,11 @@ model Branch {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  forum      Forum      @relation(fields: [forumId], references: [id], onDelete: Restrict)
-  users      User[]
-  halaqas    Halaqa[]
-  roleScopes UserRole[]
+  forum            Forum             @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  users            User[]
+  halaqas          Halaqa[]
+  roleScopes       UserRole[]
+  educationalPlans EducationalPlan[]
 
   @@unique([forumId, code])
   @@index([forumId, isActive, deletedAt])
@@ -109,16 +169,21 @@ model User {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
-  forum             Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
-  branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  roles             UserRole[]
-  studentProfile    StudentProfile?
-  parentProfile     ParentProfile?
-  teacherProfile    TeacherProfile?
-  supervisorProfile SupervisorProfile?
-  authSessions      AuthSession[]
-  securityAuditLogs SecurityAuditLog[]
-  businessAuditLogs AuditLog[]
+  forum                     Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch                    Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  roles                     UserRole[]
+  studentProfile            StudentProfile?
+  parentProfile             ParentProfile?
+  teacherProfile            TeacherProfile?
+  supervisorProfile         SupervisorProfile?
+  authSessions              AuthSession[]
+  securityAuditLogs         SecurityAuditLog[]
+  businessAuditLogs         AuditLog[]
+  createdPlans              EducationalPlan[]    @relation("PlanCreator")
+  recordedSessions          AttendanceSession[]  @relation("SessionRecorder")
+  recordedAttendanceRecords AttendanceRecord[]   @relation("AttendanceRecorder")
+  recordedMemorizations     MemorizationRecord[] @relation("MemorizationRecorder")
+  recordedRevisions         RevisionRecord[]     @relation("RevisionRecorder")
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -261,9 +326,13 @@ model StudentProfile {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guardians         StudentGuardian[]
-  halaqaMemberships HalaqaMember[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guardians           StudentGuardian[]
+  halaqaMemberships   HalaqaMember[]
+  educationalPlans    EducationalPlan[]
+  attendanceRecords   AttendanceRecord[]
+  memorizationRecords MemorizationRecord[]
+  revisionRecords     RevisionRecord[]
 
   @@index([studentNumber])
 }
@@ -289,8 +358,8 @@ model TeacherProfile {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignments HalaqaTeacher[]
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  halaqas HalaqaTeacher[]
 
   @@index([employeeNumber])
 }
@@ -299,12 +368,13 @@ model SupervisorProfile {
   id             String    @id @default(uuid()) @db.Uuid
   userId         String    @unique @db.Uuid
   employeeNumber String?
+  specialization String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignments HalaqaSupervisor[]
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  halaqas HalaqaSupervisor[]
 
   @@index([employeeNumber])
 }
@@ -313,9 +383,11 @@ model StudentGuardian {
   id                      String               @id @default(uuid()) @db.Uuid
   studentId               String               @db.Uuid
   parentId                String               @db.Uuid
-  relationship            GuardianRelationship
-  isPrimary               Boolean              @default(false)
-  canReceiveNotifications Boolean              @default(true)
+  relationship            GuardianRelationship @default(FATHER)
+  isPrimary               Boolean              @default(true)
+  canPickup               Boolean              @default(true)
+  receivesAcademicReports Boolean              @default(true)
+  receivesFinancialAlerts Boolean              @default(true)
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
 
@@ -338,11 +410,15 @@ model Halaqa {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  forum       Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
-  branch      Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  members     HalaqaMember[]
-  teachers    HalaqaTeacher[]
-  supervisors HalaqaSupervisor[]
+  forum               Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch              Branch               @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  members             HalaqaMember[]
+  teachers            HalaqaTeacher[]
+  supervisors         HalaqaSupervisor[]
+  educationalPlans    EducationalPlan[]
+  attendanceSessions  AttendanceSession[]
+  memorizationRecords MemorizationRecord[]
+  revisionRecords     RevisionRecord[]
 
   @@unique([branchId, code])
   @@index([forumId, branchId, isActive, deletedAt])
@@ -398,4 +474,198 @@ model HalaqaSupervisor {
 
   @@index([halaqaId, isActive])
   @@index([supervisorId, isActive])
+}
+
+model AcademicYear {
+  id        String    @id @default(uuid()) @db.Uuid
+  forumId   String    @db.Uuid
+  name      String    @db.VarChar(120)
+  startsAt  DateTime  @db.Date
+  endsAt    DateTime  @db.Date
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  forum Forum  @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  terms Term[]
+
+  @@unique([forumId, name])
+  @@index([forumId, isActive, deletedAt])
+}
+
+model Term {
+  id             String    @id @default(uuid()) @db.Uuid
+  academicYearId String    @db.Uuid
+  name           String    @db.VarChar(120)
+  startsAt       DateTime  @db.Date
+  endsAt         DateTime  @db.Date
+  order          Int       @default(1)
+  isActive       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  academicYear AcademicYear      @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  plans        EducationalPlan[]
+
+  @@index([academicYearId, isActive, deletedAt])
+}
+
+model EducationalPlan {
+  id          String                @id @default(uuid()) @db.Uuid
+  forumId     String                @db.Uuid
+  branchId    String?               @db.Uuid
+  halaqaId    String?               @db.Uuid
+  studentId   String?               @db.Uuid
+  termId      String?               @db.Uuid
+  name        String                @db.VarChar(150)
+  type        EducationalPlanType   @default(HIFZ)
+  status      EducationalPlanStatus @default(DRAFT)
+  startDate   DateTime?             @db.Date
+  endDate     DateTime?             @db.Date
+  createdById String?               @db.Uuid
+  notes       String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  deletedAt   DateTime?
+
+  forum   Forum                 @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch  Branch?               @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  halaqa  Halaqa?               @relation(fields: [halaqaId], references: [id], onDelete: SetNull)
+  student StudentProfile?       @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  term    Term?                 @relation(fields: [termId], references: [id], onDelete: SetNull)
+  creator User?                 @relation("PlanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  items   EducationalPlanItem[]
+
+  @@index([forumId, halaqaId, status])
+  @@index([studentId, status])
+}
+
+model EducationalPlanItem {
+  id          String         @id @default(uuid()) @db.Uuid
+  planId      String         @db.Uuid
+  type        PlanItemType   @default(MEMORIZATION)
+  targetType  TargetType     @default(VERSES)
+  surahNumber Int?
+  fromAyah    Int?
+  toAyah      Int?
+  pageFrom    Int?
+  pageTo      Int?
+  juzNumber   Int?
+  targetDate  DateTime?      @db.Date
+  order       Int            @default(1)
+  status      PlanItemStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  plan                EducationalPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  memorizationRecords MemorizationRecord[]
+  revisionRecords     RevisionRecord[]
+
+  @@index([planId, order])
+}
+
+model AttendanceSession {
+  id           String        @id @default(uuid()) @db.Uuid
+  forumId      String        @db.Uuid
+  halaqaId     String        @db.Uuid
+  sessionDate  DateTime      @db.Date
+  startedAt    DateTime?
+  endedAt      DateTime?
+  status       SessionStatus @default(COMPLETED)
+  notes        String?
+  recordedById String?       @db.Uuid
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  forum    Forum              @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  halaqa   Halaqa             @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  recorder User?              @relation("SessionRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  records  AttendanceRecord[]
+
+  @@unique([halaqaId, sessionDate])
+  @@index([forumId, halaqaId, sessionDate])
+}
+
+model AttendanceRecord {
+  id           String           @id @default(uuid()) @db.Uuid
+  sessionId    String           @db.Uuid
+  studentId    String           @db.Uuid
+  status       AttendanceStatus @default(PRESENT)
+  notes        String?
+  recordedById String?          @db.Uuid
+  recordedAt   DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  session  AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student  StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  recorder User?             @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, recordedAt])
+}
+
+model MemorizationRecord {
+  id               String            @id @default(uuid()) @db.Uuid
+  forumId          String            @db.Uuid
+  halaqaId         String            @db.Uuid
+  studentId        String            @db.Uuid
+  planItemId       String?           @db.Uuid
+  date             DateTime          @db.Date
+  surahNumber      Int
+  fromAyah         Int
+  toAyah           Int
+  pageFrom         Int?
+  pageTo           Int?
+  evaluationScore  Decimal           @default(100.0) @db.Decimal(5, 2)
+  rating           RecitationRating?
+  mistakesCount    Int               @default(0)
+  teacherNotes     String?
+  recordedById     String?           @db.Uuid
+  clientMutationId String?           @unique @db.Uuid
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  forum    Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  halaqa   Halaqa               @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  student  StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  planItem EducationalPlanItem? @relation(fields: [planItemId], references: [id], onDelete: SetNull)
+  recorder User?                @relation("MemorizationRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, date])
+  @@index([halaqaId, date])
+}
+
+model RevisionRecord {
+  id               String            @id @default(uuid()) @db.Uuid
+  forumId          String            @db.Uuid
+  halaqaId         String            @db.Uuid
+  studentId        String            @db.Uuid
+  planItemId       String?           @db.Uuid
+  date             DateTime          @db.Date
+  surahNumber      Int?
+  fromAyah         Int?
+  toAyah           Int?
+  pageFrom         Int?
+  pageTo           Int?
+  juzNumber        Int?
+  evaluationScore  Decimal           @default(100.0) @db.Decimal(5, 2)
+  rating           RecitationRating?
+  mistakesCount    Int               @default(0)
+  teacherNotes     String?
+  recordedById     String?           @db.Uuid
+  clientMutationId String?           @unique @db.Uuid
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  forum    Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  halaqa   Halaqa               @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  student  StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  planItem EducationalPlanItem? @relation(fields: [planItemId], references: [id], onDelete: SetNull)
+  recorder User?                @relation("RevisionRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, date])
+  @@index([halaqaId, date])
 }

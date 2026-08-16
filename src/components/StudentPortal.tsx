@@ -42,10 +42,10 @@ export default function StudentPortal({ currentUser }: { currentUser?: any }) {
     currentLevel: currentUser?.currentLevel || 'المستوى الثالث - المهرة بالقرآن'
   };
 
-  const currentStudentPlan = Object.values(storedPlans).find(p => 
-    (currentUser?.name && p.studentName.includes(currentUser.name.split(' ')?.[0] || '')) ||
-    (currentUser?.id && p.studentId === currentUser.id)
-  ) || storedPlans['ST-000004'] || storedPlans['ST-000001'];
+  const currentStudentPlan: any = Object.values(storedPlans).find((p: any) => 
+    (currentUser?.name && p?.studentName?.includes(currentUser.name.split(' ')?.[0] || '')) ||
+    (currentUser?.id && p?.studentId === currentUser.id)
+  ) || (storedPlans as any)['ST-000004'] || (storedPlans as any)['ST-000001'];
   const [showCertificate, setShowCertificate] = useState(false);
 
   // Student communication hub state

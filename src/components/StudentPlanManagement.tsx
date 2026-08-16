@@ -152,6 +152,15 @@ export const SYSTEM_STUDENTS = [
   { id: 'ST-000006', name: 'سلمان بن فهد العتيبي', circle: 'حلقة البراعم والناشئين', teacher: 'أ. إبراهيم الخالد' }
 ];
 
+import {
+  getStudents,
+  getEducationalPlans,
+  createEducationalPlan,
+  updateEducationalPlan,
+  StudentProfileDto,
+  EducationalPlan,
+} from '../lib/api';
+
 export function getStoredPlans(): Record<string, StudentPlanData> {
   try {
     const data = localStorage.getItem('alhudacenter_student_plans');
@@ -178,12 +187,82 @@ interface StudentPlanManagementProps {
 }
 
 export default function StudentPlanManagement({ defaultMode = 'all' }: StudentPlanManagementProps = {}) {
-  const [plans, setPlans] = useState<Record<string, StudentPlanData>>(getStoredPlans);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('ST-000001');
+  const [plans, setPlans] = useState<Record<string, StudentPlanData>>({});
+  const [studentsList, setStudentsList] = useState<Array<{ id: string; name: string; circle: string; teacher: string }>>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [savedSuccessMsg, setSavedSuccessMsg] = useState(false);
   const [showPrintView, setShowPrintView] = useState(false);
   const [activeMode, setActiveMode] = useState<'all' | 'plan_assignment' | 'achievement'>(defaultMode);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load real students and plans from backend API
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const [studentsRes, plansRes] = await Promise.all([
+          getStudents({ limit: 100 }),
+          getEducationalPlans({ limit: 100 }),
+        ]);
+
+        const rawStudents = studentsRes.items || [];
+        const mappedStudents = rawStudents.map((s: any) => {
+          const activeMem = s.halaqaMemberships?.find((m: any) => m.isActive);
+          const circleName = activeMem?.halaqa?.name || 'الحلقة العامة';
+          const teacherName = activeMem?.halaqa?.teachers?.find((t: any) => t.isActive)?.teacher?.user?.displayName || 'معلم الحلقة';
+          return {
+            id: s.id,
+            name: s.user?.displayName || s.user?.username || `طالب ${s.studentNumber || s.id.slice(0, 6)}`,
+            circle: circleName,
+            teacher: teacherName,
+          };
+        });
+
+        setStudentsList(mappedStudents);
+        if (mappedStudents.length > 0 && !selectedStudentId) {
+          setSelectedStudentId(mappedStudents[0].id);
+        }
+
+        const rawPlans = plansRes.items || [];
+        const plansMap: Record<string, StudentPlanData> = {};
+        for (const p of rawPlans) {
+          if (p.studentId) {
+            plansMap[p.studentId] = {
+              studentId: p.studentId,
+              studentName: p.student?.user?.displayName || 'طالب',
+              circleName: p.halaqa?.name || 'الحلقة',
+              teacherName: 'المعلم',
+              hifzFrom: p.items?.[0]?.surahNumber ? `سورة رقم ${p.items[0].surahNumber} (الآية ${p.items[0].fromAyah || 1})` : 'سورة البقرة (الآية ١)',
+              hifzTo: p.items?.[0]?.toAyah ? `سورة رقم ${p.items[0].surahNumber} (الآية ${p.items[0].toAyah})` : 'سورة البقرة (الآية ٢٥)',
+              muraajaaFrom: 'سورة آل عمران (الآية ١٠٠)',
+              muraajaaTo: 'سورة آل عمران (الآية ١٥٠)',
+              tafheemVerses: p.notes || 'تفهيم الآيات وشرح مقاصد السور.',
+              targetDays: '٧ أيام',
+              startDate: p.startDate || new Date().toISOString().split('T')[0],
+              status: p.status === 'ACTIVE' ? 'active' : p.status === 'COMPLETED' ? 'completed' : 'needs_review',
+              teacherNotes: p.notes || '',
+              updatedAt: p.updatedAt ? p.updatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+              hifzAchievementPercent: 90,
+              muraajaaAchievementPercent: 85,
+              achievementGrade: 'ممتاز',
+              attendanceMonth: 'أغسطس 2026',
+              attendedDays: 22,
+              absentExcusedDays: 2,
+              absentUnexcusedDays: 1,
+              totalStudyDays: 25,
+            };
+          }
+        }
+        setPlans(plansMap);
+      } catch (err) {
+        console.error('Failed to load students and plans from backend API', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   useEffect(() => {
     if (defaultMode) {
@@ -193,15 +272,15 @@ export default function StudentPlanManagement({ defaultMode = 'all' }: StudentPl
 
   // Form State
   const [formData, setFormData] = useState<StudentPlanData>({
-    studentId: 'ST-000001',
-    studentName: 'عبدالرحمن بن ياسر المزروعي',
-    circleName: 'حلقة حفظ الطليعة (خاتمين)',
-    teacherName: 'الشيخ عبد الرحمن السعيد',
+    studentId: '',
+    studentName: '',
+    circleName: '',
+    teacherName: '',
     hifzFrom: 'سورة البقرة (الآية ١)',
     hifzTo: 'سورة البقرة (الآية ٢٥)',
     muraajaaFrom: 'سورة آل عمران (الآية ١٠٠)',
     muraajaaTo: 'سورة آل عمران (الآية ١٥٠)',
-    tafheemVerses: 'تفهيم الآيات: تتناول الآيات صفات المتقين ومقاصد هداية الكتاب العزيز، والفرق بين المؤمنين والمنافقين.',
+    tafheemVerses: 'تفهيم الآيات: تتناول الآيات صفات المتقين ومقاصد هداية الكتاب العزيز.',
     targetDays: '٧ أيام',
     startDate: new Date().toISOString().split('T')[0],
     status: 'active',
@@ -214,28 +293,20 @@ export default function StudentPlanManagement({ defaultMode = 'all' }: StudentPl
     totalStudyDays: 25
   });
 
-  // Listen for storage changes
-  useEffect(() => {
-    const handleUpdate = () => {
-      setPlans(getStoredPlans());
-    };
-    window.addEventListener('alhudacenter_plan_updated', handleUpdate);
-    return () => window.removeEventListener('alhudacenter_plan_updated', handleUpdate);
-  }, []);
-
   // Update form when selected student changes
   useEffect(() => {
+    if (!selectedStudentId) return;
     const existing = plans[selectedStudentId];
-    const systemStu = SYSTEM_STUDENTS.find(s => s.id === selectedStudentId);
+    const stu = studentsList.find(s => s.id === selectedStudentId);
 
     if (existing) {
       setFormData(existing);
-    } else if (systemStu) {
+    } else if (stu) {
       setFormData({
-        studentId: systemStu.id,
-        studentName: systemStu.name,
-        circleName: systemStu.circle,
-        teacherName: systemStu.teacher,
+        studentId: stu.id,
+        studentName: stu.name,
+        circleName: stu.circle,
+        teacherName: stu.teacher,
         hifzFrom: 'سورة البقرة (الآية ١)',
         hifzTo: 'سورة البقرة (الآية ١٥)',
         muraajaaFrom: 'سورة الفاتحة',
@@ -253,32 +324,39 @@ export default function StudentPlanManagement({ defaultMode = 'all' }: StudentPl
         totalStudyDays: 25
       });
     }
-  }, [selectedStudentId, plans]);
+  }, [selectedStudentId, plans, studentsList]);
 
   const handleSelectStudent = (id: string) => {
     setSelectedStudentId(id);
   };
 
-  const handleSavePlan = (e: React.FormEvent) => {
+  const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedRecord: StudentPlanData = {
-      ...formData,
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+    try {
+      const updatedRecord: StudentPlanData = {
+        ...formData,
+        updatedAt: new Date().toISOString().split('T')[0]
+      };
 
-    const newPlans = {
-      ...plans,
-      [formData.studentId]: updatedRecord
-    };
+      // Save plan directly to NestJS API
+      await createEducationalPlan({
+        name: `خطة الطالب ${formData.studentName}`,
+        studentId: formData.studentId,
+        type: 'HIFZ',
+        status: 'ACTIVE',
+        startDate: formData.startDate,
+        notes: formData.tafheemVerses || formData.teacherNotes,
+      });
 
-    setPlans(newPlans);
-    saveStoredPlans(newPlans);
-
-    setSavedSuccessMsg(true);
-    setTimeout(() => setSavedSuccessMsg(false), 3500);
+      setPlans(prev => ({ ...prev, [formData.studentId]: updatedRecord }));
+      setSavedSuccessMsg(true);
+      setTimeout(() => setSavedSuccessMsg(false), 3500);
+    } catch (err) {
+      console.error('Failed to save student plan to backend API', err);
+    }
   };
 
-  const filteredStudents = SYSTEM_STUDENTS.filter(s => 
+  const filteredStudents = studentsList.filter(s => 
     s.name.includes(searchTerm) || s.circle.includes(searchTerm) || s.id.includes(searchTerm)
   );
 

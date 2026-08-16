@@ -2,24 +2,29 @@ import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { AcademicYearsModule } from "./academic-years/academic-years.module";
+import { AttendanceModule } from "./attendance/attendance.module";
 import { AuthModule } from "./auth/auth.module";
 import { AuthorizationModule } from "./authorization/authorization.module";
 import { RequestLoggingInterceptor } from "./common/interceptors/request-logging.interceptor";
 import { environmentValidationSchema } from "./config/environment";
 import { PrismaModule } from "./database/prisma.module";
-import { HealthModule } from "./health/health.module";
-import { RedisModule } from "./redis/redis.module";
-import { AuditModule } from "./audit/audit.module";
-import { BranchesModule } from "./branches/branches.module";
+import { EducationalPlansModule } from "./educational-plans/educational-plans.module";
 import { ForumsModule } from "./forums/forums.module";
 import { HalaqasModule } from "./halaqas/halaqas.module";
+import { HealthModule } from "./health/health.module";
 import { ParentsModule } from "./parents/parents.module";
 import { ProfilesModule } from "./profiles/profiles.module";
+import { RecitationModule } from "./recitation/recitation.module";
+import { RedisModule } from "./redis/redis.module";
 import { RolesModule } from "./roles/roles.module";
 import { StudentsModule } from "./students/students.module";
 import { SupervisorsModule } from "./supervisors/supervisors.module";
 import { TeachersModule } from "./teachers/teachers.module";
+import { TeacherWorkspaceModule } from "./teacher-workspace/teacher-workspace.module";
 import { UsersModule } from "./users/users.module";
+import { AuditModule } from "./audit/audit.module";
+import { BranchesModule } from "./branches/branches.module";
 
 @Module({
   imports: [
@@ -44,6 +49,11 @@ import { UsersModule } from "./users/users.module";
     TeachersModule,
     SupervisorsModule,
     HalaqasModule,
+    AcademicYearsModule,
+    EducationalPlansModule,
+    AttendanceModule,
+    RecitationModule,
+    TeacherWorkspaceModule,
     HealthModule,
   ],
   providers: [
