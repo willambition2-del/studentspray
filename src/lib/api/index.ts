@@ -16,3 +16,6 @@ export * from './attendance';
 export * from './recitation';
 export * from './student-progress';
 export * from './teacher-workspace';
+export * from './evaluation-templates';
+export * from './field-visits';
+export * from './supervisor-workspace';

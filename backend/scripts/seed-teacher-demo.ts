@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, EducationalPlanType, TargetType, EducationalPlanStatus } from '../src/generated/prisma/client';
+import { PrismaClient, EducationalPlanType, TargetType, EducationalPlanStatus, PlanItemType } from '../src/generated/prisma/client';
 import { PasswordService } from '../src/auth/password.service';
 import { normalizeUsername } from '../src/auth/utils/identifier';
 
@@ -152,14 +152,13 @@ async function main() {
         branchId: branch.id,
         halaqaId: halaqaA.id,
         name: 'خطة حفظ جزء عمّ',
-        type: EducationalPlanType.MEMORIZATION,
-        targetType: TargetType.SURAH,
+        type: EducationalPlanType.HIFZ,
         status: EducationalPlanStatus.ACTIVE,
         items: {
           create: [
-            { type: EducationalPlanType.MEMORIZATION, targetType: TargetType.SURAH, surahNumber: 114, order: 1, notes: 'سورة الناس' },
-            { type: EducationalPlanType.MEMORIZATION, targetType: TargetType.SURAH, surahNumber: 113, order: 2, notes: 'سورة الفلق' },
-            { type: EducationalPlanType.MEMORIZATION, targetType: TargetType.SURAH, surahNumber: 112, order: 3, notes: 'سورة الإخلاص' },
+            { type: PlanItemType.MEMORIZATION, targetType: TargetType.VERSES, surahNumber: 114, order: 1, notes: 'سورة الناس' },
+            { type: PlanItemType.MEMORIZATION, targetType: TargetType.VERSES, surahNumber: 113, order: 2, notes: 'سورة الفلق' },
+            { type: PlanItemType.MEMORIZATION, targetType: TargetType.VERSES, surahNumber: 112, order: 3, notes: 'سورة الإخلاص' },
           ],
         },
       },

@@ -10,6 +10,8 @@ import { RequestLoggingInterceptor } from "./common/interceptors/request-logging
 import { environmentValidationSchema } from "./config/environment";
 import { PrismaModule } from "./database/prisma.module";
 import { EducationalPlansModule } from "./educational-plans/educational-plans.module";
+import { EvaluationTemplatesModule } from "./evaluation-templates/evaluation-templates.module";
+import { FieldVisitsModule } from "./field-visits/field-visits.module";
 import { ForumsModule } from "./forums/forums.module";
 import { HalaqasModule } from "./halaqas/halaqas.module";
 import { HealthModule } from "./health/health.module";
@@ -20,6 +22,7 @@ import { RedisModule } from "./redis/redis.module";
 import { RolesModule } from "./roles/roles.module";
 import { StudentsModule } from "./students/students.module";
 import { SupervisorsModule } from "./supervisors/supervisors.module";
+import { SupervisorWorkspaceModule } from "./supervisor-workspace/supervisor-workspace.module";
 import { TeachersModule } from "./teachers/teachers.module";
 import { TeacherWorkspaceModule } from "./teacher-workspace/teacher-workspace.module";
 import { UsersModule } from "./users/users.module";
@@ -53,7 +56,10 @@ import { BranchesModule } from "./branches/branches.module";
     EducationalPlansModule,
     AttendanceModule,
     RecitationModule,
+    EvaluationTemplatesModule,
+    FieldVisitsModule,
     TeacherWorkspaceModule,
+    SupervisorWorkspaceModule,
     HealthModule,
   ],
   providers: [

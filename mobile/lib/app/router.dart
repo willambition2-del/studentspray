@@ -11,6 +11,16 @@ import '../features/teacher/screens/memorization_screen.dart';
 import '../features/teacher/screens/revision_screen.dart';
 import '../features/teacher/screens/student_progress_screen.dart';
 import '../features/teacher/screens/teacher_home_screen.dart';
+import '../features/supervisor/screens/supervisor_home_screen.dart';
+import '../features/supervisor/screens/supervisor_halaqas_screen.dart';
+import '../features/supervisor/screens/supervisor_teachers_screen.dart';
+import '../features/supervisor/screens/supervisor_teacher_detail_screen.dart';
+import '../features/supervisor/screens/visits_list_screen.dart';
+import '../features/supervisor/screens/create_visit_screen.dart';
+import '../features/supervisor/screens/visit_workspace_screen.dart';
+import '../features/supervisor/screens/evaluation_screen.dart';
+import '../features/supervisor/screens/recommendations_list_screen.dart';
+import '../features/supervisor/screens/recommendation_detail_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -35,6 +45,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (isLogin || isSplash) {
           if (user != null && user.isTeacher) {
             return '/teacher/home';
+          } else if (user != null && user.isTechnicalSupervisor) {
+            return '/supervisor/home';
           } else {
             return '/unsupported-role';
           }
@@ -56,6 +68,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/unsupported-role',
         builder: (context, state) => const UnsupportedRoleScreen(),
       ),
+
+      // Teacher Routes
       GoRoute(
         path: '/teacher',
         redirect: (_, __) => '/teacher/home',
@@ -117,6 +131,71 @@ final routerProvider = Provider<GoRouter>((ref) {
             studentId: id,
             studentName: name,
           );
+        },
+      ),
+
+      // Technical Supervisor Routes
+      GoRoute(
+        path: '/supervisor',
+        redirect: (_, __) => '/supervisor/home',
+      ),
+      GoRoute(
+        path: '/supervisor/home',
+        builder: (context, state) => const SupervisorHomeScreen(),
+      ),
+      GoRoute(
+        path: '/supervisor/halaqas',
+        builder: (context, state) => const SupervisorHalaqasScreen(),
+      ),
+      GoRoute(
+        path: '/supervisor/teachers',
+        builder: (context, state) => const SupervisorTeachersScreen(),
+      ),
+      GoRoute(
+        path: '/supervisor/teachers/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return SupervisorTeacherDetailScreen(teacherId: id);
+        },
+      ),
+      GoRoute(
+        path: '/supervisor/visits',
+        builder: (context, state) => const VisitsListScreen(),
+      ),
+      GoRoute(
+        path: '/supervisor/visits/new',
+        builder: (context, state) {
+          final halaqaId = state.uri.queryParameters['halaqaId'];
+          final teacherId = state.uri.queryParameters['teacherId'];
+          return CreateVisitScreen(
+            initialHalaqaId: halaqaId,
+            initialTeacherId: teacherId,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/supervisor/visits/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return VisitWorkspaceScreen(visitId: id);
+        },
+      ),
+      GoRoute(
+        path: '/supervisor/visits/:id/evaluation',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return EvaluationScreen(visitId: id);
+        },
+      ),
+      GoRoute(
+        path: '/supervisor/recommendations',
+        builder: (context, state) => const RecommendationsListScreen(),
+      ),
+      GoRoute(
+        path: '/supervisor/recommendations/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return RecommendationDetailScreen(recommendationId: id);
         },
       ),
     ],

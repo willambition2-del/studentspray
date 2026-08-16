@@ -11,6 +11,12 @@ enum MutationType {
   attendance,
   memorization,
   revision,
+  fieldVisitCreate,
+  fieldVisitStatus,
+  evaluationDraft,
+  evaluationSubmit,
+  recommendationCreate,
+  recommendationFollowUp,
 }
 
 class SyncService {
@@ -60,6 +66,7 @@ class SyncService {
     required String path,
     required Map<String, dynamic> payload,
     String? clientMutationId,
+    String method = 'POST',
   }) async {
     final mutationId = clientMutationId ?? generateMutationId();
     final enrichedPayload = Map<String, dynamic>.from(payload);
@@ -69,7 +76,15 @@ class SyncService {
 
     if (online) {
       try {
-        final response = await apiClient.post(path, data: enrichedPayload);
+        final dynamic response;
+        if (method.toUpperCase() == 'PUT') {
+          response = await apiClient.put(path, data: enrichedPayload);
+        } else if (method.toUpperCase() == 'PATCH') {
+          response = await apiClient.patch(path, data: enrichedPayload);
+        } else {
+          response = await apiClient.post(path, data: enrichedPayload);
+        }
+
         return {
           'synced': true,
           'data': response.data,
@@ -92,7 +107,11 @@ class SyncService {
         clientMutationId: Value(mutationId),
         userId: Value(userId),
         type: Value(type.name.toUpperCase()),
-        payloadJson: Value(jsonEncode({'path': path, 'data': enrichedPayload})),
+        payloadJson: Value(jsonEncode({
+          'path': path,
+          'data': enrichedPayload,
+          'method': method,
+        })),
         createdAt: Value(DateTime.now()),
         status: const Value('PENDING'),
       ),
@@ -126,8 +145,16 @@ class SyncService {
           final decoded = jsonDecode(mutation.payloadJson) as Map<String, dynamic>;
           final path = decoded['path'] as String;
           final data = decoded['data'] as Map<String, dynamic>;
+          final method = (decoded['method'] as String?)?.toUpperCase() ?? 'POST';
 
-          await apiClient.post(path, data: data);
+          if (method == 'PUT') {
+            await apiClient.put(path, data: data);
+          } else if (method == 'PATCH') {
+            await apiClient.patch(path, data: data);
+          } else {
+            await apiClient.post(path, data: data);
+          }
+
           // Synced successfully - delete from pending queue
           await db.deleteMutation(mutation.id);
         } on AppException catch (e) {

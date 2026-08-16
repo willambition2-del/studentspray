@@ -104,6 +104,57 @@ enum RecitationRating {
   NEEDS_REVIEW
 }
 
+enum VisitType {
+  ROUTINE
+  FOLLOW_UP
+  DIAGNOSTIC
+  EMERGENCY
+  COMPREHENSIVE
+}
+
+enum VisitStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EvaluationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+}
+
+enum EvaluationLevel {
+  EXCELLENT
+  VERY_GOOD
+  GOOD
+  NEEDS_IMPROVEMENT
+  NEEDS_INTERVENTION
+}
+
+enum RecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RecommendationStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CriterionInputType {
+  SCALE_5
+  SCALE_10
+  PERCENTAGE
+  NUMERIC
+  YES_NO
+}
+
 model Forum {
   id        String    @id @default(uuid()) @db.Uuid
   name      String
@@ -123,6 +174,9 @@ model Forum {
   attendanceSessions  AttendanceSession[]
   memorizationRecords MemorizationRecord[]
   revisionRecords     RevisionRecord[]
+  evaluationTemplates EvaluationTemplate[]
+  fieldVisits         FieldVisit[]
+  recommendations     Recommendation[]
 
   @@index([isActive, deletedAt])
 }
@@ -142,6 +196,8 @@ model Branch {
   halaqas          Halaqa[]
   roleScopes       UserRole[]
   educationalPlans EducationalPlan[]
+  fieldVisits      FieldVisit[]
+  recommendations  Recommendation[]
 
   @@unique([forumId, code])
   @@index([forumId, isActive, deletedAt])
@@ -169,8 +225,8 @@ model User {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
-  forum                     Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
-  branch                    Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  forum                     Forum                    @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch                    Branch?                  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   roles                     UserRole[]
   studentProfile            StudentProfile?
   parentProfile             ParentProfile?
@@ -179,11 +235,15 @@ model User {
   authSessions              AuthSession[]
   securityAuditLogs         SecurityAuditLog[]
   businessAuditLogs         AuditLog[]
-  createdPlans              EducationalPlan[]    @relation("PlanCreator")
-  recordedSessions          AttendanceSession[]  @relation("SessionRecorder")
-  recordedAttendanceRecords AttendanceRecord[]   @relation("AttendanceRecorder")
-  recordedMemorizations     MemorizationRecord[] @relation("MemorizationRecorder")
-  recordedRevisions         RevisionRecord[]     @relation("RevisionRecorder")
+  createdPlans              EducationalPlan[]        @relation("PlanCreator")
+  recordedSessions          AttendanceSession[]      @relation("SessionRecorder")
+  recordedAttendanceRecords AttendanceRecord[]       @relation("AttendanceRecorder")
+  recordedMemorizations     MemorizationRecord[]     @relation("MemorizationRecorder")
+  recordedRevisions         RevisionRecord[]         @relation("RevisionRecorder")
+  createdFieldVisits        FieldVisit[]             @relation("FieldVisitCreator")
+  createdRecommendations    Recommendation[]         @relation("RecommendationCreator")
+  createdFollowUps          RecommendationFollowUp[] @relation("FollowUpCreator")
+  createdSupervisorNotes    SupervisorVisitNote[]    @relation("SupervisorNoteCreator")
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -358,8 +418,10 @@ model TeacherProfile {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  halaqas HalaqaTeacher[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  halaqas         HalaqaTeacher[]
+  fieldVisits     FieldVisit[]
+  recommendations Recommendation[]
 
   @@index([employeeNumber])
 }
@@ -373,8 +435,10 @@ model SupervisorProfile {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  halaqas HalaqaSupervisor[]
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  halaqas         HalaqaSupervisor[]
+  fieldVisits     FieldVisit[]
+  recommendations Recommendation[]
 
   @@index([employeeNumber])
 }
@@ -419,6 +483,8 @@ model Halaqa {
   attendanceSessions  AttendanceSession[]
   memorizationRecords MemorizationRecord[]
   revisionRecords     RevisionRecord[]
+  fieldVisits         FieldVisit[]
+  recommendations     Recommendation[]
 
   @@unique([branchId, code])
   @@index([forumId, branchId, isActive, deletedAt])
@@ -668,4 +734,208 @@ model RevisionRecord {
 
   @@index([studentId, date])
   @@index([halaqaId, date])
+}
+
+model EvaluationTemplate {
+  id          String    @id @default(uuid()) @db.Uuid
+  forumId     String    @db.Uuid
+  name        String
+  description String?
+  version     Int       @default(1)
+  isActive    Boolean   @default(true)
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  forum       Forum                  @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  axes        EvaluationAxis[]
+  evaluations FieldVisitEvaluation[]
+
+  @@index([forumId, isActive, isDefault])
+}
+
+model EvaluationAxis {
+  id          String   @id @default(uuid()) @db.Uuid
+  templateId  String   @db.Uuid
+  name        String
+  description String?
+  weight      Decimal  @default(0.0) @db.Decimal(5, 2)
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template EvaluationTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  criteria EvaluationCriterion[]
+
+  @@index([templateId, order])
+}
+
+model EvaluationCriterion {
+  id          String             @id @default(uuid()) @db.Uuid
+  axisId      String             @db.Uuid
+  name        String
+  description String?
+  type        CriterionInputType @default(SCALE_5)
+  maxScore    Decimal            @default(5.0) @db.Decimal(5, 2)
+  weight      Decimal?           @db.Decimal(5, 2)
+  isRequired  Boolean            @default(true)
+  order       Int                @default(0)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  axis        EvaluationAxis        @relation(fields: [axisId], references: [id], onDelete: Cascade)
+  evaluations CriterionEvaluation[]
+
+  @@index([axisId, order])
+}
+
+model FieldVisit {
+  id               String      @id @default(uuid()) @db.Uuid
+  forumId          String      @db.Uuid
+  branchId         String      @db.Uuid
+  supervisorId     String      @db.Uuid
+  halaqaId         String      @db.Uuid
+  teacherId        String      @db.Uuid
+  visitNumber      String      @db.VarChar(40)
+  visitType        VisitType   @default(ROUTINE)
+  status           VisitStatus @default(PLANNED)
+  scheduledDate    DateTime?   @db.Date
+  startedAt        DateTime?
+  completedAt      DateTime?
+  reason           String?
+  summary          String?
+  generalNotes     String?
+  createdById      String?     @db.Uuid
+  clientMutationId String?     @unique @db.Uuid
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  deletedAt        DateTime?
+
+  forum           Forum                 @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch          Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  supervisor      SupervisorProfile     @relation(fields: [supervisorId], references: [id], onDelete: Restrict)
+  halaqa          Halaqa                @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  teacher         TeacherProfile        @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  creator         User?                 @relation("FieldVisitCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  evaluation      FieldVisitEvaluation?
+  recommendations Recommendation[]
+  notes           SupervisorVisitNote[]
+
+  @@index([forumId, branchId, supervisorId, status])
+  @@index([halaqaId, status])
+  @@index([teacherId, status])
+}
+
+model FieldVisitEvaluation {
+  id                   String           @id @default(uuid()) @db.Uuid
+  visitId              String           @unique @db.Uuid
+  templateId           String           @db.Uuid
+  templateVersion      Int              @default(1)
+  templateNameSnapshot String
+  status               EvaluationStatus @default(DRAFT)
+  totalScore           Decimal          @default(0.0) @db.Decimal(6, 2)
+  maxPossibleScore     Decimal          @default(100.0) @db.Decimal(6, 2)
+  percentage           Decimal          @default(0.0) @db.Decimal(5, 2)
+  level                EvaluationLevel?
+  strengths            String?
+  improvementAreas     String?
+  summary              String?
+  submittedAt          DateTime?
+  clientMutationId     String?          @unique @db.Uuid
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  visit               FieldVisit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  template            EvaluationTemplate    @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  criteriaEvaluations CriterionEvaluation[]
+
+  @@index([visitId, status])
+}
+
+model CriterionEvaluation {
+  id                    String   @id @default(uuid()) @db.Uuid
+  evaluationId          String   @db.Uuid
+  criterionId           String   @db.Uuid
+  axisNameSnapshot      String
+  criterionNameSnapshot String
+  maxScoreSnapshot      Decimal  @db.Decimal(5, 2)
+  weightSnapshot        Decimal? @db.Decimal(5, 2)
+  score                 Decimal  @db.Decimal(5, 2)
+  notApplicable         Boolean  @default(false)
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  evaluation FieldVisitEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  criterion  EvaluationCriterion  @relation(fields: [criterionId], references: [id], onDelete: Restrict)
+
+  @@unique([evaluationId, criterionId])
+  @@index([evaluationId])
+}
+
+model Recommendation {
+  id               String                 @id @default(uuid()) @db.Uuid
+  forumId          String                 @db.Uuid
+  branchId         String                 @db.Uuid
+  visitId          String?                @db.Uuid
+  halaqaId         String                 @db.Uuid
+  teacherId        String                 @db.Uuid
+  supervisorId     String                 @db.Uuid
+  title            String
+  description      String
+  domain           String?
+  priority         RecommendationPriority @default(MEDIUM)
+  status           RecommendationStatus   @default(OPEN)
+  dueDate          DateTime?              @db.Date
+  completedAt      DateTime?
+  createdById      String?                @db.Uuid
+  clientMutationId String?                @unique @db.Uuid
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  deletedAt        DateTime?
+
+  forum      Forum                    @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch     Branch                   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  visit      FieldVisit?              @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  halaqa     Halaqa                   @relation(fields: [halaqaId], references: [id], onDelete: Restrict)
+  teacher    TeacherProfile           @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  supervisor SupervisorProfile        @relation(fields: [supervisorId], references: [id], onDelete: Restrict)
+  creator    User?                    @relation("RecommendationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  followUps  RecommendationFollowUp[]
+
+  @@index([forumId, branchId, supervisorId, status])
+  @@index([teacherId, status])
+  @@index([halaqaId, status])
+}
+
+model RecommendationFollowUp {
+  id               String               @id @default(uuid()) @db.Uuid
+  recommendationId String               @db.Uuid
+  status           RecommendationStatus
+  notes            String
+  createdById      String?              @db.Uuid
+  clientMutationId String?              @unique @db.Uuid
+  createdAt        DateTime             @default(now())
+
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  creator        User?          @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([recommendationId, createdAt])
+}
+
+model SupervisorVisitNote {
+  id             String   @id @default(uuid()) @db.Uuid
+  visitId        String   @db.Uuid
+  text           String
+  isConfidential Boolean  @default(false)
+  createdById    String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  visit   FieldVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  creator User?      @relation("SupervisorNoteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([visitId])
 }
