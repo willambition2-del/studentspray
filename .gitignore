@@ -1,8 +1,46 @@
+# Dependencies & Build artifacts
 node_modules/
 build/
 dist/
 coverage/
+.dart_tool/
+.next/
 .DS_Store
+
+# Logs
 *.log
-.env*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets
+.env
+.env.*
 !.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# Mobile Keystore & Signing
+*.keystore
+*.jks
+key.properties
+google-services.json
+GoogleService-Info.plist
+*firebase-adminsdk*.json
+firebase-service-account*.json
+
+# Database Dumps & Backups
+*.dump
+*.sql.gz
+*.bak
+backups/
+*.backup
+
+# Build Outputs & Temporary Artifacts
+*.apk
+*.aab
+tmp/
+temp/
+

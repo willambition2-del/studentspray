@@ -1,0 +1,8 @@
+# Production Android Release Signing Configuration Template
+# Copy this file to 'key.properties' in the mobile/android directory and fill in actual values.
+# NEVER commit key.properties or .jks/.keystore files to version control!
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=quran_forum_key
+storeFile=/path/to/your/upload-keystore.jks
