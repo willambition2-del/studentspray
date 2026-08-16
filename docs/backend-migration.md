@@ -1,17 +1,20 @@
 # Backend migration plan
 
-## Current state — Phase 12 Complete (Notifications + FCM & Realtime Chat + Socket.IO)
+## Current state — Phase 13 Complete (Activities, Competitions, Awards & General Shelf)
 
 The platform consists of:
 1. A production-ready NestJS API backend (`backend/`) backed by PostgreSQL, Redis, and Socket.IO.
 2. A React 19 Admin Web Dashboard (Vite) for General Managers and Executive Managers.
 3. A unified Flutter Mobile App (`mobile/`) with Arabic RTL support, Riverpod state management, Drift offline queue, GoRouter role-based routing, and dedicated experiences for:
-   - `TEACHER` (Halaqat, Attendance, Recitation, Progress, Offline Sync)
-   - `TECHNICAL_SUPERVISOR` (Halaqat, Teachers, Field Visits, Evaluations, Recommendations)
-   - `STUDENT` (Daily Plan, Attendance, Recitation, Exams, Evaluations, Cumulative Progress)
-   - `PARENT` (Multi-child switcher, Attendance, Recitations, Exams, Evaluations, Progress)
+   - `TEACHER` (Halaqat, Attendance, Recitation, Progress, Offline Sync, Shelf)
+   - `TECHNICAL_SUPERVISOR` (Halaqat, Teachers, Field Visits, Evaluations, Recommendations, Shelf)
+   - `STUDENT` (Daily Plan, Attendance, Recitation, Exams, Evaluations, Progress, Activities, Competitions, Awards, Shelf)
+   - `PARENT` (Multi-child switcher, Attendance, Recitations, Exams, Evaluations, Progress, Child Activities & Awards, Shelf)
    - **Centralized Notifications Center** (In-App notifications, device tokens, FCM push dispatch)
    - **Realtime Chat & Channels** (Socket.IO with JWT auth, role-scoped Halaqa group, Staff group, and Parent channels)
+   - **Activities & Competitions** (Lifecycle management, participant nominations, automatic score rankings, notifications)
+   - **Awards & Honor Badges** (Templates, granting history preservation, multi-role notifications)
+   - **General Shelf & Sections** (Role-based & user-specific publisher rules, audience visibility filtering)
 
 ```text
 React 19 Admin Web Dashboard (Vite) / Flutter Mobile App (Riverpod + Socket.IO)
@@ -53,6 +56,9 @@ NestJS Core API (`http://localhost:4000/api/v1`)
 | **Field Visits & Supervision Notes** | `MIGRATED` | `GET /supervisor/me/halaqas`, `GET /supervisor/me/teachers`, `GET /field-visits`, `POST /field-visits`, `POST /field-visits/:id/complete`, `GET /recommendations` | Complete supervisor workspace with multi-dimensional rubrics and action tracker. |
 | **Notifications & Firebase FCM** | `MIGRATED` | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `POST /notifications/devices`, `DELETE /notifications/devices/:token` | Multi-channel in-app and push notification system supporting all 4 roles with deep links. |
 | **Realtime Chat & Socket.IO** | `MIGRATED` | `GET /chat/conversations`, `GET /chat/conversations/:id/messages`, `POST /chat/conversations/:id/messages`, `POST /chat/conversations/:id/read`, `GET /chat/unread-count`, WS Gateway `/chat` | Domain-scoped Halaqa group, Staff group, and Parent channel chats. Message persistence before socket emission. |
+| **Activities & Competitions** | `MIGRATED` | `GET /activities`, `POST /activities`, `PATCH /activities/:id`, `POST /activities/:id/participants`, `GET /competitions`, `POST /competitions`, `POST /competitions/:id/results` | Forum/branch scoped, status transitions, participant nominations, automatic result rankings & notifications. |
+| **Awards & Badges** | `MIGRATED` | `GET /awards`, `POST /awards`, `POST /awards/grant`, `GET /awards/students/:studentId` | Badge catalog, historical recognition preservation, automatic student/parent notification. |
+| **General Shelf & Sections** | `MIGRATED` | `GET /shelf/sections`, `POST /shelf/sections`, `POST /shelf/permissions`, `GET /shelf/items`, `POST /shelf/items`, `PATCH /shelf/items/:id` | Section management, server-enforced publisher rules by role/user, target audience visibility filtering. |
 
 ## Verified Integration Points
 

@@ -217,6 +217,11 @@ model Forum {
   exams               Exam[]
   studentEvaluations  StudentEvaluation[]
   conversations       Conversation[]
+  activities          Activity[]
+  competitions        Competition[]
+  awards              Award[]
+  shelfSections       ShelfSection[]
+  shelfItems          ShelfItem[]
 
   @@index([isActive, deletedAt])
 }
@@ -239,6 +244,8 @@ model Branch {
   fieldVisits      FieldVisit[]
   recommendations  Recommendation[]
   exams            Exam[]
+  activities       Activity[]
+  competitions     Competition[]
 
   @@unique([forumId, code])
   @@index([forumId, isActive, deletedAt])
@@ -292,6 +299,12 @@ model User {
   notifications             Notification[]
   conversationMemberships   ConversationMember[]
   sentMessages              ChatMessage[]            @relation("MessageSender")
+  createdActivities         Activity[]               @relation("ActivityCreator")
+  createdCompetitions       Competition[]            @relation("CompetitionCreator")
+  gradedCompetitionResults  CompetitionResult[]      @relation("CompetitionResultGrader")
+  grantedAwards             StudentAward[]           @relation("AwardGrantor")
+  authoredShelfItems        ShelfItem[]              @relation("ShelfItemAuthor")
+  shelfPublisherRules       ShelfPublisherRule[]
 
   @@unique([forumId, username])
   @@unique([forumId, usernameNormalized])
@@ -375,9 +388,10 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  forum       Forum            @relation(fields: [forumId], references: [id], onDelete: Cascade)
-  permissions RolePermission[]
-  users       UserRole[]
+  forum               Forum                @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  permissions         RolePermission[]
+  users               UserRole[]
+  shelfPublisherRules ShelfPublisherRule[]
 
   @@unique([forumId, name])
   @@index([forumId, isActive])
@@ -434,16 +448,20 @@ model StudentProfile {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guardians           StudentGuardian[]
-  halaqaMemberships   HalaqaMember[]
-  educationalPlans    EducationalPlan[]
-  attendanceRecords   AttendanceRecord[]
-  memorizationRecords MemorizationRecord[]
-  revisionRecords     RevisionRecord[]
-  examResults         ExamResult[]
-  studentEvaluations  StudentEvaluation[]
-  conversations       Conversation[]
+  user                      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guardians                 StudentGuardian[]
+  halaqaMemberships         HalaqaMember[]
+  educationalPlans          EducationalPlan[]
+  attendanceRecords         AttendanceRecord[]
+  memorizationRecords       MemorizationRecord[]
+  revisionRecords           RevisionRecord[]
+  examResults               ExamResult[]
+  studentEvaluations        StudentEvaluation[]
+  conversations             Conversation[]
+  activityParticipations    ActivityParticipant[]
+  competitionParticipations CompetitionParticipant[]
+  competitionResults        CompetitionResult[]
+  studentAwards             StudentAward[]
 
   @@index([studentNumber])
 }
@@ -539,6 +557,7 @@ model Halaqa {
   exams               Exam[]
   studentEvaluations  StudentEvaluation[]
   conversations       Conversation[]
+  activities          Activity[]
 
   @@unique([branchId, code])
   @@index([forumId, branchId, isActive, deletedAt])
@@ -1232,4 +1251,319 @@ model ChatMessage {
 
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])
+}
+
+// ==========================================
+// PHASE 13: ACTIVITIES, COMPETITIONS, AWARDS & SHELF
+// ==========================================
+
+enum ActivityType {
+  CONTEST
+  TRIP
+  PROGRAM
+  COURSE
+  MEETING
+  SPORTS
+  ENTERTAINMENT
+  EDUCATIONAL
+  QURANIC
+  INITIATIVE
+  CAMPAIGN
+  CEREMONY
+  CAMP
+  OTHER
+}
+
+enum ActivityStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ParticipantNominationStatus {
+  NOMINATED
+  APPROVED
+  REJECTED
+}
+
+enum ParticipantAttendanceStatus {
+  NOT_RECORDED
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum CompetitionCategory {
+  MEMORIZATION
+  TAJWEED
+  RECITATION
+  INTERPRETATION
+  GENERAL_KNOWLEDGE
+  HADITH
+  CALLIGRAPHY
+  OTHER
+}
+
+enum CompetitionStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  RESULTS_PUBLISHED
+  CANCELLED
+}
+
+enum AwardType {
+  MEDAL
+  BADGE
+  SHIELD
+  CERTIFICATE
+  POINTS
+  HONORARY
+}
+
+enum ShelfContentType {
+  ANNOUNCEMENT
+  ARTICLE
+  BOOK
+  CURRICULUM
+  RESOURCE
+  ACTIVITY_RESULT
+  EXAM_ANNOUNCEMENT
+  GENERAL
+}
+
+enum ShelfVisibility {
+  ALL_USERS
+  STAFF_ONLY
+  TEACHERS_ONLY
+  STUDENTS_ONLY
+  PARENTS_ONLY
+}
+
+model Activity {
+  id          String         @id @default(uuid()) @db.Uuid
+  forumId     String         @db.Uuid
+  branchId    String?        @db.Uuid
+  halaqaId    String?        @db.Uuid
+  title       String
+  description String?
+  type        ActivityType   @default(EDUCATIONAL)
+  status      ActivityStatus @default(DRAFT)
+  startsAt    DateTime
+  endsAt      DateTime?
+  location    String?
+  capacity    Int?
+  createdById String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+
+  forum        Forum                 @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch       Branch?               @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  halaqa       Halaqa?               @relation(fields: [halaqaId], references: [id], onDelete: SetNull)
+  creator      User?                 @relation("ActivityCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants ActivityParticipant[]
+  awards       StudentAward[]
+
+  @@index([forumId, status, deletedAt])
+  @@index([branchId])
+  @@index([halaqaId])
+  @@index([startsAt])
+}
+
+model ActivityParticipant {
+  id                   String                      @id @default(uuid()) @db.Uuid
+  activityId           String                      @db.Uuid
+  studentId            String                      @db.Uuid
+  nominationStatus     ParticipantNominationStatus @default(NOMINATED)
+  parentApprovalStatus String                      @default("NOT_REQUIRED")
+  attendanceStatus     ParticipantAttendanceStatus @default(NOT_RECORDED)
+  score                Float?
+  notes                String?
+  registeredAt         DateTime                    @default(now())
+
+  activity Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  student  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, studentId])
+  @@index([studentId])
+}
+
+model Competition {
+  id          String              @id @default(uuid()) @db.Uuid
+  forumId     String              @db.Uuid
+  branchId    String?             @db.Uuid
+  title       String
+  description String?
+  category    CompetitionCategory @default(MEMORIZATION)
+  status      CompetitionStatus   @default(DRAFT)
+  startsAt    DateTime
+  endsAt      DateTime?
+  maxScore    Float               @default(100)
+  criteria    Json?
+  createdById String?             @db.Uuid
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+
+  forum        Forum                    @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  branch       Branch?                  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  creator      User?                    @relation("CompetitionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants CompetitionParticipant[]
+  results      CompetitionResult[]
+  awards       StudentAward[]
+
+  @@index([forumId, status, deletedAt])
+  @@index([branchId])
+  @@index([startsAt])
+}
+
+model CompetitionParticipant {
+  id            String   @id @default(uuid()) @db.Uuid
+  competitionId String   @db.Uuid
+  studentId     String   @db.Uuid
+  registeredAt  DateTime @default(now())
+
+  competition Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, studentId])
+  @@index([studentId])
+}
+
+model CompetitionResult {
+  id            String    @id @default(uuid()) @db.Uuid
+  competitionId String    @db.Uuid
+  studentId     String    @db.Uuid
+  score         Float
+  rank          Int?
+  notes         String?
+  publishedAt   DateTime?
+  gradedById    String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  competition Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  grader      User?          @relation("CompetitionResultGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([competitionId, studentId])
+  @@index([studentId])
+  @@index([competitionId, rank])
+}
+
+model Award {
+  id          String    @id @default(uuid()) @db.Uuid
+  forumId     String    @db.Uuid
+  name        String
+  description String?
+  iconKey     String?
+  type        AwardType @default(BADGE)
+  points      Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  forum         Forum          @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  studentAwards StudentAward[]
+
+  @@index([forumId, isActive, deletedAt])
+}
+
+model StudentAward {
+  id            String   @id @default(uuid()) @db.Uuid
+  awardId       String   @db.Uuid
+  studentId     String   @db.Uuid
+  reason        String
+  activityId    String?  @db.Uuid
+  competitionId String?  @db.Uuid
+  awardedById   String?  @db.Uuid
+  awardedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  award       Award          @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activity    Activity?      @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  competition Competition?   @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  awardedBy   User?          @relation("AwardGrantor", fields: [awardedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, awardedAt])
+  @@index([awardId])
+}
+
+model ShelfSection {
+  id          String          @id @default(uuid()) @db.Uuid
+  forumId     String          @db.Uuid
+  name        String
+  slug        String
+  description String?
+  order       Int             @default(0)
+  isActive    Boolean         @default(true)
+  visibility  ShelfVisibility @default(ALL_USERS)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+
+  forum          Forum                @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  items          ShelfItem[]
+  publisherRules ShelfPublisherRule[]
+
+  @@unique([forumId, slug])
+  @@index([forumId, isActive, deletedAt])
+}
+
+model ShelfItem {
+  id             String           @id @default(uuid()) @db.Uuid
+  forumId        String           @db.Uuid
+  sectionId      String           @db.Uuid
+  title          String
+  content        String           @db.Text
+  type           ShelfContentType @default(GENERAL)
+  attachmentName String?
+  attachmentUrl  String?
+  fileType       String?
+  fileSize       String?
+  isPinned       Boolean          @default(false)
+  isPublished    Boolean          @default(true)
+  publishedAt    DateTime?        @default(now())
+  targetAudience ShelfVisibility  @default(ALL_USERS)
+  authorId       String?          @db.Uuid
+  authorName     String?
+  authorRole     String?
+  downloadCount  Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  forum   Forum        @relation(fields: [forumId], references: [id], onDelete: Restrict)
+  section ShelfSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  author  User?        @relation("ShelfItemAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([forumId, sectionId, isPublished, deletedAt])
+  @@index([isPinned, publishedAt])
+}
+
+model ShelfPublisherRule {
+  id         String   @id @default(uuid()) @db.Uuid
+  sectionId  String   @db.Uuid
+  roleId     String?  @db.Uuid
+  userId     String?  @db.Uuid
+  canCreate  Boolean  @default(true)
+  canPublish Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  section ShelfSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  role    Role?        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sectionId, roleId, userId])
+  @@index([sectionId])
+  @@index([userId])
 }

@@ -394,4 +394,69 @@ export class StudentPortalService {
       statusLabel: examAverage >= 90 && attendanceRes.summary.attendanceRate >= 90 ? 'متفوق ومتميز' : 'ملتزم بالخطة',
     };
   }
+
+  async getActivitiesForStudent(studentId: string) {
+    const participations = await this.prisma.activityParticipant.findMany({
+      where: { studentId },
+      include: {
+        activity: {
+          include: {
+            branch: { select: { id: true, name: true } },
+            halaqa: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { registeredAt: 'desc' },
+    });
+
+    return participations.map((p) => ({
+      ...p.activity,
+      myParticipation: {
+        nominationStatus: p.nominationStatus,
+        attendanceStatus: p.attendanceStatus,
+        parentApprovalStatus: p.parentApprovalStatus,
+        registeredAt: p.registeredAt,
+      },
+    }));
+  }
+
+  async getCompetitionsForStudent(studentId: string) {
+    const results = await this.prisma.competitionResult.findMany({
+      where: {
+        studentId,
+        publishedAt: { not: null },
+      },
+      include: {
+        competition: {
+          include: {
+            branch: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
+
+    return results.map((r) => ({
+      ...r.competition,
+      myResult: {
+        score: r.score,
+        rank: r.rank,
+        notes: r.notes,
+        publishedAt: r.publishedAt,
+      },
+    }));
+  }
+
+  async getAwardsForStudent(studentId: string) {
+    return this.prisma.studentAward.findMany({
+      where: { studentId },
+      include: {
+        award: true,
+        activity: { select: { id: true, title: true } },
+        competition: { select: { id: true, title: true } },
+        awardedBy: { select: { id: true, displayName: true } },
+      },
+      orderBy: { awardedAt: 'desc' },
+    });
+  }
 }

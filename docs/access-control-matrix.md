@@ -29,8 +29,17 @@ A role or permission never grants access to every record by itself. Forum, branc
   - `PARENT_STUDENT_CHANNEL`: Linked parent of the child and child's active Halaqa teachers only.
   - Global/arbitrary DMs are strictly prohibited.
 - `canAccessNotifications`: Users can only read and manage their own notifications (`userId = CurrentUser.id`). Device tokens are strictly tied to authenticated user sessions.
+- `canAccessShelf`:
+  - `STUDENT`: Read-only access to sections and items targeting `ALL_USERS` or `STUDENTS_ONLY`.
+  - `PARENT`: Read-only access to sections and items targeting `ALL_USERS` or `PARENTS_ONLY`.
+  - `TEACHER`: Read access to `ALL_USERS`, `TEACHERS_ONLY`, `STAFF_ONLY`. Publishing requires active `ShelfPublisherRule` or manager role.
+  - `TECHNICAL_SUPERVISOR`: Read access to `ALL_USERS`, `STAFF_ONLY`. Publishing requires active `ShelfPublisherRule` or manager role.
+  - `GENERAL_MANAGER` / `EXECUTIVE_MANAGER`: Full management of sections, publisher rules, and posts.
+- `canAccessActivitiesAndCompetitions`: Managers follow branch scope; Teachers/Supervisors follow assigned halaqas/branches; Students see published activities/competitions and their own registrations/results; Parents see their linked children's registrations and results.
+- `canGrantAwards`: Managers and authorized Teachers/Supervisors only. Students and Parents cannot grant awards. Historical student awards are permanent and preserved across halaqa transfers.
 
 Phase 3 business APIs declare permissions with `@RequirePermissions(...)` and resolve forum, branch, Halaqa, student, assignment, and guardian scope server-side. `branches.read` and `branches.manage` are part of the system-controlled permission catalog. Role mutation also applies a no-escalation policy: non-General Managers cannot grant a permission they do not hold or assign `GENERAL_MANAGER`.
 
 Suspending an account revokes active sessions in the same transaction. Business changes are written to `AuditLog`; authentication and session security events remain in the separate `SecurityAuditLog`.
+
 

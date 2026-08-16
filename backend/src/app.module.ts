@@ -34,6 +34,10 @@ import { AuditModule } from "./audit/audit.module";
 import { BranchesModule } from "./branches/branches.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { ChatModule } from "./chat/chat.module";
+import { ActivitiesModule } from "./activities/activities.module";
+import { CompetitionsModule } from "./competitions/competitions.module";
+import { AwardsModule } from "./awards/awards.module";
+import { ShelfModule } from "./shelf/shelf.module";
 
 @Module({
   imports: [
@@ -48,6 +52,10 @@ import { ChatModule } from "./chat/chat.module";
     AuditModule,
     NotificationsModule,
     ChatModule,
+    ActivitiesModule,
+    CompetitionsModule,
+    AwardsModule,
+    ShelfModule,
     ProfilesModule,
     AuthorizationModule,
     AuthModule,

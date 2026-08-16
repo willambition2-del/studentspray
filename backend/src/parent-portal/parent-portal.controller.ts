@@ -97,4 +97,34 @@ export class ParentPortalController {
   ) {
     return this.service.getChildProgress(user, studentId);
   }
+
+  @Get('children/:studentId/activities')
+  @RequirePermissions('activities.read')
+  @ApiOperation({ summary: 'Get activities and participation for child' })
+  getChildActivities(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.service.getChildActivities(user, studentId);
+  }
+
+  @Get('children/:studentId/competitions')
+  @RequirePermissions('competitions.read')
+  @ApiOperation({ summary: 'Get competitions and published results for child' })
+  getChildCompetitions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.service.getChildCompetitions(user, studentId);
+  }
+
+  @Get('children/:studentId/awards')
+  @RequirePermissions('awards.read')
+  @ApiOperation({ summary: 'Get awards and achievements for child' })
+  getChildAwards(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('studentId') studentId: string,
+  ) {
+    return this.service.getChildAwards(user, studentId);
+  }
 }

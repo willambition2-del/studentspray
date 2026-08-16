@@ -34,7 +34,7 @@ export class FcmService implements OnModuleInit {
         this.isConfigured = true;
         this.logger.log('FCM Push Notification Service initialized successfully with project credentials.');
       } else {
-        const nodeEnv = this.config.get<string>('NODE_ENV', 'development');
+        const nodeEnv = this.config?.get<string>('NODE_ENV', 'development') ?? process.env.NODE_ENV ?? 'development';
         if (nodeEnv === 'production') {
           throw new Error('FCM_ENABLED is true in production but Firebase credentials are missing.');
         } else {

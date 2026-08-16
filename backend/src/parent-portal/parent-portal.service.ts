@@ -156,4 +156,19 @@ export class ParentPortalService {
     await this.verifyChildAccess(user, studentId);
     return this.studentPortal.getProgressForStudent(studentId);
   }
+
+  async getChildActivities(user: AuthenticatedUser, studentId: string) {
+    await this.verifyChildAccess(user, studentId);
+    return this.studentPortal.getActivitiesForStudent(studentId);
+  }
+
+  async getChildCompetitions(user: AuthenticatedUser, studentId: string) {
+    await this.verifyChildAccess(user, studentId);
+    return this.studentPortal.getCompetitionsForStudent(studentId);
+  }
+
+  async getChildAwards(user: AuthenticatedUser, studentId: string) {
+    await this.verifyChildAccess(user, studentId);
+    return this.studentPortal.getAwardsForStudent(studentId);
+  }
 }

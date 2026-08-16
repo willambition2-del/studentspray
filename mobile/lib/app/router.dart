@@ -38,6 +38,11 @@ import '../features/parent/screens/parent_child_progress_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
 import '../features/chat/screens/conversations_screen.dart';
 import '../features/chat/screens/chat_room_screen.dart';
+import '../features/activities_shelf/screens/student_activities_screen.dart';
+import '../features/activities_shelf/screens/student_competitions_screen.dart';
+import '../features/activities_shelf/screens/student_awards_screen.dart';
+import '../features/activities_shelf/screens/general_shelf_screen.dart';
+import '../features/activities_shelf/screens/parent_child_activities_awards_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -253,6 +258,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/student/progress',
         builder: (context, state) => const StudentPortalProgressScreen(),
       ),
+      GoRoute(
+        path: '/student/activities',
+        builder: (context, state) => const StudentActivitiesScreen(),
+      ),
+      GoRoute(
+        path: '/student/competitions',
+        builder: (context, state) => const StudentCompetitionsScreen(),
+      ),
+      GoRoute(
+        path: '/student/awards',
+        builder: (context, state) => const StudentAwardsScreen(),
+      ),
 
       // Parent Routes
       GoRoute(
@@ -304,6 +321,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           final studentId = state.pathParameters['studentId'] ?? '';
           return ParentChildProgressScreen(studentId: studentId);
         },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/activities-awards',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          final name = state.uri.queryParameters['name'] ?? 'الطالب';
+          return ParentChildActivitiesAwardsScreen(studentId: studentId, studentName: name);
+        },
+      ),
+
+      // General Shelf (Shared across Teacher, Supervisor, Student, Parent)
+      GoRoute(
+        path: '/shelf',
+        builder: (context, state) => const GeneralShelfScreen(),
       ),
 
       // Notifications Route (Shared across Teacher, Supervisor, Student, Parent)

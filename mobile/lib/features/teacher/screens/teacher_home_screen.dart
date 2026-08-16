@@ -25,6 +25,11 @@ class TeacherHomeScreen extends ConsumerWidget {
         title: const Text('الملتقى القرآني — المعلم'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.menu_book_rounded),
+            tooltip: 'الرف العام',
+            onPressed: () => context.push('/shelf'),
+          ),
+          IconButton(
             icon: Badge(
               isLabelVisible: unreadChat > 0,
               label: Text('$unreadChat'),

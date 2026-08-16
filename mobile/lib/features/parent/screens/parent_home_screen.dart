@@ -323,6 +323,22 @@ class ParentHomeScreen extends ConsumerWidget {
                             color: Colors.amber.shade800,
                             onTap: () => context.push('/parent/children/$currentChildId/evaluations'),
                           ),
+                          _QuickNavCard(
+                            title: 'الأنشطة والجوائز',
+                            subtitle: 'المسابقات والأوسمة',
+                            icon: Icons.workspace_premium_rounded,
+                            color: Colors.purple.shade700,
+                            onTap: () => context.push(
+                              '/parent/children/$currentChildId/activities-awards?name=${Uri.encodeComponent(currentChild.name)}',
+                            ),
+                          ),
+                          _QuickNavCard(
+                            title: 'الرف العام',
+                            subtitle: 'المقالات والمصادر',
+                            icon: Icons.menu_book_rounded,
+                            color: Colors.teal.shade700,
+                            onTap: () => context.push('/shelf'),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),

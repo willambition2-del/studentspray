@@ -74,4 +74,28 @@ export class StudentPortalController {
     const student = await this.service.requireStudentProfile(user);
     return this.service.getProgressForStudent(student.id);
   }
+
+  @Get('activities')
+  @RequirePermissions('activities.read')
+  @ApiOperation({ summary: 'Get activities for current student' })
+  async getActivities(@CurrentUser() user: AuthenticatedUser) {
+    const student = await this.service.requireStudentProfile(user);
+    return this.service.getActivitiesForStudent(student.id);
+  }
+
+  @Get('competitions')
+  @RequirePermissions('competitions.read')
+  @ApiOperation({ summary: 'Get competitions and published results for current student' })
+  async getCompetitions(@CurrentUser() user: AuthenticatedUser) {
+    const student = await this.service.requireStudentProfile(user);
+    return this.service.getCompetitionsForStudent(student.id);
+  }
+
+  @Get('awards')
+  @RequirePermissions('awards.read')
+  @ApiOperation({ summary: 'Get awards and achievements for current student' })
+  async getAwards(@CurrentUser() user: AuthenticatedUser) {
+    const student = await this.service.requireStudentProfile(user);
+    return this.service.getAwardsForStudent(student.id);
+  }
 }

@@ -23,6 +23,11 @@ class SupervisorHomeScreen extends ConsumerWidget {
         title: const Text('بوابة المشرف التعليمي'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.menu_book_rounded),
+            tooltip: 'الرف العام',
+            onPressed: () => context.push('/shelf'),
+          ),
+          IconButton(
             icon: Badge(
               isLabelVisible: unreadChat > 0,
               label: Text('$unreadChat'),

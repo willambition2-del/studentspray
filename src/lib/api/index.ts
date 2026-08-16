@@ -25,4 +25,8 @@ export * from './student-portal';
 export * from './parent-portal';
 export * from './notifications';
 export * from './chat';
+export * from './activities';
+export * from './competitions';
+export * from './awards';
+export * from './shelf';
 

@@ -50,38 +50,42 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {}
 
   afterInit(server: Server) {
-    server.use(async (socket: AuthenticatedSocket, next) => {
-      try {
-        const authObj = socket.handshake.auth as Record<string, unknown> | undefined;
-        const headersObj = socket.handshake.headers as Record<string, unknown> | undefined;
-        const queryObj = socket.handshake.query as Record<string, unknown> | undefined;
+    server.use((socket: AuthenticatedSocket, next: (err?: Error) => void) => {
+      void (async () => {
+        try {
+          const authObj = socket.handshake.auth as Record<string, unknown> | undefined;
+          const headersObj = socket.handshake.headers as Record<string, unknown> | undefined;
+          const queryObj = socket.handshake.query as Record<string, unknown> | undefined;
 
-        let token: unknown =
-          authObj?.token ??
-          headersObj?.authorization ??
-          queryObj?.token;
+          let token: unknown =
+            authObj?.token ??
+            headersObj?.authorization ??
+            queryObj?.token;
 
-        if (!token && typeof socket.handshake.auth === 'string') {
-          token = socket.handshake.auth;
+          if (!token && typeof socket.handshake.auth === 'string') {
+            token = socket.handshake.auth;
+          }
+
+          if (typeof token === 'string' && token.startsWith('Bearer ')) {
+            token = token.slice(7).trim();
+          }
+
+          if (!token || typeof token !== 'string') {
+            return next(new Error('Missing authentication token'));
+          }
+
+          const payload = await this.tokens.verifyAccessToken(token);
+          const user = await this.auth.validateAccessSession(payload.sub, payload.sid);
+          if (!user) {
+            return next(new Error('User not found or deactivated'));
+          }
+
+          socket.data.user = user;
+          next();
+        } catch {
+          next(new Error('Unauthorized socket connection'));
         }
-
-        if (typeof token === 'string' && token.startsWith('Bearer ')) {
-          token = token.slice(7).trim();
-        }
-
-        if (!token || typeof token !== 'string') {
-          return next(new Error('Authentication token missing'));
-        }
-
-        const payload = await this.tokens.verifyAccessToken(token);
-        const user = await this.auth.validateAccessSession(payload.sub, payload.sid);
-        socket.data.user = user;
-        next();
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`[Socket.IO] Handshake auth failed: ${errMsg}`);
-        next(new Error('Authentication failed'));
-      }
+      })();
     });
     this.logger.log('[Socket.IO] /chat namespace initialized with handshake auth middleware');
   }
