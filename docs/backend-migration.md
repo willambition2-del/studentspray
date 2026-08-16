@@ -1,8 +1,11 @@
 # Backend migration plan
 
-## Current state — Phase 5 Complete (Educational Operations Engine)
+## Current state — Phase 6 Complete (Flutter Foundation + Teacher Mobile App)
 
-The root application is a React 19 + Vite dashboard connected to the NestJS production API in `backend/`. Educational operations and core admin management modules are migrated from mock storage/legacy Express endpoints to the real NestJS API backed by PostgreSQL and Redis.
+The platform consists of:
+1. A production-ready NestJS API backend (`backend/`) backed by PostgreSQL & Redis.
+2. A React 19 Admin Web Dashboard (Vite) for General Managers and Executive Managers.
+3. A unified Flutter Mobile App (`mobile/`) with Arabic RTL support, Riverpod state management, Drift offline queue, GoRouter role-based routing, and a complete **Teacher Mobile Experience** (`TEACHER`).
 
 ```text
 React 19 Admin Web Dashboard (Vite)
