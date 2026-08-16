@@ -24,6 +24,7 @@ describe('Exams, Grades & Evaluations Engine (e2e)', () => {
   let gmToken: string;
   let teacherToken: string;
   let studentAToken: string;
+  let studentBToken: string;
   let parentToken: string;
 
   let halaqaAId: string;

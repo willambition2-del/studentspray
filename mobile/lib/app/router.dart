@@ -28,6 +28,13 @@ import '../features/student/screens/student_recitation_screen.dart';
 import '../features/student/screens/student_exams_screen.dart';
 import '../features/student/screens/student_evaluations_screen.dart';
 import '../features/student/screens/student_progress_screen.dart';
+import '../features/parent/screens/parent_home_screen.dart';
+import '../features/parent/screens/parent_child_plan_screen.dart';
+import '../features/parent/screens/parent_child_attendance_screen.dart';
+import '../features/parent/screens/parent_child_recitation_screen.dart';
+import '../features/parent/screens/parent_child_exams_screen.dart';
+import '../features/parent/screens/parent_child_evaluations_screen.dart';
+import '../features/parent/screens/parent_child_progress_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -56,6 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             return '/supervisor/home';
           } else if (user != null && user.isStudent) {
             return '/student/home';
+          } else if (user != null && user.isParent) {
+            return '/parent/home';
           } else {
             return '/unsupported-role';
           }
@@ -240,6 +249,58 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/student/progress',
         builder: (context, state) => const StudentPortalProgressScreen(),
+      ),
+
+      // Parent Routes
+      GoRoute(
+        path: '/parent',
+        redirect: (_, __) => '/parent/home',
+      ),
+      GoRoute(
+        path: '/parent/home',
+        builder: (context, state) => const ParentHomeScreen(),
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/plan',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildPlanScreen(studentId: studentId);
+        },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/attendance',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildAttendanceScreen(studentId: studentId);
+        },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/recitation',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildRecitationScreen(studentId: studentId);
+        },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/exams',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildExamsScreen(studentId: studentId);
+        },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/evaluations',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildEvaluationsScreen(studentId: studentId);
+        },
+      ),
+      GoRoute(
+        path: '/parent/children/:studentId/progress',
+        builder: (context, state) {
+          final studentId = state.pathParameters['studentId'] ?? '';
+          return ParentChildProgressScreen(studentId: studentId);
+        },
       ),
     ],
   );
