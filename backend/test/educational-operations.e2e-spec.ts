@@ -381,12 +381,14 @@ describe('Educational Operations APIs (e2e)', () => {
   });
 
   describe('Attendance Sessions & IDOR Security', () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+
     it('denies Teacher 2 recording attendance for Halaqa 1 (IDOR protection)', async () => {
       await request(app.getHttpServer())
         .post(`/api/v1/halaqas/${halaqaId}/attendance/sessions`)
         .set(bearer(otherTeacherToken))
         .send({
-          sessionDate: '2026-08-16',
+          sessionDate: todayStr,
           records: [{ studentId: studentProfileId, status: 'PRESENT' }],
         })
         .expect(HttpStatus.FORBIDDEN);
@@ -398,7 +400,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .post(`/api/v1/halaqas/${halaqaId}/attendance/sessions`)
         .set(bearer(teacherToken))
         .send({
-          sessionDate: '2026-08-16',
+          sessionDate: todayStr,
           records: [{ studentId: fakeStudentId, status: 'PRESENT' }],
         })
         .expect(HttpStatus.BAD_REQUEST);
@@ -409,7 +411,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .post(`/api/v1/halaqas/${halaqaId}/attendance/sessions`)
         .set(bearer(teacherToken))
         .send({
-          sessionDate: '2026-08-16',
+          sessionDate: todayStr,
           notes: 'حضور منتظم وتفاعل ممتاز',
           records: [{ studentId: studentProfileId, status: 'PRESENT' }],
         })
@@ -430,6 +432,7 @@ describe('Educational Operations APIs (e2e)', () => {
   });
 
   describe('Memorization & Revision Operations', () => {
+    const todayStr = new Date().toISOString().split('T')[0];
     const mutationId = `11111111-2222-4333-8444-${Date.now().toString().slice(-12).padStart(12, '0')}`;
 
     it('denies Teacher 2 recording memorization for Student 1 in Halaqa 1', async () => {
@@ -439,7 +442,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .send({
           studentId: studentProfileId,
           halaqaId,
-          date: '2026-08-16',
+          date: todayStr,
           surahNumber: 78,
           fromAyah: 1,
           toAyah: 10,
@@ -454,7 +457,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .send({
           studentId: studentProfileId,
           halaqaId,
-          date: '2026-08-16',
+          date: todayStr,
           surahNumber: 78,
           fromAyah: 1,
           toAyah: 10,
@@ -475,7 +478,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .send({
           studentId: studentProfileId,
           halaqaId,
-          date: '2026-08-16',
+          date: todayStr,
           surahNumber: 78,
           fromAyah: 1,
           toAyah: 10,
@@ -493,7 +496,7 @@ describe('Educational Operations APIs (e2e)', () => {
         .send({
           studentId: studentProfileId,
           halaqaId,
-          date: '2026-08-16',
+          date: todayStr,
           surahNumber: 1,
           fromAyah: 1,
           toAyah: 7,

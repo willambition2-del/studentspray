@@ -17,7 +17,11 @@
     "bootstrap:general-manager": "tsc -p tsconfig.json && node dist/scripts/bootstrap-general-manager.js",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand --testPathPatterns=\\.spec\\.ts$ --testPathIgnorePatterns=\\.e2e-spec\\.ts$",
-    "test:e2e": "jest --runInBand --testPathPatterns=\\.e2e-spec\\.ts$"
+    "test:e2e": "jest --runInBand --testPathPatterns=\\.e2e-spec\\.ts$",
+    "demo:seed": "tsx scripts/seed-full-demo-forum.ts",
+    "demo:verify": "tsx scripts/verify-full-demo-forum.ts",
+    "demo:remove": "tsx scripts/remove-full-demo-forum.ts",
+    "demo:remove:dry": "tsx scripts/remove-full-demo-forum.ts --dry-run"
   },
   "engines": {
     "node": ">=20.19"
