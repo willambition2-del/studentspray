@@ -3,7 +3,7 @@ export const API_BASE_URL =
   'http://localhost:4000/api/v1';
 
 export const FORUM_SLUG =
-  (import.meta.env.VITE_FORUM_SLUG as string | undefined) ?? 'demo-quran-forum';
+  (import.meta.env.VITE_FORUM_SLUG as string | undefined) ?? 'full-demo-quran-forum';
 
 export class ApiError extends Error {
   constructor(
