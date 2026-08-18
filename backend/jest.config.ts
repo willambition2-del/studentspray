@@ -5,6 +5,7 @@ const config: Config = {
   rootDir: '.',
   testRegex: '.*\\.(spec|e2e-spec)\\.ts$',
   transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }] },
+  setupFiles: ['<rootDir>/test/test-env.ts'],
   collectCoverageFrom: ['src/**/*.ts', '!src/generated/**', '!src/main.ts'],
   testEnvironment: 'node',
   clearMocks: true,

@@ -1,0 +1,13 @@
+process.env.NODE_ENV ??= 'test';
+process.env.PORT ??= '4000';
+process.env.HOST ??= '127.0.0.1';
+process.env.DATABASE_URL ??= 'postgresql://quran_forum:quran_forum_dev@127.0.0.1:55432/quran_forum?schema=public';
+process.env.REDIS_HOST ??= '127.0.0.1';
+process.env.REDIS_PORT ??= '56379';
+process.env.REDIS_DB ??= '0';
+process.env.REDIS_ALLOW_MEMORY_FALLBACK ??= 'true';
+process.env.CORS_ORIGINS ??= 'http://localhost:5173,http://localhost:3000';
+process.env.JWT_ACCESS_SECRET ??= 'unit-test-access-secret-at-least-thirty-two-characters';
+process.env.JWT_ISSUER ??= 'quran-forum-api-test';
+process.env.JWT_AUDIENCE ??= 'quran-forum-test-clients';
+process.env.REFRESH_TOKEN_HASH_SECRET ??= 'unit-test-refresh-secret-at-least-thirty-two-characters';
