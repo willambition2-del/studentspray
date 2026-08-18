@@ -15,6 +15,7 @@ import {
   Prisma,
 } from '../generated/prisma/client';
 import { SendMessageDto } from './dto/chat.dto';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class ChatService {
@@ -24,6 +25,16 @@ export class ChatService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
+
+  private async upsertConversationMember(conversationId: string, userId: string, role: string) {
+    const id = randomUUID();
+    await this.prisma.$executeRaw`
+      INSERT INTO "ConversationMember" ("id", "conversationId", "userId", "role", "isActive", "joinedAt", "createdAt", "updatedAt")
+      VALUES (${id}::uuid, ${conversationId}::uuid, ${userId}::uuid, ${role}, true, now(), now(), now())
+      ON CONFLICT ("conversationId", "userId")
+      DO UPDATE SET "role" = EXCLUDED."role", "isActive" = true, "leftAt" = null, "updatedAt" = now()
+    `;
+  }
 
   // 1. Ensure / Synchronize conversations based on business roles
   async syncUserConversations(user: AuthenticatedUser) {
@@ -46,17 +57,7 @@ export class ChatService {
           },
         });
       }
-      await this.prisma.conversationMember.upsert({
-        where: {
-          conversationId_userId: { conversationId: staffConv.id, userId: user.id },
-        },
-        update: { isActive: true },
-        create: {
-          conversationId: staffConv.id,
-          userId: user.id,
-          role: roles[0] || 'STAFF',
-        },
-      });
+      await this.upsertConversationMember(staffConv.id, user.id, roles[0] || 'STAFF');
     }
 
     // B. Teacher Halaqa Groups
@@ -89,17 +90,7 @@ export class ChatService {
               },
             });
           }
-          await this.prisma.conversationMember.upsert({
-            where: {
-              conversationId_userId: { conversationId: halaqaConv.id, userId: user.id },
-            },
-            update: { isActive: true },
-            create: {
-              conversationId: halaqaConv.id,
-              userId: user.id,
-              role: 'TEACHER',
-            },
-          });
+          await this.upsertConversationMember(halaqaConv.id, user.id, 'TEACHER');
         }
       }
     }
@@ -134,17 +125,7 @@ export class ChatService {
               },
             });
           }
-          await this.prisma.conversationMember.upsert({
-            where: {
-              conversationId_userId: { conversationId: halaqaConv.id, userId: user.id },
-            },
-            update: { isActive: true },
-            create: {
-              conversationId: halaqaConv.id,
-              userId: user.id,
-              role: 'STUDENT',
-            },
-          });
+          await this.upsertConversationMember(halaqaConv.id, user.id, 'STUDENT');
         }
       }
     }
@@ -204,36 +185,13 @@ export class ChatService {
           }
 
           // Add parent
-          await this.prisma.conversationMember.upsert({
-            where: {
-              conversationId_userId: { conversationId: parentConv.id, userId: user.id },
-            },
-            update: { isActive: true },
-            create: {
-              conversationId: parentConv.id,
-              userId: user.id,
-              role: 'PARENT',
-            },
-          });
+          await this.upsertConversationMember(parentConv.id, user.id, 'PARENT');
 
           // Add current halaqa teachers to child's channel
           for (const mem of student.halaqaMemberships) {
             for (const ht of mem.halaqa.teachers) {
               if (ht.teacher?.user?.id) {
-                await this.prisma.conversationMember.upsert({
-                  where: {
-                    conversationId_userId: {
-                      conversationId: parentConv.id,
-                      userId: ht.teacher.user.id,
-                    },
-                  },
-                  update: { isActive: true },
-                  create: {
-                    conversationId: parentConv.id,
-                    userId: ht.teacher.user.id,
-                    role: 'TEACHER',
-                  },
-                });
+                await this.upsertConversationMember(parentConv.id, ht.teacher.user.id, 'TEACHER');
               }
             }
           }
