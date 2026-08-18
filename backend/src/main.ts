@@ -47,8 +47,9 @@ async function bootstrap(): Promise<void> {
   if (config.get<boolean>('TRUST_PROXY', false)) app.set('trust proxy', 1);
 
   const port = config.getOrThrow<number>('PORT');
-  await app.listen(port, '0.0.0.0');
-  logger.log(`Quran Forum API listening on port ${port}`);
+  const host = config.getOrThrow<string>('HOST');
+  await app.listen(port, host);
+  logger.log(`Quran Forum API listening on ${host}:${port}`);
 }
 
 void bootstrap();
