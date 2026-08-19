@@ -44,12 +44,8 @@ class ParentHomeScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'تحديث البيانات',
             onPressed: () {
-              ref.invalidate(parentChildrenProvider);
-              if (activeChildId != null) {
-                ref.invalidate(childDashboardProvider(activeChildId));
-              }
-              ref.invalidate(unreadNotificationsCountProvider);
-              ref.invalidate(chatTotalUnreadCountProvider);
+              ref.read(sessionCacheServiceProvider).clearParentHome();
+              ref.invalidate(parentMobileHomeProvider);
             },
           ),
           IconButton(
@@ -81,6 +77,7 @@ class ParentHomeScreen extends ConsumerWidget {
         ],
       ),
       body: childrenAsync.when(
+        skipLoadingOnReload: true,
         data: (children) {
           if (children.isEmpty) {
             return const EmptyStateView(
@@ -101,8 +98,8 @@ class ParentHomeScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(parentChildrenProvider);
-              ref.invalidate(childDashboardProvider(currentChildId));
+              ref.read(sessionCacheServiceProvider).clearParentHome();
+              ref.invalidate(parentMobileHomeProvider);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -223,6 +220,7 @@ class ParentHomeScreen extends ConsumerWidget {
 
                 // 3. Active Child Dashboard Content
                 childDashboardAsync.when(
+                  skipLoadingOnReload: true,
                   data: (dash) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -374,7 +372,12 @@ class ParentHomeScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  loading: () => const LoadingView(message: 'جاري تحميل بيانات الابن...'),
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                   error: (err, stack) => ErrorView(
                     message: 'تعذر تحميل بيانات الابن',
                     onRetry: () => ref.refresh(childDashboardProvider(currentChildId)),
@@ -384,7 +387,12 @@ class ParentHomeScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const LoadingView(message: 'جاري تحميل قائمة الأبناء...'),
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          ),
+        ),
         error: (err, stack) => ErrorView(
           message: 'تعذر تحميل قائمة الأبناء',
           onRetry: () => ref.refresh(parentChildrenProvider),

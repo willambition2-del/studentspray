@@ -171,4 +171,28 @@ export class ParentPortalService {
     await this.verifyChildAccess(user, studentId);
     return this.studentPortal.getAwardsForStudent(studentId);
   }
+
+  async getMobileHome(user: AuthenticatedUser) {
+    const parent = await this.requireParentProfile(user);
+    const children = await this.getChildren(user);
+
+    let activeChildId: string | null = null;
+    let activeChildDashboard: any = null;
+
+    if (children.length > 0) {
+      activeChildId = children[0].id;
+      activeChildDashboard = await this.getChildDashboard(user, activeChildId);
+    }
+
+    return {
+      parent: {
+        id: parent.id,
+        name: parent.user?.displayName || parent.user?.username || '',
+        phone: parent.user?.phone || '',
+      },
+      children,
+      activeChildId,
+      activeChildDashboard,
+    };
+  }
 }

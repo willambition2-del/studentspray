@@ -8,7 +8,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(apiClient: apiClient);
 });
 
-final unreadNotificationsCountProvider = FutureProvider.autoDispose<int>((ref) async {
+final unreadNotificationsCountProvider = FutureProvider<int>((ref) async {
   final service = ref.watch(notificationServiceProvider);
   return service.getUnreadCount();
 });

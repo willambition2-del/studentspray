@@ -433,21 +433,27 @@ export class ChatService {
   async getTotalUnreadCount(user: AuthenticatedUser) {
     const memberships = await this.prisma.conversationMember.findMany({
       where: { userId: user.id, isActive: true },
+      select: { conversationId: true, lastReadAt: true },
     });
 
-    let totalUnread = 0;
-    for (const m of memberships) {
-      const count = await this.prisma.chatMessage.count({
-        where: {
-          conversationId: m.conversationId,
-          deletedAt: null,
-          senderId: { not: user.id },
-          ...(m.lastReadAt ? { createdAt: { gt: m.lastReadAt } } : {}),
-        },
-      });
-      totalUnread += count;
+    if (memberships.length === 0) {
+      return { unreadCount: 0 };
     }
 
+    const counts = await Promise.all(
+      memberships.map((m) =>
+        this.prisma.chatMessage.count({
+          where: {
+            conversationId: m.conversationId,
+            deletedAt: null,
+            senderId: { not: user.id },
+            ...(m.lastReadAt ? { createdAt: { gt: m.lastReadAt } } : {}),
+          },
+        }),
+      ),
+    );
+
+    const totalUnread = counts.reduce((acc, c) => acc + c, 0);
     return { unreadCount: totalUnread };
   }
 

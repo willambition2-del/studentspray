@@ -9,46 +9,46 @@ final activitiesShelfServiceProvider = Provider<ActivitiesShelfService>((ref) {
 });
 
 // Student Providers
-final studentActivitiesProvider = FutureProvider<List<ActivityItem>>((ref) async {
+final studentActivitiesProvider = FutureProvider.autoDispose<List<ActivityItem>>((ref) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getStudentActivities();
 });
 
-final studentCompetitionsProvider = FutureProvider<List<CompetitionItem>>((ref) async {
+final studentCompetitionsProvider = FutureProvider.autoDispose<List<CompetitionItem>>((ref) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getStudentCompetitions();
 });
 
-final studentAwardsProvider = FutureProvider<List<AwardItem>>((ref) async {
+final studentAwardsProvider = FutureProvider.autoDispose<List<AwardItem>>((ref) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getStudentAwards();
 });
 
 // Parent Providers
-final parentChildActivitiesProvider = FutureProvider.family<List<ActivityItem>, String>((ref, studentId) async {
+final parentChildActivitiesProvider = FutureProvider.family.autoDispose<List<ActivityItem>, String>((ref, studentId) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getChildActivities(studentId);
 });
 
-final parentChildCompetitionsProvider = FutureProvider.family<List<CompetitionItem>, String>((ref, studentId) async {
+final parentChildCompetitionsProvider = FutureProvider.family.autoDispose<List<CompetitionItem>, String>((ref, studentId) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getChildCompetitions(studentId);
 });
 
-final parentChildAwardsProvider = FutureProvider.family<List<AwardItem>, String>((ref, studentId) async {
+final parentChildAwardsProvider = FutureProvider.family.autoDispose<List<AwardItem>, String>((ref, studentId) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getChildAwards(studentId);
 });
 
 // General Shelf Providers
-final shelfSectionsProvider = FutureProvider<List<ShelfSectionItem>>((ref) async {
+final shelfSectionsProvider = FutureProvider.autoDispose<List<ShelfSectionItem>>((ref) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   return service.getShelfSections();
 });
 
-final selectedShelfSectionIdProvider = StateProvider<String?>((ref) => null);
+final selectedShelfSectionIdProvider = StateProvider.autoDispose<String?>((ref) => null);
 
-final shelfItemsProvider = FutureProvider<List<ShelfPostItem>>((ref) async {
+final shelfItemsProvider = FutureProvider.autoDispose<List<ShelfPostItem>>((ref) async {
   final service = ref.watch(activitiesShelfServiceProvider);
   final sectionId = ref.watch(selectedShelfSectionIdProvider);
   return service.getShelfItems(sectionId: sectionId);

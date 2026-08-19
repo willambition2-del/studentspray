@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/cache/session_cache_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/network/api_client.dart';
@@ -7,6 +8,10 @@ import '../../../core/sync/sync_service.dart';
 import '../models/user_profile.dart';
 
 // Providers for core singletons
+final sessionCacheServiceProvider = Provider<SessionCacheService>((ref) {
+  return SessionCacheService();
+});
+
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
   return TokenStorage();
 });
@@ -63,18 +68,27 @@ class AuthState {
   }
 }
 
+typedef SessionResetCallback = void Function();
+
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiClient apiClient;
   final TokenStorage tokenStorage;
   final SyncService syncService;
+  final SessionCacheService sessionCacheService;
+  final List<SessionResetCallback> _resetCallbacks = [];
 
   AuthNotifier({
     required this.apiClient,
     required this.tokenStorage,
     required this.syncService,
+    required this.sessionCacheService,
   }) : super(const AuthState()) {
     apiClient.onSessionExpired = handleSessionExpired;
     bootstrapSession();
+  }
+
+  void addResetCallback(SessionResetCallback callback) {
+    _resetCallbacks.add(callback);
   }
 
   Future<void> bootstrapSession() async {
@@ -98,6 +112,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (accessToken == null) {
         await tokenStorage.clearAll();
+        sessionCacheService.clearAll();
         state = const AuthState(status: AuthStatus.unauthenticated);
         return;
       }
@@ -120,6 +135,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
     } catch (_) {
       await tokenStorage.clearAll();
+      sessionCacheService.clearAll();
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
   }
@@ -147,6 +163,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (accessToken == null || refreshToken == null) {
         throw const AppException(message: 'فشل في استلام بيانات الاعتماد');
       }
+
+      // Reset cache for fresh session
+      sessionCacheService.clearAll();
 
       tokenStorage.setAccessToken(accessToken);
       await tokenStorage.saveRefreshToken(refreshToken);
@@ -193,6 +212,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     syncService.setCurrentUserId(null);
     await tokenStorage.clearAll();
+    sessionCacheService.clearAll();
+    _triggerResetCallbacks();
 
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
@@ -200,7 +221,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void handleSessionExpired() {
     syncService.setCurrentUserId(null);
     tokenStorage.clearAll();
+    sessionCacheService.clearAll();
+    _triggerResetCallbacks();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void _triggerResetCallbacks() {
+    for (final cb in _resetCallbacks) {
+      try {
+        cb();
+      } catch (_) {}
+    }
   }
 }
 
@@ -208,10 +239,12 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final tokenStorage = ref.watch(tokenStorageProvider);
   final syncService = ref.watch(syncServiceProvider);
+  final sessionCacheService = ref.watch(sessionCacheServiceProvider);
 
   return AuthNotifier(
     apiClient: apiClient,
     tokenStorage: tokenStorage,
     syncService: syncService,
+    sessionCacheService: sessionCacheService,
   );
 });

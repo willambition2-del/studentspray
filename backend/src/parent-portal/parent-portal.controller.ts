@@ -11,6 +11,13 @@ import { ParentPortalService } from './parent-portal.service';
 export class ParentPortalController {
   constructor(private readonly service: ParentPortalService) {}
 
+  @Get('mobile-home')
+  @RequirePermissions('students.read')
+  @ApiOperation({ summary: 'Get unified mobile home payload for parent' })
+  getMobileHome(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getMobileHome(user);
+  }
+
   @Get('children')
   @RequirePermissions('students.read')
   @ApiOperation({ summary: 'List linked children for authenticated parent' })

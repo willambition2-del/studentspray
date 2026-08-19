@@ -43,9 +43,8 @@ class StudentHomeScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'تحديث البيانات',
             onPressed: () {
+              ref.read(sessionCacheServiceProvider).clearStudentDashboard();
               ref.invalidate(studentDashboardProvider);
-              ref.invalidate(unreadNotificationsCountProvider);
-              ref.invalidate(chatTotalUnreadCountProvider);
             },
           ),
           IconButton(
@@ -77,8 +76,12 @@ class StudentHomeScreen extends ConsumerWidget {
         ],
       ),
       body: dashboardAsync.when(
+        skipLoadingOnReload: true,
         data: (data) => RefreshIndicator(
-          onRefresh: () async => ref.refresh(studentDashboardProvider.future),
+          onRefresh: () async {
+            ref.read(sessionCacheServiceProvider).clearStudentDashboard();
+            ref.invalidate(studentDashboardProvider);
+          },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -351,7 +354,12 @@ class StudentHomeScreen extends ConsumerWidget {
             ],
           ),
         ),
-        loading: () => const LoadingView(message: 'جاري تحميل لوحة الطالب...'),
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          ),
+        ),
         error: (err, stack) => ErrorView(
           message: 'تعذر تحميل بيانات لوحة الطالب',
           onRetry: () => ref.refresh(studentDashboardProvider),

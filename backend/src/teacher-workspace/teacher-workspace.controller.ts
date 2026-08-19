@@ -11,6 +11,12 @@ import { TeacherWorkspaceService } from './teacher-workspace.service';
 export class TeacherWorkspaceController {
   constructor(private readonly service: TeacherWorkspaceService) {}
 
+  @Get('mobile-home')
+  @RequirePermissions('halaqas.read')
+  getMobileHomeSummary(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getMobileHomeSummary(user);
+  }
+
   @Get('halaqas')
   @RequirePermissions('halaqas.read')
   getMyHalaqas(@CurrentUser() user: AuthenticatedUser) {

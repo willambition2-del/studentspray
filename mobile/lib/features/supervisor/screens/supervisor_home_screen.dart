@@ -53,9 +53,8 @@ class SupervisorHomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
+              ref.read(sessionCacheServiceProvider).clearSupervisorDashboard();
               ref.invalidate(supervisorDashboardProvider);
-              ref.invalidate(unreadNotificationsCountProvider);
-              ref.invalidate(chatTotalUnreadCountProvider);
             },
           ),
           IconButton(
@@ -68,6 +67,7 @@ class SupervisorHomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.read(sessionCacheServiceProvider).clearSupervisorDashboard();
           ref.invalidate(supervisorDashboardProvider);
         },
         child: ListView(
@@ -160,6 +160,7 @@ class SupervisorHomeScreen extends ConsumerWidget {
 
             // Dashboard Metrics
             dashboardAsync.when(
+              skipLoadingOnReload: true,
               data: (data) {
                 final metrics = SupervisorDashboardMetrics.fromJson(
                     data['metrics'] as Map<String, dynamic>? ?? {});
@@ -265,16 +266,30 @@ class SupervisorHomeScreen extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
               ),
               error: (err, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('تعذر تحميل لوحة المعلومات: $err'),
+                  child: Column(
+                    children: [
+                      Text('تعذر تحميل لوحة المعلومات: $err'),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('إعادة المحاولة'),
+                        onPressed: () => ref.invalidate(supervisorDashboardProvider),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

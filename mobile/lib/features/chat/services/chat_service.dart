@@ -38,7 +38,7 @@ class ChatService {
     final token = tokenStorage.getAccessToken();
     if (token == null) return;
 
-    if (_socket != null && _socket!.connected) return;
+    disconnect(); // Clean up any previous socket instance
 
     try {
       final socketUrl = '$_socketBaseUrl/chat';
@@ -97,9 +97,13 @@ class ChatService {
   }
 
   void disconnect() {
-    _socket?.disconnect();
-    _socket?.dispose();
-    _socket = null;
+    if (_socket != null) {
+      _socket!.off('chat:message');
+      _socket!.off('chat:read');
+      _socket!.disconnect();
+      _socket!.dispose();
+      _socket = null;
+    }
     _isConnected = false;
     _connectionStateController.add(false);
   }

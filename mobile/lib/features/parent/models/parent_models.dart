@@ -1,3 +1,5 @@
+import '../../student/models/student_models.dart';
+
 class ParentChildSummary {
   final String id;
   final String name;
@@ -44,6 +46,36 @@ class ParentChildSummary {
       lastExamScore: (json['lastExamScore'] as num?)?.toDouble(),
       lastExamTitle: json['lastExamTitle'] as String?,
       latestRating: json['latestRating'] as String?,
+    );
+  }
+}
+
+class ParentMobileHomeSnapshot {
+  final Map<String, dynamic> parent;
+  final List<ParentChildSummary> children;
+  final String? activeChildId;
+  final StudentDashboardModel? activeChildDashboard;
+
+  const ParentMobileHomeSnapshot({
+    required this.parent,
+    required this.children,
+    this.activeChildId,
+    this.activeChildDashboard,
+  });
+
+  factory ParentMobileHomeSnapshot.fromJson(Map<String, dynamic> json) {
+    final list = json['children'] as List? ?? [];
+    final children = list.map((c) => ParentChildSummary.fromJson(c as Map<String, dynamic>)).toList();
+    StudentDashboardModel? activeDash;
+    if (json['activeChildDashboard'] is Map<String, dynamic>) {
+      activeDash = StudentDashboardModel.fromJson(json['activeChildDashboard'] as Map<String, dynamic>);
+    }
+
+    return ParentMobileHomeSnapshot(
+      parent: json['parent'] as Map<String, dynamic>? ?? {},
+      children: children,
+      activeChildId: json['activeChildId'] as String?,
+      activeChildDashboard: activeDash,
     );
   }
 }

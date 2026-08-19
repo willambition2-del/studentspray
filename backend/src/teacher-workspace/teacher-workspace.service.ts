@@ -158,4 +158,139 @@ export class TeacherWorkspaceService {
       students: studentsWorkspace,
     };
   }
+
+  async getMobileHomeSummary(user: AuthenticatedUser) {
+    const todayDate = new Date();
+    todayDate.setUTCHours(0, 0, 0, 0);
+
+    const teacherProfile = await this.prisma.teacherProfile.findUnique({
+      where: { userId: user.id },
+      include: {
+        user: { select: { id: true, displayName: true, username: true, phone: true } },
+      },
+    });
+
+    let halaqas: any[] = [];
+    if (!teacherProfile) {
+      halaqas = await this.prisma.halaqa.findMany({
+        where: { forumId: user.forumId, isActive: true, deletedAt: null },
+        include: {
+          branch: { select: { id: true, name: true } },
+          _count: { select: { members: { where: { isActive: true } } } },
+        },
+      });
+    } else {
+      const assignments = await this.prisma.halaqaTeacher.findMany({
+        where: {
+          teacherId: teacherProfile.id,
+          isActive: true,
+          endedAt: null,
+          halaqa: { forumId: user.forumId, isActive: true, deletedAt: null },
+        },
+        include: {
+          halaqa: {
+            include: {
+              branch: { select: { id: true, name: true } },
+              _count: { select: { members: { where: { isActive: true } } } },
+            },
+          },
+        },
+      });
+      halaqas = assignments.map((a) => a.halaqa);
+    }
+
+    const halaqaIds = halaqas.map((h) => h.id);
+    const totalStudents = halaqas.reduce((acc, h) => acc + (h._count?.members || 0), 0);
+
+    const [
+      todaySessions,
+      todayMemosCount,
+      todayRevsCount,
+      pendingTasksCount,
+      upcomingExamsCount,
+      evaluationsCount,
+    ] = await Promise.all([
+      this.prisma.attendanceRecord.findMany({
+        where: {
+          session: {
+            halaqaId: { in: halaqaIds },
+            sessionDate: todayDate,
+          },
+        },
+        select: { status: true },
+      }),
+      this.prisma.memorizationRecord.count({
+        where: {
+          halaqaId: { in: halaqaIds },
+          date: todayDate,
+        },
+      }),
+      this.prisma.revisionRecord.count({
+        where: {
+          halaqaId: { in: halaqaIds },
+          date: todayDate,
+        },
+      }),
+      this.prisma.adminTask.count({
+        where: {
+          forumId: user.forumId,
+          assignedToId: user.id,
+          status: { not: 'COMPLETED' },
+        },
+      }),
+      this.prisma.exam.count({
+        where: {
+          forumId: user.forumId,
+          status: 'SCHEDULED',
+          deletedAt: null,
+        },
+      }),
+      this.prisma.studentEvaluation.count({
+        where: {
+          forumId: user.forumId,
+          evaluatorId: user.id,
+        },
+      }),
+    ]);
+
+    let todayPresent = 0;
+    let todayAbsent = 0;
+    for (const rec of todaySessions) {
+      if (rec.status === 'PRESENT') todayPresent++;
+      else if (rec.status === 'ABSENT') todayAbsent++;
+    }
+
+    const totalAttendanceRecorded = todayPresent + todayAbsent;
+    const attendanceRate = totalAttendanceRecorded > 0
+      ? (todayPresent / totalAttendanceRecorded) * 100
+      : (totalStudents > 0 ? 100.0 : 0.0);
+
+    return {
+      teacher: {
+        id: teacherProfile?.id || user.id,
+        displayName: teacherProfile?.user?.displayName || user.username,
+        username: teacherProfile?.user?.username || user.username,
+        phone: teacherProfile?.user?.phone || '',
+      },
+      halaqasSummary: halaqas.map((h) => ({
+        id: h.id,
+        name: h.name,
+        code: h.code,
+        branchName: h.branch?.name || '',
+        studentsCount: h._count?.members || 0,
+      })),
+      totalHalaqas: halaqas.length,
+      totalStudents,
+      today: {
+        present: todayPresent,
+        absent: todayAbsent,
+        memorizationCount: todayMemosCount,
+        revisionCount: todayRevsCount,
+        attendanceRate,
+      },
+      pendingTasksCount,
+      upcomingExamsCount,
+      evaluationsCount,
+    };
+  }
 }

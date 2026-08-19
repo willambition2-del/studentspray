@@ -4,29 +4,50 @@ import '../../student/models/student_models.dart';
 import '../models/parent_models.dart';
 
 // Currently Active Selected Child ID
-final activeChildIdProvider = StateProvider<String?>((ref) => null);
+final activeChildIdProvider = StateProvider.autoDispose<String?>((ref) => null);
 
-// List of all children linked to this guardian
-final parentChildrenProvider = FutureProvider.autoDispose<List<ParentChildSummary>>((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
-  final response = await apiClient.get('/parent/me/children');
-  final list = response.data as List;
-  final children = list.map((c) => ParentChildSummary.fromJson(c as Map<String, dynamic>)).toList();
+// Unified Mobile Home for Parent (1 request per session)
+final parentMobileHomeProvider = FutureProvider<ParentMobileHomeSnapshot>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
 
-  // If no active child selected yet, select the first one automatically
-  if (children.isNotEmpty && ref.read(activeChildIdProvider) == null) {
-    ref.read(activeChildIdProvider.notifier).state = children.first.id;
+  if (sessionCache.parentHomeSnapshot != null) {
+    return sessionCache.parentHomeSnapshot!;
   }
 
-  return children;
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/parent/me/mobile-home');
+  final snapshot = ParentMobileHomeSnapshot.fromJson(response.data as Map<String, dynamic>);
+  sessionCache.setParentHome(snapshot);
+
+  if (snapshot.children.isNotEmpty && ref.read(activeChildIdProvider) == null) {
+    ref.read(activeChildIdProvider.notifier).state = snapshot.activeChildId ?? snapshot.children.first.id;
+  }
+
+  return snapshot;
 });
 
-// Selected Child Dashboard Provider (Family by child studentId)
+// List of all children linked to this guardian (extracted from snapshot with 0 extra requests)
+final parentChildrenProvider = FutureProvider<List<ParentChildSummary>>((ref) async {
+  final snapshot = await ref.watch(parentMobileHomeProvider.future);
+  return snapshot.children;
+});
+
+// Selected Child Dashboard Provider (Family by child studentId with in-memory caching)
 final childDashboardProvider =
-    FutureProvider.autoDispose.family<StudentDashboardModel, String>((ref, studentId) async {
+    FutureProvider.family<StudentDashboardModel, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+
+  // Check cached child dashboard in session
+  final cached = sessionCache.getCachedChildDashboard(studentId);
+  if (cached != null) {
+    return cached;
+  }
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/dashboard');
-  return StudentDashboardModel.fromJson(response.data as Map<String, dynamic>);
+  final dashboard = StudentDashboardModel.fromJson(response.data as Map<String, dynamic>);
+  sessionCache.setChildDashboard(studentId, dashboard);
+  return dashboard;
 });
 
 // Selected Child Educational Plan Provider

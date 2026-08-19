@@ -3,11 +3,17 @@ import '../../../core/sync/sync_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/supervisor_models.dart';
 
-// Dashboard Provider
-final supervisorDashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+// Dashboard Provider (Session-cached)
+final supervisorDashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  if (sessionCache.supervisorDashboardSnapshot != null) {
+    return sessionCache.supervisorDashboardSnapshot!;
+  }
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/dashboard');
-  return response.data as Map<String, dynamic>;
+  final dashboard = response.data as Map<String, dynamic>;
+  sessionCache.setSupervisorDashboard(dashboard);
+  return dashboard;
 });
 
 // Halaqas Provider

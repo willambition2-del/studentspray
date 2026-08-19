@@ -2,11 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/student_models.dart';
 
-// Dashboard Provider
-final studentDashboardProvider = FutureProvider.autoDispose<StudentDashboardModel>((ref) async {
+// Dashboard Provider (Session-cached)
+final studentDashboardProvider = FutureProvider<StudentDashboardModel>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  if (sessionCache.studentDashboardSnapshot != null) {
+    return sessionCache.studentDashboardSnapshot!;
+  }
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/student/me/dashboard');
-  return StudentDashboardModel.fromJson(response.data as Map<String, dynamic>);
+  final dashboard = StudentDashboardModel.fromJson(response.data as Map<String, dynamic>);
+  sessionCache.setStudentDashboard(dashboard);
+  return dashboard;
 });
 
 // Educational Plan Provider

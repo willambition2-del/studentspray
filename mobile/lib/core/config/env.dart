@@ -6,7 +6,7 @@ class Env {
 
   static const String defaultForumSlug = String.fromEnvironment(
     'DEFAULT_FORUM_SLUG',
-    defaultValue: 'demo-quran-forum',
+    defaultValue: 'full-demo-quran-forum',
   );
 
   static const int connectTimeoutMs = 15000;

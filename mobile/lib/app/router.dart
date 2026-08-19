@@ -11,6 +11,15 @@ import '../features/teacher/screens/memorization_screen.dart';
 import '../features/teacher/screens/revision_screen.dart';
 import '../features/teacher/screens/student_progress_screen.dart';
 import '../features/teacher/screens/teacher_home_screen.dart';
+import '../features/teacher/screens/teacher_students_screen.dart';
+import '../features/teacher/screens/teacher_student_detail_screen.dart';
+import '../features/teacher/screens/teacher_exams_screen.dart';
+import '../features/teacher/screens/teacher_exam_grading_screen.dart';
+import '../features/teacher/screens/teacher_evaluations_screen.dart';
+import '../features/teacher/screens/teacher_plans_screen.dart';
+import '../features/teacher/screens/teacher_reports_screen.dart';
+import '../features/teacher/screens/teacher_activities_awards_screen.dart';
+import '../features/teacher/screens/teacher_profile_screen.dart';
 import '../features/supervisor/screens/supervisor_home_screen.dart';
 import '../features/supervisor/screens/supervisor_halaqas_screen.dart';
 import '../features/supervisor/screens/supervisor_teachers_screen.dart';
@@ -65,18 +74,42 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (status == AuthStatus.authenticated) {
         final user = authState.user;
+        if (user == null) return '/login';
+
+        final String userHome;
+        if (user.isTeacher) {
+          userHome = '/teacher/home';
+        } else if (user.isTechnicalSupervisor) {
+          userHome = '/supervisor/home';
+        } else if (user.isStudent) {
+          userHome = '/student/home';
+        } else if (user.isParent) {
+          userHome = '/parent/home';
+        } else {
+          userHome = '/unsupported-role';
+        }
+
         if (isLogin || isSplash) {
-          if (user != null && user.isTeacher) {
-            return '/teacher/home';
-          } else if (user != null && user.isTechnicalSupervisor) {
-            return '/supervisor/home';
-          } else if (user != null && user.isStudent) {
-            return '/student/home';
-          } else if (user != null && user.isParent) {
-            return '/parent/home';
-          } else {
-            return '/unsupported-role';
-          }
+          return userHome;
+        }
+
+        final loc = state.matchedLocation;
+
+        // Strict Role Routing Isolation Guards:
+        if (loc.startsWith('/teacher') && !user.isTeacher) {
+          return userHome;
+        }
+        if (loc.startsWith('/supervisor') && !user.isTechnicalSupervisor) {
+          return userHome;
+        }
+        if (loc.startsWith('/student') && !user.isStudent) {
+          return userHome;
+        }
+        if (loc.startsWith('/parent') && !user.isParent) {
+          return userHome;
+        }
+        if (loc.startsWith('/admin-hub') && !(user.isTeacher || user.isTechnicalSupervisor)) {
+          return userHome;
         }
       }
 
@@ -159,6 +192,60 @@ final routerProvider = Provider<GoRouter>((ref) {
             studentName: name,
           );
         },
+      ),
+      GoRoute(
+        path: '/teacher/students',
+        builder: (context, state) => const TeacherStudentsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/students/:id/detail',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          final name = state.uri.queryParameters['name'] ?? 'الطالب';
+          return TeacherStudentDetailScreen(
+            studentId: id,
+            studentName: name,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/teacher/exams',
+        builder: (context, state) => const TeacherExamsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/exams/:id/grading',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          final title = state.uri.queryParameters['title'] ?? 'الاختبار';
+          final maxScore = double.tryParse(state.uri.queryParameters['maxScore'] ?? '') ?? 100.0;
+          final passScore = double.tryParse(state.uri.queryParameters['passScore'] ?? '') ?? 60.0;
+          return TeacherExamGradingScreen(
+            examId: id,
+            examTitle: title,
+            maxScore: maxScore,
+            passScore: passScore,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/teacher/evaluations',
+        builder: (context, state) => const TeacherEvaluationsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/plans',
+        builder: (context, state) => const TeacherPlansScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/reports',
+        builder: (context, state) => const TeacherReportsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/activities-awards',
+        builder: (context, state) => const TeacherActivitiesAwardsScreen(),
+      ),
+      GoRoute(
+        path: '/teacher/profile',
+        builder: (context, state) => const TeacherProfileScreen(),
       ),
 
       // Technical Supervisor Routes
