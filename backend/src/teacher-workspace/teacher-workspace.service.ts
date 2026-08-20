@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { AccessScopeService } from '../authorization/access-scope.service';
+import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { EducationalPlanStatus } from '../generated/prisma/client';
 
@@ -13,6 +15,8 @@ export class TeacherWorkspaceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessScope: AccessScopeService,
+    private readonly notifications: NotificationsService,
+    private readonly chat: ChatService,
   ) {}
 
   async getMyHalaqas(user: AuthenticatedUser) {
@@ -209,6 +213,10 @@ export class TeacherWorkspaceService {
       pendingTasksCount,
       upcomingExamsCount,
       evaluationsCount,
+      unreadNotifications,
+      unreadChat,
+      forum,
+      branch,
     ] = await Promise.all([
       this.prisma.attendanceRecord.findMany({
         where: {
@@ -251,6 +259,18 @@ export class TeacherWorkspaceService {
           evaluatorId: user.id,
         },
       }),
+      this.notifications.getUnreadCount(user.id),
+      this.chat.getTotalUnreadCount(user),
+      this.prisma.forum.findUnique({
+        where: { id: user.forumId },
+        select: { id: true, name: true, slug: true },
+      }),
+      user.branchId
+        ? this.prisma.branch.findUnique({
+            where: { id: user.branchId },
+            select: { id: true, name: true, code: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     let todayPresent = 0;
@@ -272,6 +292,8 @@ export class TeacherWorkspaceService {
         username: teacherProfile?.user?.username || user.username,
         phone: teacherProfile?.user?.phone || '',
       },
+      forum,
+      branch,
       halaqasSummary: halaqas.map((h) => ({
         id: h.id,
         name: h.name,
@@ -291,6 +313,8 @@ export class TeacherWorkspaceService {
       pendingTasksCount,
       upcomingExamsCount,
       evaluationsCount,
+      unreadNotificationsCount: unreadNotifications.unreadCount,
+      unreadChatCount: unreadChat.unreadCount,
     };
   }
 }

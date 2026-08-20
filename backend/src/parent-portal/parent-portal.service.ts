@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { AccessScopeService } from '../authorization/access-scope.service';
+import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { StudentPortalService } from '../student-portal/student-portal.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 
@@ -14,6 +16,8 @@ export class ParentPortalService {
     private readonly prisma: PrismaService,
     private readonly accessScope: AccessScopeService,
     private readonly studentPortal: StudentPortalService,
+    private readonly notifications: NotificationsService,
+    private readonly chat: ChatService,
   ) {}
 
   async requireParentProfile(user: AuthenticatedUser) {
@@ -184,6 +188,11 @@ export class ParentPortalService {
       activeChildDashboard = await this.getChildDashboard(user, activeChildId);
     }
 
+    const [unreadNotifications, unreadChat] = await Promise.all([
+      this.notifications.getUnreadCount(user.id),
+      this.chat.getTotalUnreadCount(user),
+    ]);
+
     return {
       parent: {
         id: parent.id,
@@ -193,6 +202,8 @@ export class ParentPortalService {
       children,
       activeChildId,
       activeChildDashboard,
+      unreadNotificationsCount: unreadNotifications.unreadCount,
+      unreadChatCount: unreadChat.unreadCount,
     };
   }
 }

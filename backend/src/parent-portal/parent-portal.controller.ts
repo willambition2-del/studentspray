@@ -2,6 +2,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
+import { RequireRoles } from '../auth/decorators/require-roles.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { ParentPortalService } from './parent-portal.service';
 
@@ -12,6 +13,7 @@ export class ParentPortalController {
   constructor(private readonly service: ParentPortalService) {}
 
   @Get('mobile-home')
+  @RequireRoles('PARENT')
   @RequirePermissions('students.read')
   @ApiOperation({ summary: 'Get unified mobile home payload for parent' })
   getMobileHome(@CurrentUser() user: AuthenticatedUser) {

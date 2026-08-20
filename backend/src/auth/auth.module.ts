@@ -7,6 +7,7 @@ import { AuthAuditService } from './auth-audit.service';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionGuard } from './guards/permission.guard';
+import { RoleGuard } from './guards/role.guard';
 import { WebOriginGuard } from './guards/web-origin.guard';
 import { MobileAuthController } from './mobile-auth.controller';
 import { PasswordService } from './password.service';
@@ -24,6 +25,7 @@ import { WebAuthController } from './web-auth.controller';
     BootstrapGeneralManagerService,
     WebOriginGuard,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RoleGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
   ],
   exports: [AuthService, PasswordService, TokenService, BootstrapGeneralManagerService],
