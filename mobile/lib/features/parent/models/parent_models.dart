@@ -1,3 +1,4 @@
+import '../../../core/utils/api_parsing.dart';
 import '../../student/models/student_models.dart';
 
 class ParentChildSummary {
@@ -33,19 +34,19 @@ class ParentChildSummary {
 
   factory ParentChildSummary.fromJson(Map<String, dynamic> json) {
     return ParentChildSummary(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      studentNumber: json['studentNumber'] as String?,
-      relationship: json['relationship'] as String? ?? 'ولي أمر',
-      isPrimary: json['isPrimary'] as bool? ?? false,
-      halaqaId: json['halaqaId'] as String?,
-      halaqaName: json['halaqaName'] as String? ?? 'غير محدد',
-      teacherName: json['teacherName'] as String? ?? 'غير محدد',
-      teacherPhone: json['teacherPhone'] as String?,
-      attendanceRate: (json['attendanceRate'] as num?)?.toDouble() ?? 100.0,
-      lastExamScore: (json['lastExamScore'] as num?)?.toDouble(),
-      lastExamTitle: json['lastExamTitle'] as String?,
-      latestRating: json['latestRating'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      studentNumber: ApiParsing.parseString(json['studentNumber']),
+      relationship: ApiParsing.parseString(json['relationship'], 'ولي أمر')!,
+      isPrimary: ApiParsing.parseBool(json['isPrimary'], false)!,
+      halaqaId: ApiParsing.parseString(json['halaqaId']),
+      halaqaName: ApiParsing.parseString(json['halaqaName'], 'غير محدد')!,
+      teacherName: ApiParsing.parseString(json['teacherName'], 'غير محدد')!,
+      teacherPhone: ApiParsing.parseString(json['teacherPhone']),
+      attendanceRate: ApiParsing.parseDouble(json['attendanceRate'], 100.0)!,
+      lastExamScore: ApiParsing.parseDouble(json['lastExamScore']),
+      lastExamTitle: ApiParsing.parseString(json['lastExamTitle']),
+      latestRating: ApiParsing.parseString(json['latestRating']),
     );
   }
 }
@@ -64,7 +65,7 @@ class ParentMobileHomeSnapshot {
   });
 
   factory ParentMobileHomeSnapshot.fromJson(Map<String, dynamic> json) {
-    final list = json['children'] as List? ?? [];
+    final list = ApiParsing.extractList(json['children']);
     final children = list.map((c) => ParentChildSummary.fromJson(c as Map<String, dynamic>)).toList();
     StudentDashboardModel? activeDash;
     if (json['activeChildDashboard'] is Map<String, dynamic>) {
@@ -74,7 +75,7 @@ class ParentMobileHomeSnapshot {
     return ParentMobileHomeSnapshot(
       parent: json['parent'] as Map<String, dynamic>? ?? {},
       children: children,
-      activeChildId: json['activeChildId'] as String?,
+      activeChildId: ApiParsing.parseString(json['activeChildId']),
       activeChildDashboard: activeDash,
     );
   }

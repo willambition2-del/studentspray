@@ -6,397 +6,499 @@ import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../chat/providers/chat_provider.dart';
+import '../models/parent_models.dart';
 import '../providers/parent_provider.dart';
 
-class ParentHomeScreen extends ConsumerWidget {
+class ParentHomeScreen extends StatelessWidget {
   const ParentHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('بوابة ولي الأمر — الملتقى القرآني'),
+        actions: const [
+          _ParentChatBadgeAction(),
+          _ParentNotificationBadgeAction(),
+          _ParentRefreshAction(),
+          _ParentLogoutAction(),
+        ],
+      ),
+      body: const _ParentHomeBody(),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ISOLATED APPBAR ACTION CONSUMERS
+// -----------------------------------------------------------------------------
+
+class _ParentChatBadgeAction extends ConsumerWidget {
+  const _ParentChatBadgeAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadChat = ref.watch(chatTotalUnreadCountProvider).valueOrNull ?? 0;
+    return IconButton(
+      icon: Badge(
+        isLabelVisible: unreadChat > 0,
+        label: Text('$unreadChat'),
+        child: const Icon(Icons.chat_bubble_outline_rounded),
+      ),
+      tooltip: 'المحادثات',
+      onPressed: () => context.push('/chat'),
+    );
+  }
+}
+
+class _ParentNotificationBadgeAction extends ConsumerWidget {
+  const _ParentNotificationBadgeAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
+    return IconButton(
+      icon: Badge(
+        isLabelVisible: unreadNotifs > 0,
+        label: Text('$unreadNotifs'),
+        child: const Icon(Icons.notifications_outlined),
+      ),
+      tooltip: 'الإشعارات',
+      onPressed: () => context.push('/notifications'),
+    );
+  }
+}
+
+class _ParentRefreshAction extends ConsumerWidget {
+  const _ParentRefreshAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      icon: const Icon(Icons.refresh_rounded),
+      tooltip: 'تحديث البيانات',
+      onPressed: () {
+        ref.read(sessionCacheServiceProvider).clearParentHome();
+        ref.invalidate(parentMobileHomeProvider);
+      },
+    );
+  }
+}
+
+class _ParentLogoutAction extends ConsumerWidget {
+  const _ParentLogoutAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      icon: const Icon(Icons.logout_rounded),
+      tooltip: 'تسجيل الخروج',
+      onPressed: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('تسجيل الخروج'),
+            content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('خروج'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await ref.read(authProvider.notifier).logout();
+        }
+      },
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ISOLATED PARENT BODY CONSUMERS
+// -----------------------------------------------------------------------------
+
+class _ParentHomeBody extends ConsumerWidget {
+  const _ParentHomeBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final childrenAsync = ref.watch(parentChildrenProvider);
     final activeChildId = ref.watch(activeChildIdProvider);
-    final unreadNotifs = ref.watch(unreadNotificationsCountProvider).valueOrNull ?? 0;
-    final unreadChat = ref.watch(chatTotalUnreadCountProvider).valueOrNull ?? 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('بوابة ولي الأمر — الملتقى القرآني'),
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: unreadChat > 0,
-              label: Text('$unreadChat'),
-              child: const Icon(Icons.chat_bubble_outline_rounded),
-            ),
-            tooltip: 'المحادثات',
-            onPressed: () => context.push('/chat'),
-          ),
-          IconButton(
-            icon: Badge(
-              isLabelVisible: unreadNotifs > 0,
-              label: Text('$unreadNotifs'),
-              child: const Icon(Icons.notifications_outlined),
-            ),
-            tooltip: 'الإشعارات',
-            onPressed: () => context.push('/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'تحديث البيانات',
-            onPressed: () {
-              ref.read(sessionCacheServiceProvider).clearParentHome();
-              ref.invalidate(parentMobileHomeProvider);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'تسجيل الخروج',
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('تسجيل الخروج'),
-                  content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('إلغاء'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('خروج'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirmed == true) {
-                await ref.read(authProvider.notifier).logout();
-              }
-            },
-          ),
-        ],
-      ),
-      body: childrenAsync.when(
-        skipLoadingOnReload: true,
-        data: (children) {
-          if (children.isEmpty) {
-            return const EmptyStateView(
-              title: 'لا يوجد أبناء مرتبطين بحسابك',
-              subtitle: 'يرجى التواصل مع إدارة المجمع القرآني لربط بيانات الأبناء برقم الهوية أو الهاتف',
-              icon: Icons.family_restroom,
-            );
-          }
-
-          // Pick the active child, or default to the first
-          final currentChildId = activeChildId ?? children.first.id;
-          final currentChild = children.firstWhere(
-            (c) => c.id == currentChildId,
-            orElse: () => children.first,
+    return childrenAsync.when(
+      skipLoadingOnReload: true,
+      data: (children) {
+        if (children.isEmpty) {
+          return const EmptyStateView(
+            title: 'لا يوجد أبناء مرتبطين بحسابك',
+            subtitle: 'يرجى التواصل مع إدارة المجمع القرآني لربط بيانات الأبناء برقم الهوية أو الهاتف',
+            icon: Icons.family_restroom,
           );
+        }
 
-          final childDashboardAsync = ref.watch(childDashboardProvider(currentChildId));
+        final currentChildId = activeChildId ?? children.first.id;
+        final currentChild = children.firstWhere(
+          (c) => c.id == currentChildId,
+          orElse: () => children.first,
+        );
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.read(sessionCacheServiceProvider).clearParentHome();
-              ref.invalidate(parentMobileHomeProvider);
-            },
-            child: ListView(
+        return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverPadding(
               padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // 1. Multi-Child Horizontal Switcher
+                  Text(
+                    'الأبناء والمنتسبين (${children.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 48,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: children.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (ctx, i) {
+                    final child = children[i];
+                    final isSelected = child.id == currentChildId;
+
+                    return FilterChip(
+                      selected: isSelected,
+                      showCheckmark: false,
+                      avatar: CircleAvatar(
+                        backgroundColor: isSelected ? Colors.white : AppTheme.primary,
+                        child: Icon(
+                          Icons.person,
+                          size: 14,
+                          color: isSelected ? AppTheme.primary : Colors.white,
+                        ),
+                      ),
+                      label: Text(
+                        child.name,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      ),
+                      selectedColor: AppTheme.primary,
+                      backgroundColor: Colors.grey.shade100,
+                      onSelected: (_) {
+                        ref.read(activeChildIdProvider.notifier).state = child.id;
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Active Child Header Card
+              _ActiveChildHeaderCard(child: currentChild),
+              const SizedBox(height: 16),
+
+              // 3. Active Child Dashboard Content
+              _ActiveChildDashboardSection(currentChildId: currentChildId, childName: currentChild.name),
+                ]),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (err, stack) => ErrorView(
+        message: 'تعذر تحميل قائمة الأبناء',
+        onRetry: () => ref.refresh(parentChildrenProvider),
+      ),
+    );
+  }
+}
+
+class _ActiveChildHeaderCard extends StatelessWidget {
+  final ParentChildSummary child;
+
+  const _ActiveChildHeaderCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                // 1. Multi-Child Horizontal Switcher
-                Text(
-                  'الأبناء والمنتسبين (${children.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  child: const Icon(Icons.school, color: Colors.white, size: 28),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 48,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: children.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (ctx, i) {
-                      final child = children[i];
-                      final isSelected = child.id == currentChildId;
-
-                      return FilterChip(
-                        selected: isSelected,
-                        showCheckmark: false,
-                        avatar: CircleAvatar(
-                          backgroundColor: isSelected ? Colors.white : AppTheme.primary,
-                          child: Icon(
-                            Icons.person,
-                            size: 14,
-                            color: isSelected ? AppTheme.primary : Colors.white,
-                          ),
-                        ),
-                        label: Text(
-                          child.name,
-                          style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                          ),
-                        ),
-                        selectedColor: AppTheme.primary,
-                        backgroundColor: Colors.grey.shade100,
-                        onSelected: (_) {
-                          ref.read(activeChildIdProvider.notifier).state = child.id;
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 2. Active Child Header Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              child: const Icon(Icons.school, color: Colors.white, size: 28),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentChild.name,
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'الحلقة: ${currentChild.halaqaName} • الصلة: ${currentChild.relationship}',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(204),
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'المعلم: ${currentChild.teacherName}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: currentChild.attendanceRate >= 90 ? Colors.green.shade700 : Colors.amber.shade800,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                'حضور: ${currentChild.attendanceRate.toStringAsFixed(0)}%',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 3. Active Child Dashboard Content
-                childDashboardAsync.when(
-                  skipLoadingOnReload: true,
-                  data: (dash) => Column(
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Active Educational Plan Card
-                      if (dash.plan != null) ...[
-                        Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'الخطة التعليمية للابن',
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextButton.icon(
-                                      icon: const Icon(Icons.arrow_forward_ios, size: 14),
-                                      label: const Text('التفاصيل'),
-                                      onPressed: () => context.push('/parent/children/$currentChildId/plan'),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  dash.plan!.name,
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 8),
-                                LinearProgressIndicator(
-                                  value: dash.plan!.progressPercentage / 100,
-                                  backgroundColor: Colors.grey.shade200,
-                                  color: AppTheme.primary,
-                                  minHeight: 8,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('المنجز: ${dash.plan!.completedItems} من ${dash.plan!.totalItems}'),
-                                    Text(
-                                      '${dash.plan!.progressPercentage.toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Quick Navigation Grid
                       Text(
-                        'متابعة مستوى الابن',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 10),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 1.3,
-                        children: [
-                          _QuickNavCard(
-                            title: 'سجل التسميع',
-                            subtitle: '${dash.totalMemorizations} حفظ • ${dash.totalRevisions} مراجعة',
-                            icon: Icons.menu_book_rounded,
-                            color: Colors.teal,
-                            onTap: () => context.push('/parent/children/$currentChildId/recitation'),
-                          ),
-                          _QuickNavCard(
-                            title: 'الحضور والغياب',
-                            subtitle: '${dash.attendance.attendanceRate.toStringAsFixed(1)}% نسبة الحضور',
-                            icon: Icons.fact_check_rounded,
-                            color: Colors.indigo,
-                            onTap: () => context.push('/parent/children/$currentChildId/attendance'),
-                          ),
-                          _QuickNavCard(
-                            title: 'الاختبارات والنتائج',
-                            subtitle: '${dash.recentResults.length} نتائج معتمدة',
-                            icon: Icons.assignment_turned_in_rounded,
-                            color: Colors.deepOrange,
-                            onTap: () => context.push('/parent/children/$currentChildId/exams'),
-                          ),
-                          _QuickNavCard(
-                            title: 'التقييمات الدورية',
-                            subtitle: dash.latestEvaluation?.rating ?? 'عرض التقييمات',
-                            icon: Icons.grade_rounded,
-                            color: Colors.amber.shade800,
-                            onTap: () => context.push('/parent/children/$currentChildId/evaluations'),
-                          ),
-                          _QuickNavCard(
-                            title: 'الأنشطة والجوائز',
-                            subtitle: 'المسابقات والأوسمة',
-                            icon: Icons.workspace_premium_rounded,
-                            color: Colors.purple.shade700,
-                            onTap: () => context.push(
-                              '/parent/children/$currentChildId/activities-awards?name=${Uri.encodeComponent(currentChild.name)}',
+                        child.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
                             ),
-                          ),
-                          _QuickNavCard(
-                            title: 'الرف العام',
-                            subtitle: 'المقالات والمصادر',
-                            icon: Icons.menu_book_rounded,
-                            color: Colors.teal.shade700,
-                            onTap: () => context.push('/shelf'),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // Cumulative Progress Banner
-                      Card(
-                        elevation: 0,
-                        color: Colors.blueGrey.shade50,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: Colors.blueGrey.shade200),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('تقرير الإنجاز الشامل', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text('مؤشرات الأداء التراكمية ومستوى التميز', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-                                ],
-                              ),
-                              FilledButton.tonal(
-                                onPressed: () => context.push('/parent/children/$currentChildId/progress'),
-                                child: const Text('عرض التقرير'),
-                              ),
-                            ],
-                          ),
-                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'الحلقة: ${child.halaqaName} • الصلة: ${child.relationship}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(204),
+                            ),
                       ),
                     ],
-                  ),
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  error: (err, stack) => ErrorView(
-                    message: 'تعذر تحميل بيانات الابن',
-                    onRetry: () => ref.refresh(childDashboardProvider(currentChildId)),
                   ),
                 ),
               ],
             ),
-          );
-        },
-        loading: () => const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'المعلم: ${child.teacherName}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: child.attendanceRate >= 90 ? Colors.green.shade700 : Colors.amber.shade800,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'حضور: ${child.attendanceRate.toStringAsFixed(0)}%',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveChildDashboardSection extends ConsumerWidget {
+  final String currentChildId;
+  final String childName;
+
+  const _ActiveChildDashboardSection({
+    required this.currentChildId,
+    required this.childName,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final childDashboardAsync = ref.watch(childDashboardProvider(currentChildId));
+
+    return childDashboardAsync.when(
+      skipLoadingOnReload: true,
+      data: (dash) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (dash.plan != null) ...[
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'الخطة التعليمية للابن',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.arrow_forward_ios, size: 14),
+                          label: const Text('التفاصيل'),
+                          onPressed: () => context.push('/parent/children/$currentChildId/plan'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      dash.plan!.name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: dash.plan!.progressPercentage / 100,
+                      backgroundColor: Colors.grey.shade200,
+                      color: AppTheme.primary,
+                      minHeight: 8,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('المنجز: ${dash.plan!.completedItems} من ${dash.plan!.totalItems}'),
+                        Text(
+                          '${dash.plan!.progressPercentage.toStringAsFixed(1)}%',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Quick Navigation Grid
+          Text(
+            'متابعة مستوى الابن',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 10),
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'سجل التسميع',
+                      subtitle: '${dash.totalMemorizations} حفظ • ${dash.totalRevisions} مراجعة',
+                      icon: Icons.menu_book_rounded,
+                      color: Colors.teal,
+                      onTap: () => context.push('/parent/children/$currentChildId/recitation'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'الحضور والغياب',
+                      subtitle: '${dash.attendance.attendanceRate.toStringAsFixed(1)}% نسبة الحضور',
+                      icon: Icons.fact_check_rounded,
+                      color: Colors.indigo,
+                      onTap: () => context.push('/parent/children/$currentChildId/attendance'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'الاختبارات والنتائج',
+                      subtitle: '${dash.recentResults.length} نتائج معتمدة',
+                      icon: Icons.assignment_turned_in_rounded,
+                      color: Colors.deepOrange,
+                      onTap: () => context.push('/parent/children/$currentChildId/exams'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'التقييمات الدورية',
+                      subtitle: dash.latestEvaluation?.rating ?? 'عرض التقييمات',
+                      icon: Icons.grade_rounded,
+                      color: Colors.amber.shade800,
+                      onTap: () => context.push('/parent/children/$currentChildId/evaluations'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'الأنشطة والجوائز',
+                      subtitle: 'المسابقات والأوسمة',
+                      icon: Icons.workspace_premium_rounded,
+                      color: Colors.purple.shade700,
+                      onTap: () => context.push(
+                        '/parent/children/$currentChildId/activities-awards?name=${Uri.encodeComponent(childName)}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _QuickNavCard(
+                      title: 'الرف العام',
+                      subtitle: 'المقالات والمصادر',
+                      icon: Icons.menu_book_rounded,
+                      color: Colors.teal.shade700,
+                      onTap: () => context.push('/shelf'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Cumulative Progress Banner
+          Card(
+            elevation: 0,
+            color: Colors.blueGrey.shade50,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.blueGrey.shade200),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('تقرير الإنجاز الشامل', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text('مؤشرات الأداء التراكمية ومستوى التميز', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                    ],
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () => context.push('/parent/children/$currentChildId/progress'),
+                    child: const Text('عرض التقرير'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        error: (err, stack) => ErrorView(
-          message: 'تعذر تحميل قائمة الأبناء',
-          onRetry: () => ref.refresh(parentChildrenProvider),
-        ),
+      ),
+      error: (err, stack) => ErrorView(
+        message: 'تعذر تحميل بيانات الابن',
+        onRetry: () => ref.refresh(childDashboardProvider(currentChildId)),
       ),
     );
   }
@@ -436,7 +538,7 @@ class _QuickNavCard extends StatelessWidget {
                 backgroundColor: color.withAlpha(38),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 title,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),

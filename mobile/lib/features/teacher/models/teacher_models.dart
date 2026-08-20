@@ -1,3 +1,5 @@
+import '../../../core/utils/api_parsing.dart';
+
 class HalaqaItem {
   final String id;
   final String name;
@@ -31,13 +33,13 @@ class HalaqaItem {
     }
 
     return HalaqaItem(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      code: json['code'] as String? ?? '',
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      code: ApiParsing.parseString(json['code']) ?? '',
       branchName: bName,
       studentsCount: sCount,
-      activePlanName: json['activePlanName'] as String?,
-      attendanceRate: (json['attendanceRate'] as num?)?.toInt(),
+      activePlanName: ApiParsing.parseString(json['activePlanName']),
+      attendanceRate: ApiParsing.parseInt(json['attendanceRate']),
     );
   }
 }
@@ -65,12 +67,12 @@ class WorkspaceStudent {
 
   factory WorkspaceStudent.fromJson(Map<String, dynamic> json) {
     return WorkspaceStudent(
-      studentId: json['studentId'] as String? ?? '',
-      studentNumber: json['studentNumber'] as String?,
-      displayName: json['displayName'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      phone: json['phone'] as String?,
-      todayAttendanceStatus: json['todayAttendanceStatus'] as String?,
+      studentId: ApiParsing.parseString(json['studentId'] ?? json['id']) ?? '',
+      studentNumber: ApiParsing.parseString(json['studentNumber']),
+      displayName: ApiParsing.parseString(json['displayName'] ?? json['name']) ?? '',
+      username: ApiParsing.parseString(json['username']) ?? '',
+      phone: ApiParsing.parseString(json['phone']),
+      todayAttendanceStatus: ApiParsing.parseString(json['todayAttendanceStatus']),
       todayMemorization: json['todayMemorization'] as Map<String, dynamic>?,
       todayRevision: json['todayRevision'] as Map<String, dynamic>?,
     );
@@ -94,11 +96,11 @@ class HalaqaTodayWorkspace {
 
   factory HalaqaTodayWorkspace.fromJson(Map<String, dynamic> json) {
     final rawHalaqa = json['halaqa'] as Map<String, dynamic>? ?? {};
-    final rawStudents = json['students'] as List? ?? [];
+    final rawStudents = ApiParsing.extractList(json['students']);
 
     return HalaqaTodayWorkspace(
       halaqa: HalaqaItem.fromJson(rawHalaqa),
-      todayDate: json['todayDate'] as String? ?? '',
+      todayDate: ApiParsing.parseString(json['todayDate']) ?? '',
       session: json['session'] as Map<String, dynamic>?,
       activePlan: json['activePlan'] as Map<String, dynamic>?,
       students: rawStudents
@@ -144,32 +146,27 @@ class StudentProgressData {
     final metrics = json['metrics'] as Map<String, dynamic>? ?? {};
     final plan = json['activePlan'] as Map<String, dynamic>?;
 
-    final memos = (json['recentMemorization'] as List? ?? [])
+    final memos = ApiParsing.extractList(json['recentMemorization'])
         .map((m) => m as Map<String, dynamic>)
         .toList();
-    final revs = (json['recentRevision'] as List? ?? [])
+    final revs = ApiParsing.extractList(json['recentRevision'])
         .map((r) => r as Map<String, dynamic>)
         .toList();
 
     return StudentProgressData(
-      studentId: stu['id'] as String? ?? '',
-      displayName: stu['displayName'] as String? ?? '',
-      studentNumber: stu['studentNumber'] as String?,
+      studentId: ApiParsing.parseString(stu['id']) ?? '',
+      displayName: ApiParsing.parseString(stu['displayName']) ?? '',
+      studentNumber: ApiParsing.parseString(stu['studentNumber']),
       halaqaName: stu['activeHalaqa'] is Map
           ? (stu['activeHalaqa'] as Map)['name'] as String?
           : null,
-      attendanceRate: (metrics['attendanceRate'] as num?)?.toInt() ?? 100,
-      totalMemorizationSessions:
-          (metrics['totalMemorizationSessions'] as num?)?.toInt() ?? 0,
-      avgMemorizationScore:
-          (metrics['avgMemorizationScore'] as num?)?.toDouble() ?? 100.0,
-      totalRevisionSessions:
-          (metrics['totalRevisionSessions'] as num?)?.toInt() ?? 0,
-      avgRevisionScore:
-          (metrics['avgRevisionScore'] as num?)?.toDouble() ?? 100.0,
-      activePlanName: plan?['name'] as String?,
-      planProgressPercentage:
-          (plan?['progressPercentage'] as num?)?.toInt() ?? 0,
+      attendanceRate: ApiParsing.parseInt(metrics['attendanceRate'], 100)!,
+      totalMemorizationSessions: ApiParsing.parseInt(metrics['totalMemorizationSessions'], 0)!,
+      avgMemorizationScore: ApiParsing.parseDouble(metrics['avgMemorizationScore'], 100.0)!,
+      totalRevisionSessions: ApiParsing.parseInt(metrics['totalRevisionSessions'], 0)!,
+      avgRevisionScore: ApiParsing.parseDouble(metrics['avgRevisionScore'], 100.0)!,
+      activePlanName: ApiParsing.parseString(plan?['name']),
+      planProgressPercentage: ApiParsing.parseInt(plan?['progressPercentage'], 0)!,
       recentMemorization: memos,
       recentRevision: revs,
     );
@@ -211,11 +208,11 @@ class TeacherExamItem {
   final String title;
   final String? description;
   final String? curriculum;
-  final String examType; // MONTHLY, MIDTERM, FINAL
+  final String examType;
   final DateTime? scheduledDate;
   final double maxScore;
   final double passScore;
-  final String status; // DRAFT, SCHEDULED, PUBLISHED, COMPLETED
+  final String status;
   final bool isPublished;
   final String? halaqaId;
   final String? halaqaName;
@@ -240,25 +237,23 @@ class TeacherExamItem {
   });
 
   factory TeacherExamItem.fromJson(Map<String, dynamic> json) {
-    final rawCrit = json['criteria'] as List? ?? [];
+    final rawCrit = ApiParsing.extractList(json['criteria']);
     return TeacherExamItem(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String?,
-      curriculum: json['curriculum'] as String?,
-      examType: json['examType'] as String? ?? 'MONTHLY',
-      scheduledDate: json['scheduledDate'] != null
-          ? DateTime.tryParse(json['scheduledDate'] as String)
-          : null,
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 100.0,
-      passScore: (json['passScore'] as num?)?.toDouble() ?? 60.0,
-      status: json['status'] as String? ?? 'PUBLISHED',
-      isPublished: json['isPublished'] as bool? ?? true,
-      halaqaId: json['halaqaId'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      curriculum: ApiParsing.parseString(json['curriculum']),
+      examType: ApiParsing.parseString(json['examType'], 'MONTHLY')!,
+      scheduledDate: ApiParsing.parseDateTime(json['scheduledDate']),
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 100.0)!,
+      passScore: ApiParsing.parseDouble(json['passScore'], 60.0)!,
+      status: ApiParsing.parseString(json['status'], 'PUBLISHED')!,
+      isPublished: ApiParsing.parseBool(json['isPublished'], true)!,
+      halaqaId: ApiParsing.parseString(json['halaqaId']),
       halaqaName: json['halaqa'] is Map ? (json['halaqa'] as Map)['name'] as String? : null,
       resultsCount: (json['_count'] is Map && (json['_count'] as Map)['results'] is int)
           ? (json['_count'] as Map)['results'] as int
-          : (json['resultsCount'] as num?)?.toInt() ?? 0,
+          : ApiParsing.parseInt(json['resultsCount'], 0)!,
       criteria: rawCrit
           .map((c) => TeacherExamCriterion.fromJson(c as Map<String, dynamic>))
           .toList(),
@@ -296,11 +291,11 @@ class TeacherExamCriterion {
 
   factory TeacherExamCriterion.fromJson(Map<String, dynamic> json) {
     return TeacherExamCriterion(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 10.0,
-      order: (json['order'] as num?)?.toInt() ?? 0,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 10.0)!,
+      order: ApiParsing.parseInt(json['order'], 0)!,
     );
   }
 }
@@ -337,26 +332,26 @@ class TeacherExamResultItem {
     String? sNum;
     if (json['student'] is Map) {
       final stu = json['student'] as Map;
-      sNum = stu['studentNumber'] as String?;
+      sNum = ApiParsing.parseString(stu['studentNumber']);
       if (stu['user'] is Map) {
-        sName = (stu['user'] as Map)['displayName'] as String? ?? sName;
+        sName = ApiParsing.parseString((stu['user'] as Map)['displayName']) ?? sName;
       }
+    } else if (json['studentName'] is String) {
+      sName = json['studentName'] as String;
     }
 
     return TeacherExamResultItem(
-      id: json['id'] as String? ?? '',
-      examId: json['examId'] as String? ?? '',
-      studentId: json['studentId'] as String? ?? '',
+      id: ApiParsing.parseString(json['id']) ?? '',
+      examId: ApiParsing.parseString(json['examId']) ?? '',
+      studentId: ApiParsing.parseString(json['studentId']) ?? '',
       studentName: sName,
       studentNumber: sNum,
-      score: (json['score'] as num?)?.toDouble() ?? 0.0,
-      percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
-      status: json['status'] as String? ?? 'ENTERED',
-      isPassed: json['isPassed'] as bool? ?? true,
-      notes: json['notes'] as String?,
-      gradedAt: json['gradedAt'] != null
-          ? DateTime.tryParse(json['gradedAt'] as String)
-          : null,
+      score: ApiParsing.parseDouble(json['score'], 0.0)!,
+      percentage: ApiParsing.parseDouble(json['percentage'], 0.0)!,
+      status: ApiParsing.parseString(json['status'], 'ENTERED')!,
+      isPassed: ApiParsing.parseBool(json['isPassed'], true)!,
+      notes: ApiParsing.parseString(json['notes']),
+      gradedAt: ApiParsing.parseDateTime(json['gradedAt']),
     );
   }
 }
@@ -399,34 +394,32 @@ class TeacherEvaluationItem {
     String? sNum;
     if (json['student'] is Map) {
       final stu = json['student'] as Map;
-      sNum = stu['studentNumber'] as String?;
+      sNum = ApiParsing.parseString(stu['studentNumber']);
       if (stu['user'] is Map) {
-        sName = (stu['user'] as Map)['displayName'] as String? ?? sName;
+        sName = ApiParsing.parseString((stu['user'] as Map)['displayName']) ?? sName;
       }
     }
 
     String? hName;
     if (json['halaqa'] is Map) {
-      hName = (json['halaqa'] as Map)['name'] as String?;
+      hName = ApiParsing.parseString((json['halaqa'] as Map)['name']);
     }
 
     return TeacherEvaluationItem(
-      id: json['id'] as String? ?? '',
-      studentId: json['studentId'] as String? ?? '',
+      id: ApiParsing.parseString(json['id']) ?? '',
+      studentId: ApiParsing.parseString(json['studentId']) ?? '',
       studentName: sName,
       studentNumber: sNum,
-      halaqaId: json['halaqaId'] as String? ?? '',
+      halaqaId: ApiParsing.parseString(json['halaqaId']) ?? '',
       halaqaName: hName,
-      evaluationDate: json['evaluationDate'] != null
-          ? DateTime.tryParse(json['evaluationDate'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      behaviorScore: (json['behaviorScore'] as num?)?.toDouble() ?? 90.0,
-      discipline: (json['discipline'] as num?)?.toDouble() ?? 90.0,
-      participation: (json['participation'] as num?)?.toDouble() ?? 90.0,
-      overallScore: (json['overallScore'] as num?)?.toDouble() ?? 90.0,
-      rating: json['rating'] as String? ?? 'VERY_GOOD',
-      teacherNotes: json['teacherNotes'] as String?,
-      actionLabel: json['actionLabel'] as String?,
+      evaluationDate: ApiParsing.parseDateTime(json['evaluationDate']) ?? DateTime.now(),
+      behaviorScore: ApiParsing.parseDouble(json['behaviorScore'], 90.0)!,
+      discipline: ApiParsing.parseDouble(json['discipline'], 90.0)!,
+      participation: ApiParsing.parseDouble(json['participation'], 90.0)!,
+      overallScore: ApiParsing.parseDouble(json['overallScore'], 90.0)!,
+      rating: ApiParsing.parseString(json['rating'], 'VERY_GOOD')!,
+      teacherNotes: ApiParsing.parseString(json['teacherNotes']),
+      actionLabel: ApiParsing.parseString(json['actionLabel']),
     );
   }
 
@@ -472,17 +465,17 @@ class TeacherEducationalPlan {
   });
 
   factory TeacherEducationalPlan.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List? ?? [];
+    final rawItems = ApiParsing.extractList(json['items']);
     return TeacherEducationalPlan(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      type: json['type'] as String? ?? 'HIFZ',
-      status: json['status'] as String? ?? 'ACTIVE',
-      halaqaId: json['halaqaId'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      type: ApiParsing.parseString(json['type'], 'HIFZ')!,
+      status: ApiParsing.parseString(json['status'], 'ACTIVE')!,
+      halaqaId: ApiParsing.parseString(json['halaqaId']),
       halaqaName: json['halaqa'] is Map ? (json['halaqa'] as Map)['name'] as String? : null,
-      startDate: json['startDate'] != null ? DateTime.tryParse(json['startDate'] as String) : null,
-      endDate: json['endDate'] != null ? DateTime.tryParse(json['endDate'] as String) : null,
-      notes: json['notes'] as String?,
+      startDate: ApiParsing.parseDateTime(json['startDate']),
+      endDate: ApiParsing.parseDateTime(json['endDate']),
+      notes: ApiParsing.parseString(json['notes']),
       items: rawItems
           .map((i) => TeacherPlanItemDetail.fromJson(i as Map<String, dynamic>))
           .toList(),
@@ -534,18 +527,18 @@ class TeacherPlanItemDetail {
 
   factory TeacherPlanItemDetail.fromJson(Map<String, dynamic> json) {
     return TeacherPlanItemDetail(
-      id: json['id'] as String? ?? '',
-      type: json['type'] as String? ?? 'MEMORIZATION',
-      surahNumber: (json['surahNumber'] as num?)?.toInt(),
-      fromAyah: (json['fromAyah'] as num?)?.toInt(),
-      toAyah: (json['toAyah'] as num?)?.toInt(),
-      pageFrom: (json['pageFrom'] as num?)?.toInt(),
-      pageTo: (json['pageTo'] as num?)?.toInt(),
-      juzNumber: (json['juzNumber'] as num?)?.toInt(),
-      order: (json['order'] as num?)?.toInt() ?? 1,
-      status: json['status'] as String? ?? 'PENDING',
-      targetDate: json['targetDate'] != null ? DateTime.tryParse(json['targetDate'] as String) : null,
-      notes: json['notes'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      type: ApiParsing.parseString(json['type'], 'MEMORIZATION')!,
+      surahNumber: ApiParsing.parseInt(json['surahNumber']),
+      fromAyah: ApiParsing.parseInt(json['fromAyah']),
+      toAyah: ApiParsing.parseInt(json['toAyah']),
+      pageFrom: ApiParsing.parseInt(json['pageFrom']),
+      pageTo: ApiParsing.parseInt(json['pageTo']),
+      juzNumber: ApiParsing.parseInt(json['juzNumber']),
+      order: ApiParsing.parseInt(json['order'], 1)!,
+      status: ApiParsing.parseString(json['status'], 'PENDING')!,
+      targetDate: ApiParsing.parseDateTime(json['targetDate']),
+      notes: ApiParsing.parseString(json['notes']),
     );
   }
 
@@ -580,12 +573,12 @@ class TeacherAwardOption {
 
   factory TeacherAwardOption.fromJson(Map<String, dynamic> json) {
     return TeacherAwardOption(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      iconKey: json['iconKey'] as String?,
-      type: json['type'] as String? ?? 'BADGE',
-      points: (json['points'] as num?)?.toInt() ?? 10,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      iconKey: ApiParsing.parseString(json['iconKey']),
+      type: ApiParsing.parseString(json['type'], 'BADGE')!,
+      points: ApiParsing.parseInt(json['points'], 10)!,
     );
   }
 }
@@ -607,11 +600,11 @@ class TeacherTodayMetrics {
 
   factory TeacherTodayMetrics.fromJson(Map<String, dynamic> json) {
     return TeacherTodayMetrics(
-      present: (json['present'] as num?)?.toInt() ?? 0,
-      absent: (json['absent'] as num?)?.toInt() ?? 0,
-      memorizationCount: (json['memorizationCount'] as num?)?.toInt() ?? 0,
-      revisionCount: (json['revisionCount'] as num?)?.toInt() ?? 0,
-      attendanceRate: (json['attendanceRate'] as num?)?.toDouble() ?? 100.0,
+      present: ApiParsing.parseInt(json['present'], 0)!,
+      absent: ApiParsing.parseInt(json['absent'], 0)!,
+      memorizationCount: ApiParsing.parseInt(json['memorizationCount'], 0)!,
+      revisionCount: ApiParsing.parseInt(json['revisionCount'], 0)!,
+      attendanceRate: ApiParsing.parseDouble(json['attendanceRate'], 100.0)!,
     );
   }
 
@@ -654,19 +647,21 @@ class TeacherMobileHomeSnapshot {
   });
 
   factory TeacherMobileHomeSnapshot.fromJson(Map<String, dynamic> json) {
-    final list = json['halaqasSummary'] as List? ?? [];
-    final halaqas = list.map((h) => HalaqaItem.fromJson(h as Map<String, dynamic>)).toList();
-    final todayMap = json['today'] as Map<String, dynamic>? ?? {};
+    final rawTeacher = json['teacher'] as Map<String, dynamic>? ?? {};
+    final rawHalaqas = ApiParsing.extractList(json['halaqasSummary']);
+    final rawToday = json['today'] as Map<String, dynamic>? ?? {};
 
     return TeacherMobileHomeSnapshot(
-      teacher: json['teacher'] as Map<String, dynamic>? ?? {},
-      halaqasSummary: halaqas,
-      totalHalaqas: (json['totalHalaqas'] as num?)?.toInt() ?? halaqas.length,
-      totalStudents: (json['totalStudents'] as num?)?.toInt() ?? 0,
-      today: TeacherTodayMetrics.fromJson(todayMap),
-      pendingTasksCount: (json['pendingTasksCount'] as num?)?.toInt() ?? 0,
-      upcomingExamsCount: (json['upcomingExamsCount'] as num?)?.toInt() ?? 0,
-      evaluationsCount: (json['evaluationsCount'] as num?)?.toInt() ?? 0,
+      teacher: rawTeacher,
+      halaqasSummary: rawHalaqas
+          .map((h) => HalaqaItem.fromJson(h as Map<String, dynamic>))
+          .toList(),
+      totalHalaqas: ApiParsing.parseInt(json['totalHalaqas'], 0)!,
+      totalStudents: ApiParsing.parseInt(json['totalStudents'], 0)!,
+      today: TeacherTodayMetrics.fromJson(rawToday),
+      pendingTasksCount: ApiParsing.parseInt(json['pendingTasksCount'], 0)!,
+      upcomingExamsCount: ApiParsing.parseInt(json['upcomingExamsCount'], 0)!,
+      evaluationsCount: ApiParsing.parseInt(json['evaluationsCount'], 0)!,
     );
   }
 

@@ -1,3 +1,5 @@
+import '../../../core/utils/api_parsing.dart';
+
 class ActivityItem {
   final String id;
   final String title;
@@ -32,23 +34,19 @@ class ActivityItem {
   factory ActivityItem.fromJson(Map<String, dynamic> json) {
     final part = json['myParticipation'] as Map<String, dynamic>?;
     return ActivityItem(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String?,
-      type: json['type'] as String? ?? 'EDUCATIONAL',
-      status: json['status'] as String? ?? 'DRAFT',
-      startsAt: json['startsAt'] != null
-          ? DateTime.tryParse(json['startsAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      endsAt: json['endsAt'] != null
-          ? DateTime.tryParse(json['endsAt'] as String)
-          : null,
-      location: json['location'] as String?,
-      capacity: (json['capacity'] as num?)?.toInt(),
-      branchName: json['branch']?['name'] as String?,
-      halaqaName: json['halaqa']?['name'] as String?,
-      nominationStatus: part?['nominationStatus'] as String?,
-      attendanceStatus: part?['attendanceStatus'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      type: ApiParsing.parseString(json['type'], 'EDUCATIONAL')!,
+      status: ApiParsing.parseString(json['status'], 'DRAFT')!,
+      startsAt: ApiParsing.parseDateTime(json['startsAt']) ?? DateTime.now(),
+      endsAt: ApiParsing.parseDateTime(json['endsAt']),
+      location: ApiParsing.parseString(json['location']),
+      capacity: ApiParsing.parseInt(json['capacity']),
+      branchName: json['branch'] is Map ? ApiParsing.parseString((json['branch'] as Map)['name']) : null,
+      halaqaName: json['halaqa'] is Map ? ApiParsing.parseString((json['halaqa'] as Map)['name']) : null,
+      nominationStatus: ApiParsing.parseString(part?['nominationStatus']),
+      attendanceStatus: ApiParsing.parseString(part?['attendanceStatus']),
     );
   }
 
@@ -125,21 +123,17 @@ class CompetitionItem {
   factory CompetitionItem.fromJson(Map<String, dynamic> json) {
     final result = json['myResult'] as Map<String, dynamic>?;
     return CompetitionItem(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String?,
-      category: json['category'] as String? ?? 'MEMORIZATION',
-      status: json['status'] as String? ?? 'DRAFT',
-      startsAt: json['startsAt'] != null
-          ? DateTime.tryParse(json['startsAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      endsAt: json['endsAt'] != null
-          ? DateTime.tryParse(json['endsAt'] as String)
-          : null,
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 100.0,
-      myScore: (result?['score'] as num?)?.toDouble(),
-      myRank: (result?['rank'] as num?)?.toInt(),
-      myNotes: result?['notes'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      category: ApiParsing.parseString(json['category'], 'MEMORIZATION')!,
+      status: ApiParsing.parseString(json['status'], 'DRAFT')!,
+      startsAt: ApiParsing.parseDateTime(json['startsAt']) ?? DateTime.now(),
+      endsAt: ApiParsing.parseDateTime(json['endsAt']),
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 100.0)!,
+      myScore: ApiParsing.parseDouble(result?['score']),
+      myRank: ApiParsing.parseInt(result?['rank']),
+      myNotes: ApiParsing.parseString(result?['notes']),
     );
   }
 
@@ -191,19 +185,17 @@ class AwardItem {
   factory AwardItem.fromJson(Map<String, dynamic> json) {
     final awardObj = json['award'] as Map<String, dynamic>?;
     return AwardItem(
-      id: json['id'] as String? ?? '',
-      name: awardObj?['name'] as String? ?? json['name'] as String? ?? 'وسام تميز',
-      description: awardObj?['description'] as String? ?? json['description'] as String?,
-      iconKey: awardObj?['iconKey'] as String? ?? json['iconKey'] as String?,
-      type: awardObj?['type'] as String? ?? json['type'] as String? ?? 'BADGE',
-      points: (awardObj?['points'] as num?)?.toInt() ?? (json['points'] as num?)?.toInt() ?? 0,
-      reason: json['reason'] as String? ?? '',
-      activityTitle: json['activity']?['title'] as String?,
-      competitionTitle: json['competition']?['title'] as String?,
-      awardedByName: json['awardedBy']?['displayName'] as String?,
-      awardedAt: json['awardedAt'] != null
-          ? DateTime.tryParse(json['awardedAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(awardObj?['name']) ?? ApiParsing.parseString(json['name']) ?? 'وسام تميز',
+      description: ApiParsing.parseString(awardObj?['description']) ?? ApiParsing.parseString(json['description']),
+      iconKey: ApiParsing.parseString(awardObj?['iconKey']) ?? ApiParsing.parseString(json['iconKey']),
+      type: ApiParsing.parseString(awardObj?['type']) ?? ApiParsing.parseString(json['type'], 'BADGE')!,
+      points: ApiParsing.parseInt(awardObj?['points']) ?? ApiParsing.parseInt(json['points'], 0)!,
+      reason: ApiParsing.parseString(json['reason']) ?? '',
+      activityTitle: json['activity'] is Map ? ApiParsing.parseString((json['activity'] as Map)['title']) : null,
+      competitionTitle: json['competition'] is Map ? ApiParsing.parseString((json['competition'] as Map)['title']) : null,
+      awardedByName: json['awardedBy'] is Map ? ApiParsing.parseString((json['awardedBy'] as Map)['displayName']) : null,
+      awardedAt: ApiParsing.parseDateTime(json['awardedAt']) ?? DateTime.now(),
     );
   }
 
@@ -243,13 +235,14 @@ class ShelfSectionItem {
   });
 
   factory ShelfSectionItem.fromJson(Map<String, dynamic> json) {
+    final count = json['_count'] is Map ? (json['_count'] as Map)['items'] : null;
     return ShelfSectionItem(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      slug: json['slug'] as String? ?? '',
-      description: json['description'] as String?,
-      visibility: json['visibility'] as String? ?? 'ALL_USERS',
-      itemsCount: (json['_count']?['items'] as num?)?.toInt() ?? 0,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      slug: ApiParsing.parseString(json['slug']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      visibility: ApiParsing.parseString(json['visibility'], 'ALL_USERS')!,
+      itemsCount: ApiParsing.parseInt(count, 0)!,
     );
   }
 }
@@ -289,22 +282,20 @@ class ShelfPostItem {
 
   factory ShelfPostItem.fromJson(Map<String, dynamic> json) {
     return ShelfPostItem(
-      id: json['id'] as String? ?? '',
-      sectionId: json['sectionId'] as String? ?? '',
-      sectionName: json['section']?['name'] as String?,
-      title: json['title'] as String? ?? '',
-      content: json['content'] as String? ?? '',
-      type: json['type'] as String? ?? 'GENERAL',
-      attachmentName: json['attachmentName'] as String?,
-      attachmentUrl: json['attachmentUrl'] as String?,
-      fileType: json['fileType'] as String?,
-      fileSize: json['fileSize'] as String?,
-      isPinned: json['isPinned'] as bool? ?? false,
-      authorName: json['author']?['displayName'] as String? ?? json['authorName'] as String?,
-      authorRole: json['authorRole'] as String?,
-      publishedAt: json['publishedAt'] != null
-          ? DateTime.tryParse(json['publishedAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      id: ApiParsing.parseString(json['id']) ?? '',
+      sectionId: ApiParsing.parseString(json['sectionId']) ?? '',
+      sectionName: json['section'] is Map ? ApiParsing.parseString((json['section'] as Map)['name']) : null,
+      title: ApiParsing.parseString(json['title']) ?? '',
+      content: ApiParsing.parseString(json['content']) ?? '',
+      type: ApiParsing.parseString(json['type'], 'GENERAL')!,
+      attachmentName: ApiParsing.parseString(json['attachmentName']),
+      attachmentUrl: ApiParsing.parseString(json['attachmentUrl']),
+      fileType: ApiParsing.parseString(json['fileType']),
+      fileSize: ApiParsing.parseString(json['fileSize']),
+      isPinned: ApiParsing.parseBool(json['isPinned'], false)!,
+      authorName: json['author'] is Map ? ApiParsing.parseString((json['author'] as Map)['displayName']) : null,
+      authorRole: json['author'] is Map ? ApiParsing.parseString((json['author'] as Map)['role']) : null,
+      publishedAt: ApiParsing.parseDateTime(json['publishedAt']) ?? DateTime.now(),
     );
   }
 
@@ -312,16 +303,14 @@ class ShelfPostItem {
     switch (type) {
       case 'ANNOUNCEMENT':
         return 'إعلان رسمي';
-      case 'ARTICLE':
-        return 'مقال تربوي';
       case 'BOOK':
-        return 'كتاب / كتيب';
-      case 'CURRICULUM':
-        return 'منهج قرآني';
-      case 'RESOURCE':
-        return 'مورد تعليمي';
-      case 'ACTIVITY_RESULT':
-        return 'نتائج وتكريم';
+        return 'كتاب / مقرر';
+      case 'SUMMARY':
+        return 'ملخص قرآني';
+      case 'RESEARCH':
+        return 'بحث علمي';
+      case 'MEDIA':
+        return 'مادة مرئية / مسموعة';
       default:
         return 'منشور عام';
     }

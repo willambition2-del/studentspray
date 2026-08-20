@@ -1,3 +1,5 @@
+import '../../../core/utils/api_parsing.dart';
+
 class SupervisorDashboardMetrics {
   final int totalHalaqas;
   final int totalTeachers;
@@ -21,14 +23,14 @@ class SupervisorDashboardMetrics {
 
   factory SupervisorDashboardMetrics.fromJson(Map<String, dynamic> json) {
     return SupervisorDashboardMetrics(
-      totalHalaqas: json['totalHalaqas'] as int? ?? 0,
-      totalTeachers: json['totalTeachers'] as int? ?? 0,
-      totalVisitsCompleted: json['totalVisitsCompleted'] as int? ?? 0,
-      totalVisitsPlanned: json['totalVisitsPlanned'] as int? ?? 0,
-      totalVisitsInProgress: json['totalVisitsInProgress'] as int? ?? 0,
-      averageEvaluationScore: (json['averageEvaluationScore'] as num?)?.toDouble() ?? 0.0,
-      openRecommendationsCount: json['openRecommendationsCount'] as int? ?? 0,
-      overdueRecommendationsCount: json['overdueRecommendationsCount'] as int? ?? 0,
+      totalHalaqas: ApiParsing.parseInt(json['totalHalaqas'], 0)!,
+      totalTeachers: ApiParsing.parseInt(json['totalTeachers'], 0)!,
+      totalVisitsCompleted: ApiParsing.parseInt(json['totalVisitsCompleted'], 0)!,
+      totalVisitsPlanned: ApiParsing.parseInt(json['totalVisitsPlanned'], 0)!,
+      totalVisitsInProgress: ApiParsing.parseInt(json['totalVisitsInProgress'], 0)!,
+      averageEvaluationScore: ApiParsing.parseDouble(json['averageEvaluationScore'], 0.0)!,
+      openRecommendationsCount: ApiParsing.parseInt(json['openRecommendationsCount'], 0)!,
+      overdueRecommendationsCount: ApiParsing.parseInt(json['overdueRecommendationsCount'], 0)!,
     );
   }
 }
@@ -53,17 +55,17 @@ class SupervisorHalaqa {
   });
 
   factory SupervisorHalaqa.fromJson(Map<String, dynamic> json) {
+    final rawTeachers = ApiParsing.extractList(json['teachers']);
     return SupervisorHalaqa(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      code: json['code'] as String? ?? '',
-      branchName: json['branchName'] as String? ?? '',
-      studentsCount: json['studentsCount'] as int? ?? 0,
-      visitsCount: json['visitsCount'] as int? ?? 0,
-      teachers: (json['teachers'] as List?)
-              ?.map((t) => Map<String, dynamic>.from(t as Map))
-              .toList() ??
-          [],
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      code: ApiParsing.parseString(json['code']) ?? '',
+      branchName: ApiParsing.parseString(json['branchName']) ?? '',
+      studentsCount: ApiParsing.parseInt(json['studentsCount'], 0)!,
+      visitsCount: ApiParsing.parseInt(json['visitsCount'], 0)!,
+      teachers: rawTeachers
+          .map((t) => Map<String, dynamic>.from(t as Map))
+          .toList(),
     );
   }
 }
@@ -96,23 +98,23 @@ class SupervisorTeacher {
   });
 
   factory SupervisorTeacher.fromJson(Map<String, dynamic> json) {
+    final rawHalaqas = ApiParsing.extractList(json['halaqas']);
     return SupervisorTeacher(
-      id: json['id'] as String? ?? '',
-      userId: json['userId'] as String? ?? '',
-      displayName: json['displayName'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      phone: json['phone'] as String?,
-      email: json['email'] as String?,
-      specialization: json['specialization'] as String?,
-      employeeNumber: json['employeeNumber'] as String?,
-      halaqas: (json['halaqas'] as List?)
-              ?.map((h) => Map<String, dynamic>.from(h as Map))
-              .toList() ??
-          [],
-      lastVisit: json['lastVisit'] is Map<String, dynamic>
+      id: ApiParsing.parseString(json['id']) ?? '',
+      userId: ApiParsing.parseString(json['userId']) ?? '',
+      displayName: ApiParsing.parseString(json['displayName']) ?? '',
+      username: ApiParsing.parseString(json['username']) ?? '',
+      phone: ApiParsing.parseString(json['phone']),
+      email: ApiParsing.parseString(json['email']),
+      specialization: ApiParsing.parseString(json['specialization']),
+      employeeNumber: ApiParsing.parseString(json['employeeNumber']),
+      halaqas: rawHalaqas
+          .map((h) => Map<String, dynamic>.from(h as Map))
+          .toList(),
+      lastVisit: json['lastVisit'] is Map
           ? Map<String, dynamic>.from(json['lastVisit'] as Map)
           : null,
-      openRecommendationsCount: json['openRecommendationsCount'] as int? ?? 0,
+      openRecommendationsCount: ApiParsing.parseInt(json['openRecommendationsCount'], 0)!,
     );
   }
 }
@@ -159,34 +161,38 @@ class FieldVisitItem {
   factory FieldVisitItem.fromJson(Map<String, dynamic> json) {
     final teacher = json['teacher'] as Map<String, dynamic>?;
     final teacherUser = teacher?['user'] as Map<String, dynamic>?;
-    final teacherName = teacherUser?['displayName'] as String? ??
-        teacherUser?['username'] as String? ??
+    final teacherName = ApiParsing.parseString(teacherUser?['displayName']) ??
+        ApiParsing.parseString(teacherUser?['username']) ??
         'الأستاذ';
 
     final halaqa = json['halaqa'] as Map<String, dynamic>?;
-    final halaqaName = halaqa?['name'] as String? ?? 'الحلقة';
-    final halaqaId = json['halaqaId'] as String? ?? (halaqa?['id'] as String? ?? '');
-    final teacherId = json['teacherId'] as String? ?? (teacher?['id'] as String? ?? '');
+    final halaqaName = ApiParsing.parseString(halaqa?['name'], 'الحلقة')!;
+    final halaqaId = ApiParsing.parseString(json['halaqaId']) ??
+        ApiParsing.parseString(halaqa?['id']) ??
+        '';
+    final teacherId = ApiParsing.parseString(json['teacherId']) ??
+        ApiParsing.parseString(teacher?['id']) ??
+        '';
 
     final eval = json['evaluation'] as Map<String, dynamic>?;
-    final score = (eval?['percentage'] as num?)?.toDouble() ??
-        (eval?['totalScore'] as num?)?.toDouble();
-    final level = eval?['level'] as String?;
+    final score = ApiParsing.parseDouble(eval?['percentage']) ??
+        ApiParsing.parseDouble(eval?['totalScore']);
+    final level = ApiParsing.parseString(eval?['level']);
 
     final count = json['_count'] as Map<String, dynamic>?;
-    final recCount = count?['recommendations'] as int? ?? 0;
+    final recCount = ApiParsing.parseInt(count?['recommendations'], 0)!;
 
     return FieldVisitItem(
-      id: json['id'] as String? ?? '',
-      visitNumber: json['visitNumber'] as String? ?? '',
-      visitType: json['visitType'] as String? ?? 'ROUTINE',
-      status: json['status'] as String? ?? 'PLANNED',
-      scheduledDate: json['scheduledDate'] as String?,
-      startedAt: json['startedAt'] as String?,
-      completedAt: json['completedAt'] as String?,
-      reason: json['reason'] as String?,
-      summary: json['summary'] as String?,
-      generalNotes: json['generalNotes'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      visitNumber: ApiParsing.parseString(json['visitNumber']) ?? '',
+      visitType: ApiParsing.parseString(json['visitType'], 'ROUTINE')!,
+      status: ApiParsing.parseString(json['status'], 'PLANNED')!,
+      scheduledDate: ApiParsing.parseString(json['scheduledDate']),
+      startedAt: ApiParsing.parseString(json['startedAt']),
+      completedAt: ApiParsing.parseString(json['completedAt']),
+      reason: ApiParsing.parseString(json['reason']),
+      summary: ApiParsing.parseString(json['summary']),
+      generalNotes: ApiParsing.parseString(json['generalNotes']),
       teacherName: teacherName,
       halaqaName: halaqaName,
       halaqaId: halaqaId,
@@ -217,12 +223,12 @@ class EvaluationCriterionModel {
 
   factory EvaluationCriterionModel.fromJson(Map<String, dynamic> json) {
     return EvaluationCriterionModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      type: json['type'] as String? ?? 'SCALE_5',
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 5.0,
-      order: json['order'] as int? ?? 0,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      type: ApiParsing.parseString(json['type'], 'SCALE_5')!,
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 5.0)!,
+      order: ApiParsing.parseInt(json['order'], 0)!,
     );
   }
 }
@@ -245,16 +251,16 @@ class EvaluationAxisModel {
   });
 
   factory EvaluationAxisModel.fromJson(Map<String, dynamic> json) {
+    final rawCriteria = ApiParsing.extractList(json['criteria']);
     return EvaluationAxisModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      weight: (json['weight'] as num?)?.toDouble() ?? 0.0,
-      order: json['order'] as int? ?? 0,
-      criteria: (json['criteria'] as List?)
-              ?.map((c) => EvaluationCriterionModel.fromJson(c as Map<String, dynamic>))
-              .toList() ??
-          [],
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      weight: ApiParsing.parseDouble(json['weight'], 0.0)!,
+      order: ApiParsing.parseInt(json['order'], 0)!,
+      criteria: rawCriteria
+          .map((c) => EvaluationCriterionModel.fromJson(c as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -275,15 +281,15 @@ class EvaluationTemplateModel {
   });
 
   factory EvaluationTemplateModel.fromJson(Map<String, dynamic> json) {
+    final rawAxes = ApiParsing.extractList(json['axes']);
     return EvaluationTemplateModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      version: json['version'] as int? ?? 1,
-      axes: (json['axes'] as List?)
-              ?.map((a) => EvaluationAxisModel.fromJson(a as Map<String, dynamic>))
-              .toList() ??
-          [],
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      description: ApiParsing.parseString(json['description']),
+      version: ApiParsing.parseInt(json['version'], 1)!,
+      axes: rawAxes
+          .map((a) => EvaluationAxisModel.fromJson(a as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -320,27 +326,27 @@ class RecommendationModel {
   factory RecommendationModel.fromJson(Map<String, dynamic> json) {
     final teacher = json['teacher'] as Map<String, dynamic>?;
     final teacherUser = teacher?['user'] as Map<String, dynamic>?;
-    final teacherName = teacherUser?['displayName'] as String? ?? 'المعلم';
+    final teacherName = ApiParsing.parseString(teacherUser?['displayName'], 'المعلم')!;
 
     final halaqa = json['halaqa'] as Map<String, dynamic>?;
-    final halaqaName = halaqa?['name'] as String? ?? 'الحلقة';
+    final halaqaName = ApiParsing.parseString(halaqa?['name'], 'الحلقة')!;
+    final rawFollowUps = ApiParsing.extractList(json['followUps']);
 
     return RecommendationModel(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      domain: json['domain'] as String?,
-      priority: json['priority'] as String? ?? 'MEDIUM',
-      status: json['status'] as String? ?? 'OPEN',
-      dueDate: json['dueDate'] as String?,
-      completedAt: json['completedAt'] as String?,
-      isOverdue: json['isOverdue'] as bool? ?? false,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      description: ApiParsing.parseString(json['description']) ?? '',
+      domain: ApiParsing.parseString(json['domain']),
+      priority: ApiParsing.parseString(json['priority'], 'MEDIUM')!,
+      status: ApiParsing.parseString(json['status'], 'OPEN')!,
+      dueDate: ApiParsing.parseString(json['dueDate']),
+      completedAt: ApiParsing.parseString(json['completedAt']),
+      isOverdue: ApiParsing.parseBool(json['isOverdue'], false)!,
       teacherName: teacherName,
       halaqaName: halaqaName,
-      followUps: (json['followUps'] as List?)
-              ?.map((f) => Map<String, dynamic>.from(f as Map))
-              .toList() ??
-          [],
+      followUps: rawFollowUps
+          .map((f) => Map<String, dynamic>.from(f as Map))
+          .toList(),
     );
   }
 }

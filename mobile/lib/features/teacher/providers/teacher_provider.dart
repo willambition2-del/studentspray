@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/sync/sync_service.dart';
+import '../../../core/utils/api_parsing.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/teacher_models.dart';
 
@@ -50,27 +51,54 @@ final teacherDashboardStatsProvider = FutureProvider<TeacherDashboardStats>((ref
   );
 });
 
-final teacherStudentsProvider = FutureProvider.autoDispose<List<WorkspaceStudent>>((ref) async {
-  final halaqas = await ref.watch(myHalaqasProvider.future);
-  final List<WorkspaceStudent> allStudents = [];
-  for (final halaqa in halaqas) {
-    try {
-      final workspace = await ref.watch(halaqaWorkspaceProvider(halaqa.id).future);
-      allStudents.addAll(workspace.students);
-    } catch (_) {}
-  }
+final teacherStudentsProvider = FutureProvider<List<WorkspaceStudent>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<WorkspaceStudent>>('teacher_students');
+  if (cached != null) return cached;
+
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/students', queryParameters: {'limit': 100});
+  final rawList = ApiParsing.extractList(response.data);
+
+  final List<WorkspaceStudent> allStudents = rawList.map((item) {
+    final map = item as Map<String, dynamic>;
+    final user = map['user'] as Map<String, dynamic>? ?? {};
+    return WorkspaceStudent(
+      studentId: ApiParsing.parseString(map['id']) ?? '',
+      studentNumber: ApiParsing.parseString(map['studentNumber']),
+      displayName: ApiParsing.parseString(user['displayName']) ??
+          ApiParsing.parseString(user['username']) ??
+          'طالب',
+      username: ApiParsing.parseString(user['username']) ?? '',
+      phone: ApiParsing.parseString(user['phone']),
+    );
+  }).toList();
+
+  sessionCache.setFeature<List<WorkspaceStudent>>('teacher_students', allStudents);
   return allStudents;
 });
 
 final studentProgressProvider =
-    FutureProvider.autoDispose.family<StudentProgressData, String>((ref, studentId) async {
+    FutureProvider.family<StudentProgressData, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'student_progress_$studentId';
+  final cached = sessionCache.getFeature<StudentProgressData>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/students/$studentId/progress');
-  return StudentProgressData.fromJson(response.data as Map<String, dynamic>);
+  final data = StudentProgressData.fromJson(response.data as Map<String, dynamic>);
+  sessionCache.setFeature<StudentProgressData>(cacheKey, data);
+  return data;
 });
 
 final studentFullHistoryProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'student_history_$studentId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
 
   Map<String, dynamic> progress = {};
@@ -85,61 +113,89 @@ final studentFullHistoryProvider =
 
   try {
     final res = await apiClient.get('/memorization', queryParameters: {'studentId': studentId});
-    if (res.data is List) memorizationList = res.data as List;
+    memorizationList = ApiParsing.extractList(res.data);
   } catch (_) {}
 
   try {
     final res = await apiClient.get('/revision', queryParameters: {'studentId': studentId});
-    if (res.data is List) revisionList = res.data as List;
+    revisionList = ApiParsing.extractList(res.data);
   } catch (_) {}
 
   try {
     final res = await apiClient.get('/student-evaluations', queryParameters: {'studentId': studentId});
-    if (res.data is List) evaluationsList = res.data as List;
+    evaluationsList = ApiParsing.extractList(res.data);
   } catch (_) {}
 
-  return {
+  final fullHistory = {
     'progress': progress,
     'memorization': memorizationList,
     'revision': revisionList,
     'evaluations': evaluationsList,
   };
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, fullHistory);
+  return fullHistory;
 });
 
-final teacherExamsProvider = FutureProvider.autoDispose<List<TeacherExamItem>>((ref) async {
+final teacherExamsProvider = FutureProvider<List<TeacherExamItem>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<TeacherExamItem>>('teacher_exams');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/exams');
-  final list = response.data as List? ?? [];
-  return list.map((item) => TeacherExamItem.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, TeacherExamItem.fromJson);
+  sessionCache.setFeature<List<TeacherExamItem>>('teacher_exams', items);
+  return items;
 });
 
 final teacherExamResultsProvider =
-    FutureProvider.autoDispose.family<List<TeacherExamResultItem>, String>((ref, examId) async {
+    FutureProvider.family<List<TeacherExamResultItem>, String>((ref, examId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'teacher_exam_results_$examId';
+  final cached = sessionCache.getFeature<List<TeacherExamResultItem>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/exams/$examId/results');
-  final list = response.data as List? ?? [];
-  return list.map((item) => TeacherExamResultItem.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, TeacherExamResultItem.fromJson);
+  sessionCache.setFeature<List<TeacherExamResultItem>>(cacheKey, items);
+  return items;
 });
 
-final teacherEvaluationsProvider = FutureProvider.autoDispose<List<TeacherEvaluationItem>>((ref) async {
+final teacherEvaluationsProvider = FutureProvider<List<TeacherEvaluationItem>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<TeacherEvaluationItem>>('teacher_evaluations');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/student-evaluations');
-  final list = response.data as List? ?? [];
-  return list.map((item) => TeacherEvaluationItem.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, TeacherEvaluationItem.fromJson);
+  sessionCache.setFeature<List<TeacherEvaluationItem>>('teacher_evaluations', items);
+  return items;
 });
 
-final teacherPlansProvider = FutureProvider.autoDispose<List<TeacherEducationalPlan>>((ref) async {
+final teacherPlansProvider = FutureProvider<List<TeacherEducationalPlan>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<TeacherEducationalPlan>>('teacher_plans');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/educational-plans');
-  final list = response.data as List? ?? [];
-  return list.map((item) => TeacherEducationalPlan.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, TeacherEducationalPlan.fromJson);
+  sessionCache.setFeature<List<TeacherEducationalPlan>>('teacher_plans', items);
+  return items;
 });
 
-final teacherAwardsListProvider = FutureProvider.autoDispose<List<TeacherAwardOption>>((ref) async {
+final teacherAwardsListProvider = FutureProvider<List<TeacherAwardOption>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<TeacherAwardOption>>('teacher_awards');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/awards');
-  final list = response.data as List? ?? [];
-  return list.map((item) => TeacherAwardOption.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, TeacherAwardOption.fromJson);
+  sessionCache.setFeature<List<TeacherAwardOption>>('teacher_awards', items);
+  return items;
 });
 
 final pendingMutationsCountProvider = FutureProvider.autoDispose<int>((ref) async {

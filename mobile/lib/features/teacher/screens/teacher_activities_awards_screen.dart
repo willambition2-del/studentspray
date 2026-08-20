@@ -31,8 +31,8 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
 
   @override
   Widget build(BuildContext context) {
-    final activitiesAsync = ref.watch(studentActivitiesProvider);
-    final competitionsAsync = ref.watch(studentCompetitionsProvider);
+    final activitiesAsync = ref.watch(generalActivitiesProvider);
+    final competitionsAsync = ref.watch(generalCompetitionsProvider);
     final awardsAsync = ref.watch(teacherAwardsListProvider);
 
     return Scaffold(

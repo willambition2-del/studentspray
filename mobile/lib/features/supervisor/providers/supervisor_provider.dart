@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/sync/sync_service.dart';
+import '../../../core/utils/api_parsing.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/supervisor_models.dart';
 
@@ -11,61 +12,103 @@ final supervisorDashboardProvider = FutureProvider<Map<String, dynamic>>((ref) a
   }
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/dashboard');
-  final dashboard = response.data as Map<String, dynamic>;
+  final dashboard = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
   sessionCache.setSupervisorDashboard(dashboard);
   return dashboard;
 });
 
 // Halaqas Provider
-final supervisorHalaqasProvider = FutureProvider.autoDispose<List<SupervisorHalaqa>>((ref) async {
+final supervisorHalaqasProvider = FutureProvider<List<SupervisorHalaqa>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<SupervisorHalaqa>>('supervisor_halaqas');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/halaqas');
-  final list = response.data as List;
-  return list.map((item) => SupervisorHalaqa.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, SupervisorHalaqa.fromJson);
+  sessionCache.setFeature<List<SupervisorHalaqa>>('supervisor_halaqas', items);
+  return items;
 });
 
 // Teachers Provider
-final supervisorTeachersProvider = FutureProvider.autoDispose<List<SupervisorTeacher>>((ref) async {
+final supervisorTeachersProvider = FutureProvider<List<SupervisorTeacher>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<SupervisorTeacher>>('supervisor_teachers');
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/teachers');
-  final list = response.data as List;
-  return list.map((item) => SupervisorTeacher.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, SupervisorTeacher.fromJson);
+  sessionCache.setFeature<List<SupervisorTeacher>>('supervisor_teachers', items);
+  return items;
 });
 
 // Teacher Detail Provider
 final supervisorTeacherDetailProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, teacherId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, teacherId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'supervisor_teacher_detail_$teacherId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/teachers/$teacherId');
-  return response.data as Map<String, dynamic>;
+  final data = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, data);
+  return data;
 });
 
 // Visits Provider
 final supervisorVisitsProvider =
-    FutureProvider.autoDispose.family<List<FieldVisitItem>, String?>((ref, status) async {
+    FutureProvider.family<List<FieldVisitItem>, String?>((ref, status) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'supervisor_visits_${status ?? "all"}';
+  final cached = sessionCache.getFeature<List<FieldVisitItem>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final query = status != null ? {'status': status} : null;
   final response = await apiClient.get('/supervisor/me/visits', queryParameters: query);
-  final items = (response.data as Map<String, dynamic>)['items'] as List;
-  return items.map((item) => FieldVisitItem.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, FieldVisitItem.fromJson);
+  sessionCache.setFeature<List<FieldVisitItem>>(cacheKey, items);
+  return items;
 });
 
 // Visit Workspace Provider
 final supervisorVisitWorkspaceProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, visitId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, visitId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'supervisor_visit_workspace_$visitId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/supervisor/me/visits/$visitId/workspace');
-  return response.data as Map<String, dynamic>;
+  final data = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, data);
+  return data;
 });
 
 // Recommendations Provider
 final supervisorRecommendationsProvider =
-    FutureProvider.autoDispose.family<List<RecommendationModel>, String?>((ref, status) async {
+    FutureProvider.family<List<RecommendationModel>, String?>((ref, status) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'supervisor_recommendations_${status ?? "all"}';
+  final cached = sessionCache.getFeature<List<RecommendationModel>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final query = status != null ? {'status': status} : null;
   final response = await apiClient.get('/supervisor/me/recommendations', queryParameters: query);
-  final items = (response.data as Map<String, dynamic>)['items'] as List;
-  return items.map((item) => RecommendationModel.fromJson(item as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, RecommendationModel.fromJson);
+  sessionCache.setFeature<List<RecommendationModel>>(cacheKey, items);
+  return items;
 });
 
 // Supervisor Controller / Action Notifier

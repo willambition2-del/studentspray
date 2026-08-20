@@ -6,3 +6,5 @@ dist/
 src/generated/prisma/
 *.log
 .local/
+*demo-four-months-accounts.txt
+*accounts.txt

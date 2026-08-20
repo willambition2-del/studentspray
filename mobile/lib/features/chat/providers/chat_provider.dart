@@ -37,10 +37,16 @@ final Provider<ChatService> chatServiceProvider = Provider<ChatService>((ref) {
   return service;
 });
 
-final AutoDisposeFutureProvider<List<ChatConversation>> chatConversationsProvider =
-    FutureProvider.autoDispose<List<ChatConversation>>((ref) async {
+final FutureProvider<List<ChatConversation>> chatConversationsProvider =
+    FutureProvider<List<ChatConversation>>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<List<ChatConversation>>('chat_conversations');
+  if (cached != null) return cached;
+
   final service = ref.watch(chatServiceProvider);
-  return service.getConversations();
+  final items = await service.getConversations();
+  sessionCache.setFeature<List<ChatConversation>>('chat_conversations', items);
+  return items;
 });
 
 final AutoDisposeFutureProviderFamily<List<ChatMessage>, String> chatMessagesProvider =

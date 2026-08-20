@@ -1,7 +1,9 @@
+import 'dotenv/config';
+
 process.env.NODE_ENV ??= 'test';
 process.env.PORT ??= '4000';
 process.env.HOST ??= '127.0.0.1';
-process.env.DATABASE_URL ??= 'postgresql://quran_forum:quran_forum_dev@127.0.0.1:55432/quran_forum?schema=public';
+process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/quran_forum?schema=public';
 process.env.REDIS_HOST ??= '127.0.0.1';
 process.env.REDIS_PORT ??= '56379';
 process.env.REDIS_DB ??= '0';

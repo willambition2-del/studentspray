@@ -21,7 +21,9 @@
     "demo:seed": "tsx scripts/seed-full-demo-forum.ts",
     "demo:verify": "tsx scripts/verify-full-demo-forum.ts",
     "demo:remove": "tsx scripts/remove-full-demo-forum.ts",
-    "demo:remove:dry": "tsx scripts/remove-full-demo-forum.ts --dry-run"
+    "demo:remove:dry": "tsx scripts/remove-full-demo-forum.ts --dry-run",
+    "seed:demo4m": "tsx scripts/seed-demo-four-months.ts",
+    "seed:demo4m:clean": "tsx scripts/clean-demo-four-months.ts"
   },
   "engines": {
     "node": ">=20.19"

@@ -44,4 +44,8 @@ backups/
 tmp/
 temp/
 .local/
+scratch/
+ter
+*demo-four-months-accounts.txt
+*accounts.txt
 

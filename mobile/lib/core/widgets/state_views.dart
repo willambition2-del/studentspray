@@ -36,8 +36,21 @@ class ErrorView extends StatelessWidget {
     this.onRetry,
   });
 
+  String _sanitizeMessage(String raw) {
+    if (raw.contains('is not a subtype of') ||
+        raw.contains('type cast') ||
+        raw.contains('NoSuchMethodError') ||
+        raw.contains('Null check operator') ||
+        raw.contains('Bad state')) {
+      debugPrint('[ErrorView Technical Trace]: $raw');
+      return 'تعذر معالجة البيانات، يرجى إعادة المحاولة';
+    }
+    return raw;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final displayMessage = _sanitizeMessage(message);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -51,7 +64,7 @@ class ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              message,
+              displayMessage,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,

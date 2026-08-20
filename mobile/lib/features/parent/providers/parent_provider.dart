@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/api_parsing.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../student/models/student_models.dart';
 import '../models/parent_models.dart';
@@ -16,7 +17,11 @@ final parentMobileHomeProvider = FutureProvider<ParentMobileHomeSnapshot>((ref) 
 
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/mobile-home');
-  final snapshot = ParentMobileHomeSnapshot.fromJson(response.data as Map<String, dynamic>);
+  final snapshot = ParentMobileHomeSnapshot.fromJson(
+    response.data is Map<String, dynamic>
+        ? response.data as Map<String, dynamic>
+        : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{}),
+  );
   sessionCache.setParentHome(snapshot);
 
   if (snapshot.children.isNotEmpty && ref.read(activeChildIdProvider) == null) {
@@ -45,76 +50,133 @@ final childDashboardProvider =
 
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/dashboard');
-  final dashboard = StudentDashboardModel.fromJson(response.data as Map<String, dynamic>);
+  final dashboard = StudentDashboardModel.fromJson(
+    response.data is Map<String, dynamic>
+        ? response.data as Map<String, dynamic>
+        : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{}),
+  );
   sessionCache.setChildDashboard(studentId, dashboard);
   return dashboard;
 });
 
 // Selected Child Educational Plan Provider
 final childPlanProvider =
-    FutureProvider.autoDispose.family<List<PlanSummaryModel>, String>((ref, studentId) async {
+    FutureProvider.family<List<PlanSummaryModel>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_plan_$studentId';
+  final cached = sessionCache.getFeature<List<PlanSummaryModel>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/plan');
-  final list = response.data as List;
-  return list.map((e) => PlanSummaryModel.fromJson(e as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, PlanSummaryModel.fromJson);
+  sessionCache.setFeature<List<PlanSummaryModel>>(cacheKey, items);
+  return items;
 });
 
 // Selected Child Attendance Provider
 final childAttendanceProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_attendance_$studentId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/attendance');
-  return response.data as Map<String, dynamic>;
+  final data = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, data);
+  return data;
 });
 
 // Selected Child Memorization Provider
 final childMemorizationProvider =
-    FutureProvider.autoDispose.family<List<dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<List<dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_memorization_$studentId';
+  final cached = sessionCache.getFeature<List<dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/memorization');
-  return response.data as List;
+  final data = ApiParsing.extractList(response.data);
+  sessionCache.setFeature<List<dynamic>>(cacheKey, data);
+  return data;
 });
 
 // Selected Child Revision Provider
 final childRevisionProvider =
-    FutureProvider.autoDispose.family<List<dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<List<dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_revision_$studentId';
+  final cached = sessionCache.getFeature<List<dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/revision');
-  return response.data as List;
+  final data = ApiParsing.extractList(response.data);
+  sessionCache.setFeature<List<dynamic>>(cacheKey, data);
+  return data;
 });
 
 // Selected Child Exams and Results Provider
 final childExamsProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_exams_$studentId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/exams');
-  final data = response.data as Map<String, dynamic>;
-  final upcoming = (data['upcomingExams'] as List? ?? [])
+  final data = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  final upcoming = ApiParsing.extractList(data['upcomingExams'])
       .map((e) => UpcomingExamModel.fromJson(e as Map<String, dynamic>))
       .toList();
-  final results = (data['results'] as List? ?? [])
+  final results = ApiParsing.extractList(data['results'])
       .map((r) => ExamResultModel.fromJson(r as Map<String, dynamic>))
       .toList();
 
-  return {
+  final examsMap = {
     'upcomingExams': upcoming,
     'results': results,
   };
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, examsMap);
+  return examsMap;
 });
 
 // Selected Child Periodic Evaluations Provider
 final childEvaluationsProvider =
-    FutureProvider.autoDispose.family<List<StudentEvaluationModel>, String>((ref, studentId) async {
+    FutureProvider.family<List<StudentEvaluationModel>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_evaluations_$studentId';
+  final cached = sessionCache.getFeature<List<StudentEvaluationModel>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/evaluations');
-  final list = response.data as List;
-  return list.map((e) => StudentEvaluationModel.fromJson(e as Map<String, dynamic>)).toList();
+  final items = ApiParsing.parseList(response.data, StudentEvaluationModel.fromJson);
+  sessionCache.setFeature<List<StudentEvaluationModel>>(cacheKey, items);
+  return items;
 });
 
 // Selected Child Cumulative Progress Provider
 final childProgressProvider =
-    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, studentId) async {
+    FutureProvider.family<Map<String, dynamic>, String>((ref, studentId) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cacheKey = 'child_progress_$studentId';
+  final cached = sessionCache.getFeature<Map<String, dynamic>>(cacheKey);
+  if (cached != null) return cached;
+
   final apiClient = ref.watch(apiClientProvider);
   final response = await apiClient.get('/parent/me/children/$studentId/progress');
-  return response.data as Map<String, dynamic>;
+  final data = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  sessionCache.setFeature<Map<String, dynamic>>(cacheKey, data);
+  return data;
 });

@@ -1,3 +1,5 @@
+import '../../../core/utils/api_parsing.dart';
+
 class StudentInfo {
   final String id;
   final String name;
@@ -17,12 +19,12 @@ class StudentInfo {
 
   factory StudentInfo.fromJson(Map<String, dynamic> json) {
     return StudentInfo(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      studentNumber: json['studentNumber'] as String?,
-      halaqaName: json['halaqaName'] as String? ?? 'غير محدد',
-      teacherName: json['teacherName'] as String? ?? 'غير محدد',
-      teacherPhone: json['teacherPhone'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? '',
+      studentNumber: ApiParsing.parseString(json['studentNumber']),
+      halaqaName: ApiParsing.parseString(json['halaqaName'], 'غير محدد')!,
+      teacherName: ApiParsing.parseString(json['teacherName'], 'غير محدد')!,
+      teacherPhone: ApiParsing.parseString(json['teacherPhone']),
     );
   }
 }
@@ -48,13 +50,13 @@ class PlanSummaryModel {
 
   factory PlanSummaryModel.fromJson(Map<String, dynamic> json) {
     return PlanSummaryModel(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? json['title'] as String? ?? 'الخطة التعليمية',
-      type: json['type'] as String? ?? 'HIFZ',
-      totalItems: (json['totalItems'] as num?)?.toInt() ?? 0,
-      completedItems: (json['completedItems'] as num?)?.toInt() ?? 0,
-      progressPercentage: (json['progressPercentage'] as num?)?.toDouble() ?? 0.0,
-      items: json['items'] as List? ?? [],
+      id: ApiParsing.parseString(json['id']) ?? '',
+      name: ApiParsing.parseString(json['name']) ?? ApiParsing.parseString(json['title'], 'الخطة التعليمية')!,
+      type: ApiParsing.parseString(json['type'], 'HIFZ')!,
+      totalItems: ApiParsing.parseInt(json['totalItems'], 0)!,
+      completedItems: ApiParsing.parseInt(json['completedItems'], 0)!,
+      progressPercentage: ApiParsing.parseDouble(json['progressPercentage'], 0.0)!,
+      items: ApiParsing.extractList(json['items']),
     );
   }
 }
@@ -78,12 +80,12 @@ class AttendanceSummaryModel {
 
   factory AttendanceSummaryModel.fromJson(Map<String, dynamic> json) {
     return AttendanceSummaryModel(
-      totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 0,
-      presentCount: (json['presentCount'] as num?)?.toInt() ?? 0,
-      absentCount: (json['absentCount'] as num?)?.toInt() ?? 0,
-      lateCount: (json['lateCount'] as num?)?.toInt() ?? 0,
-      excusedCount: (json['excusedCount'] as num?)?.toInt() ?? 0,
-      attendanceRate: (json['attendanceRate'] as num?)?.toDouble() ?? 100.0,
+      totalSessions: ApiParsing.parseInt(json['totalSessions'], 0)!,
+      presentCount: ApiParsing.parseInt(json['presentCount'], 0)!,
+      absentCount: ApiParsing.parseInt(json['absentCount'], 0)!,
+      lateCount: ApiParsing.parseInt(json['lateCount'], 0)!,
+      excusedCount: ApiParsing.parseInt(json['excusedCount'], 0)!,
+      attendanceRate: ApiParsing.parseDouble(json['attendanceRate'], 100.0)!,
     );
   }
 }
@@ -107,12 +109,12 @@ class UpcomingExamModel {
 
   factory UpcomingExamModel.fromJson(Map<String, dynamic> json) {
     return UpcomingExamModel(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      examType: json['examType'] as String? ?? 'MONTHLY',
-      scheduledDate: json['scheduledDate'] as String?,
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 100.0,
-      passScore: (json['passScore'] as num?)?.toDouble(),
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      examType: ApiParsing.parseString(json['examType'], 'MONTHLY')!,
+      scheduledDate: ApiParsing.parseString(json['scheduledDate']),
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 100.0)!,
+      passScore: ApiParsing.parseDouble(json['passScore']),
     );
   }
 }
@@ -148,18 +150,18 @@ class ExamResultModel {
 
   factory ExamResultModel.fromJson(Map<String, dynamic> json) {
     return ExamResultModel(
-      id: json['id'] as String? ?? '',
-      examId: json['examId'] as String?,
-      examTitle: json['examTitle'] as String? ?? 'اختبار',
-      examType: json['examType'] as String? ?? 'MONTHLY',
-      score: (json['score'] as num?)?.toDouble() ?? 0.0,
-      maxScore: (json['maxScore'] as num?)?.toDouble() ?? 100.0,
-      passScore: (json['passScore'] as num?)?.toDouble(),
-      percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
-      isPassed: json['isPassed'] as bool? ?? false,
-      status: json['status'] as String? ?? 'ENTERED',
-      notes: json['notes'] as String?,
-      date: json['date'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      examId: ApiParsing.parseString(json['examId']),
+      examTitle: ApiParsing.parseString(json['examTitle'], 'اختبار')!,
+      examType: ApiParsing.parseString(json['examType'], 'MONTHLY')!,
+      score: ApiParsing.parseDouble(json['score'], 0.0)!,
+      maxScore: ApiParsing.parseDouble(json['maxScore'], 100.0)!,
+      passScore: ApiParsing.parseDouble(json['passScore']),
+      percentage: ApiParsing.parseDouble(json['percentage'], 0.0)!,
+      isPassed: ApiParsing.parseBool(json['isPassed'], false)!,
+      status: ApiParsing.parseString(json['status'], 'ENTERED')!,
+      notes: ApiParsing.parseString(json['notes']),
+      date: ApiParsing.parseString(json['date']),
     );
   }
 }
@@ -191,16 +193,16 @@ class StudentEvaluationModel {
 
   factory StudentEvaluationModel.fromJson(Map<String, dynamic> json) {
     return StudentEvaluationModel(
-      id: json['id'] as String? ?? '',
-      period: json['period'] as String?,
-      evaluationDate: json['evaluationDate'] as String? ?? '',
-      behaviorScore: (json['behaviorScore'] as num?)?.toDouble(),
-      discipline: (json['discipline'] as num?)?.toDouble(),
-      participation: (json['participation'] as num?)?.toDouble(),
-      overallScore: (json['overallScore'] as num?)?.toDouble(),
-      rating: json['rating'] as String? ?? 'VERY_GOOD',
-      teacherNotes: json['teacherNotes'] as String?,
-      actionLabel: json['actionLabel'] as String?,
+      id: ApiParsing.parseString(json['id']) ?? '',
+      period: ApiParsing.parseString(json['period']),
+      evaluationDate: ApiParsing.parseString(json['evaluationDate']) ?? '',
+      behaviorScore: ApiParsing.parseDouble(json['behaviorScore']),
+      discipline: ApiParsing.parseDouble(json['discipline']),
+      participation: ApiParsing.parseDouble(json['participation']),
+      overallScore: ApiParsing.parseDouble(json['overallScore']),
+      rating: ApiParsing.parseString(json['rating'], 'VERY_GOOD')!,
+      teacherNotes: ApiParsing.parseString(json['teacherNotes']),
+      actionLabel: ApiParsing.parseString(json['actionLabel']),
     );
   }
 }
@@ -229,15 +231,15 @@ class StudentDashboardModel {
   factory StudentDashboardModel.fromJson(Map<String, dynamic> json) {
     final rawMem = json['memorization'] as Map<String, dynamic>?;
     final rawRev = json['revision'] as Map<String, dynamic>?;
-    final rawUpcoming = json['upcomingExams'] as List? ?? [];
-    final rawResults = json['recentResults'] as List? ?? [];
+    final rawUpcoming = ApiParsing.extractList(json['upcomingExams']);
+    final rawResults = ApiParsing.extractList(json['recentResults']);
 
     return StudentDashboardModel(
       student: StudentInfo.fromJson(json['student'] as Map<String, dynamic>? ?? {}),
       plan: json['plan'] != null ? PlanSummaryModel.fromJson(json['plan'] as Map<String, dynamic>) : null,
       attendance: AttendanceSummaryModel.fromJson(json['attendance'] as Map<String, dynamic>? ?? {}),
-      totalMemorizations: (rawMem?['totalRecords'] as num?)?.toInt() ?? 0,
-      totalRevisions: (rawRev?['totalRecords'] as num?)?.toInt() ?? 0,
+      totalMemorizations: ApiParsing.parseInt(rawMem?['totalRecords'], 0)!,
+      totalRevisions: ApiParsing.parseInt(rawRev?['totalRecords'], 0)!,
       upcomingExams: rawUpcoming.map((e) => UpcomingExamModel.fromJson(e as Map<String, dynamic>)).toList(),
       recentResults: rawResults.map((r) => ExamResultModel.fromJson(r as Map<String, dynamic>)).toList(),
       latestEvaluation: json['latestEvaluation'] != null

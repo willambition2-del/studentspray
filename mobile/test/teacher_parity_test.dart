@@ -224,7 +224,7 @@ void main() {
     await tester.pumpWidget(createTestWidget(
       const TeacherActivitiesAwardsScreen(),
       overrides: [
-        studentActivitiesProvider.overrideWith((ref) => Future.value([
+        generalActivitiesProvider.overrideWith((ref) => Future.value([
           ActivityItem(
             id: 'act1',
             title: 'دورة أحكام النون الساكنة',
@@ -233,7 +233,7 @@ void main() {
             startsAt: DateTime.now(),
           ),
         ])),
-        studentCompetitionsProvider.overrideWith((ref) => Future.value([])),
+        generalCompetitionsProvider.overrideWith((ref) => Future.value([])),
         teacherAwardsListProvider.overrideWith((ref) => Future.value([
           const TeacherAwardOption(
             id: 'aw1',
