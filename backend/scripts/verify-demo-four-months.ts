@@ -138,6 +138,80 @@ export async function verifyDemoFourMonths() {
   if (counts.branches !== 3) throw new Error(`Expected 3 branches, got ${counts.branches}`);
   if (counts.studentGuardians !== 150) throw new Error(`Expected 150 guardian linkages, got ${counts.studentGuardians}`);
 
+  // Orphan checks:
+  const orphanStudents = await prisma.studentProfile.count({
+    where: { user: { forumId }, guardians: { none: {} } },
+  });
+  if (orphanStudents > 0) throw new Error(`Found ${orphanStudents} orphan students without guardians`);
+
+  const totalGuardians = await prisma.studentGuardian.count({
+    where: { student: { user: { forumId } } },
+  });
+  const validParentGuardians = await prisma.studentGuardian.count({
+    where: { student: { user: { forumId } }, parent: { user: { forumId } } },
+  });
+  if (totalGuardians !== validParentGuardians) {
+    throw new Error(`Orphan guardian relations found: ${totalGuardians - validParentGuardians}`);
+  }
+
+  const totalHalaqaMembers = await prisma.halaqaMember.count({
+    where: { halaqa: { forumId } },
+  });
+  const validHalaqaMembers = await prisma.halaqaMember.count({
+    where: { halaqa: { forumId }, student: { user: { forumId } } },
+  });
+  if (totalHalaqaMembers !== validHalaqaMembers) {
+    throw new Error(`Orphan halaqa members found: ${totalHalaqaMembers - validHalaqaMembers}`);
+  }
+
+  const totalAwards = await prisma.studentAward.count({
+    where: { award: { forumId } },
+  });
+  const validAwards = await prisma.studentAward.count({
+    where: { award: { forumId }, student: { user: { forumId } } },
+  });
+  if (totalAwards !== validAwards) {
+    throw new Error(`Orphan awards found: ${totalAwards - validAwards}`);
+  }
+
+  const totalActPart = await prisma.activityParticipant.count({
+    where: { activity: { forumId } },
+  });
+  const validActPart = await prisma.activityParticipant.count({
+    where: { activity: { forumId }, student: { user: { forumId } } },
+  });
+  if (totalActPart !== validActPart) {
+    throw new Error(`Orphan activity participants found: ${totalActPart - validActPart}`);
+  }
+
+  const totalConvMembers = await prisma.conversationMember.count({
+    where: { conversation: { forumId } },
+  });
+  const validConvMembers = await prisma.conversationMember.count({
+    where: { conversation: { forumId }, user: { forumId } },
+  });
+  if (totalConvMembers !== validConvMembers) {
+    throw new Error(`Orphan conversation members found: ${totalConvMembers - validConvMembers}`);
+  }
+
+  const totalChatMsgs = await prisma.chatMessage.count({
+    where: { conversation: { forumId } },
+  });
+  const validChatMsgs = await prisma.chatMessage.count({
+    where: { conversation: { forumId }, sender: { forumId } },
+  });
+  if (totalChatMsgs !== validChatMsgs) {
+    throw new Error(`Orphan chat messages found: ${totalChatMsgs - validChatMsgs}`);
+  }
+
+  console.log('  • Orphan Students without Guardians   : 0');
+  console.log('  • Orphan Guardian Relations           : 0');
+  console.log('  • Orphan Halaqa Memberships           : 0');
+  console.log('  • Orphan Granted Awards               : 0');
+  console.log('  • Orphan Activity Participants        : 0');
+  console.log('  • Orphan Conversation Memberships     : 0');
+  console.log('  • Orphan Chat Messages                : 0');
+
   // 3. Check Teacher Demo Account Snapshot
   const teacherUser = await prisma.user.findFirst({
     where: { forumId, username: 'demo_teacher' },
