@@ -77,6 +77,7 @@ class ChatMessage {
   final String? clientMessageId;
   final String type;
   final String text;
+  final Map<String, dynamic>? metadata;
   final DateTime createdAt;
 
   const ChatMessage({
@@ -88,6 +89,7 @@ class ChatMessage {
     this.clientMessageId,
     this.type = 'TEXT',
     required this.text,
+    this.metadata,
     required this.createdAt,
   });
 
@@ -101,6 +103,7 @@ class ChatMessage {
       clientMessageId: json['clientMessageId'] as String?,
       type: json['type'] as String? ?? 'TEXT',
       text: json['text'] as String? ?? '',
+      metadata: json['metadata'] as Map<String, dynamic>?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),

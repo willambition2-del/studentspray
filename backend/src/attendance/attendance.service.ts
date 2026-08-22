@@ -103,6 +103,7 @@ export class AttendanceService {
             },
             update: {
               status: record.status,
+              arrivalTime: record.arrivalTime ? new Date(record.arrivalTime) : (record.status === AttendanceStatus.PRESENT || record.status === AttendanceStatus.LATE ? new Date() : null),
               notes: record.notes,
               recordedById: user.id,
               recordedAt: new Date(),
@@ -111,6 +112,7 @@ export class AttendanceService {
               sessionId: session.id,
               studentId: record.studentId,
               status: record.status,
+              arrivalTime: record.arrivalTime ? new Date(record.arrivalTime) : (record.status === AttendanceStatus.PRESENT || record.status === AttendanceStatus.LATE ? new Date() : null),
               notes: record.notes,
               recordedById: user.id,
             },
@@ -187,6 +189,7 @@ export class AttendanceService {
           },
           update: {
             status: record.status,
+            arrivalTime: record.arrivalTime ? new Date(record.arrivalTime) : (record.status === AttendanceStatus.PRESENT || record.status === AttendanceStatus.LATE ? new Date() : null),
             notes: record.notes,
             recordedById: user.id,
             recordedAt: new Date(),
@@ -195,6 +198,7 @@ export class AttendanceService {
             sessionId: session.id,
             studentId: record.studentId,
             status: record.status,
+            arrivalTime: record.arrivalTime ? new Date(record.arrivalTime) : (record.status === AttendanceStatus.PRESENT || record.status === AttendanceStatus.LATE ? new Date() : null),
             notes: record.notes,
             recordedById: user.id,
           },

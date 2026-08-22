@@ -38,6 +38,7 @@ import { ActivitiesModule } from "./activities/activities.module";
 import { CompetitionsModule } from "./competitions/competitions.module";
 import { AwardsModule } from "./awards/awards.module";
 import { ShelfModule } from "./shelf/shelf.module";
+import { AttachmentsModule } from "./common/attachments.module";
 import { AdministrativeModule } from "./administrative/administrative.module";
 import { ReportsModule } from "./reports/reports.module";
 
@@ -54,6 +55,7 @@ import { ReportsModule } from "./reports/reports.module";
     AuditModule,
     NotificationsModule,
     ChatModule,
+    AttachmentsModule,
     ActivitiesModule,
     CompetitionsModule,
     AwardsModule,

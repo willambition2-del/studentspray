@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
 import '../../../core/utils/quran_data.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../models/teacher_models.dart';
 import '../providers/teacher_provider.dart';
@@ -17,16 +21,19 @@ class HalaqaDetailScreen extends ConsumerWidget {
     final workspaceAsync = ref.watch(halaqaWorkspaceProvider(halaqaId));
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('مساحة عمل الحلقة'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
             onPressed: () => ref.invalidate(halaqaWorkspaceProvider(halaqaId)),
           ),
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async => ref.invalidate(halaqaWorkspaceProvider(halaqaId)),
         child: workspaceAsync.when(
           data: (workspace) {
@@ -35,163 +42,190 @@ class HalaqaDetailScreen extends ConsumerWidget {
             final students = workspace.students;
 
             return ListView(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               children: [
                 // Halaqa Overview Card
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.dividerColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(8),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              halaqa.name,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryDark,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentGold.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'رمز: ${halaqa.code}',
-                              style: const TextStyle(
-                                color: AppTheme.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${halaqa.branchName} • جلسة: ${workspace.todayDate}',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                      ),
-                      const SizedBox(height: 16),
-                      // Attendance CTA
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          context.push('/teacher/halaqas/$halaqaId/attendance');
-                        },
-                        icon: const Icon(Icons.how_to_reg_rounded),
-                        label: const Text('تسجيل حضور طلاب اليوم'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Active Plan Card (if available)
-                if (plan != null) ...[
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withAlpha(12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.primary.withAlpha(40)),
-                    ),
-                    child: Row(
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ModernCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.assignment_outlined, color: AppTheme.primary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'الخطة التعليمية المعتمدة للحلقة',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                              Text(
-                                plan['name'] as String? ?? 'خطة الحفظ',
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                halaqa.name,
                                 style: const TextStyle(
-                                  fontSize: 15,
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryDark,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                            ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGoldSoft,
+                                borderRadius: BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                'رمز: ${halaqa.code}',
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  color: AppColors.accentGoldDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${halaqa.branchName} • جلسة: ${workspace.todayDate}',
+                          style: AppTypography.secondary,
+                        ),
+                        const SizedBox(height: 14),
+                        // Attendance CTA
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            context.push('/teacher/halaqas/$halaqaId/attendance');
+                          },
+                          icon: const Icon(Icons.fact_check_outlined, size: 18),
+                          label: const Text('تسجيل حضور جلسة اليوم'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            minimumSize: const Size(double.infinity, 44),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+                const SizedBox(height: 16),
 
-                // Students Section Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'قائمة الطلاب (${students.length})',
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
+                // Active Educational Plan Card
+                if (plan != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ModernCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'الخطة التعليمية: ${plan["name"] ?? ""}',
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft,
+                                  borderRadius: BorderRadius.circular(AppRadius.full),
+                                ),
+                                child: Text(
+                                  plan["type"]?.toString() ?? 'خطة تفصيلية',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.fontFamily,
+                                    color: AppColors.primaryDark,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (plan['items'] is List && (plan['items'] as List).isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            const Divider(height: 1),
+                            const SizedBox(height: 10),
+                            ...(plan['items'] as List).take(3).map((rawItem) {
+                              final item = rawItem is Map ? rawItem : {};
+                              final surahNum = item['surahNumber'] as int?;
+                              final surahName = QuranData.getSurahName(surahNum);
+                              final isCompleted = item['status'] == 'COMPLETED';
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isCompleted
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      size: 16,
+                                      color: isCompleted
+                                          ? AppColors.statusPresent
+                                          : AppColors.textMuted,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        surahNum != null
+                                            ? 'سورة $surahName (من ${item["fromAyah"] ?? 1} إلى ${item["toAyah"] ?? 10})'
+                                            : 'مقرر جزء ${item["juzNumber"] ?? 1}',
+                                        style: AppTypography.body.copyWith(fontSize: 13),
+                                      ),
+                                    ),
+                                    Text(
+                                      isCompleted ? 'مكتمل' : 'قيد المتابعة',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.fontFamily,
+                                        fontSize: 11,
+                                        color: isCompleted
+                                            ? AppColors.statusPresent
+                                            : AppColors.textSecondary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
+
+                // Students In Halaqa
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SectionHeader(
+                    title: 'طلاب الحلقة (${students.length})',
+                    icon: Icons.people_outline,
                   ),
                 ),
+                const SizedBox(height: 4),
 
-                if (students.isEmpty)
-                  const EmptyStateView(
-                    title: 'لا يوجد طلاب مسجلين في هذه الحلقة',
-                    subtitle: 'تواصل مع الإدارة لإلحاق الطلاب بالحلقة',
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      final student = students[index];
-                      return _buildStudentCard(context, student);
-                    },
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: students.map((student) {
+                      return _buildStudentRow(context, student);
+                    }).toList(),
                   ),
+                ),
               ],
             );
           },
-          loading: () => const LoadingView(message: 'جاري تحميل مساحة العمل...'),
+          loading: () => const LoadingView(message: 'جاري تحميل مساحة الحلقة...'),
           error: (err, _) => ErrorView(
             message: err.toString(),
             onRetry: () => ref.invalidate(halaqaWorkspaceProvider(halaqaId)),
@@ -201,154 +235,159 @@ class HalaqaDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStudentCard(BuildContext context, WorkspaceStudent student) {
-    Color badgeBg;
-    Color badgeText;
-    String badgeLabel;
+  Widget _buildStudentRow(BuildContext context, WorkspaceStudent student) {
+    Color statusColor;
+    Color statusBg;
+    String statusText;
 
     switch (student.todayAttendanceStatus) {
       case 'PRESENT':
-        badgeBg = AppTheme.statusPresent.withAlpha(25);
-        badgeText = AppTheme.statusPresent;
-        badgeLabel = 'حاضر';
+        statusColor = AppColors.statusPresent;
+        statusBg = AppColors.statusPresentBg;
+        statusText = 'حاضر';
         break;
       case 'ABSENT':
-        badgeBg = AppTheme.statusAbsent.withAlpha(25);
-        badgeText = AppTheme.statusAbsent;
-        badgeLabel = 'غائب';
+        statusColor = AppColors.statusAbsent;
+        statusBg = AppColors.statusAbsentBg;
+        statusText = 'غائب';
         break;
       case 'LATE':
-        badgeBg = AppTheme.statusLate.withAlpha(25);
-        badgeText = AppTheme.statusLate;
-        badgeLabel = 'متأخر';
+        statusColor = AppColors.statusLate;
+        statusBg = AppColors.statusLateBg;
+        statusText = 'متأخر';
         break;
       case 'EXCUSED':
-        badgeBg = AppTheme.statusExcused.withAlpha(25);
-        badgeText = AppTheme.statusExcused;
-        badgeLabel = 'معذور';
+        statusColor = AppColors.statusExcused;
+        statusBg = AppColors.statusExcusedBg;
+        statusText = 'معذور';
         break;
       default:
-        badgeBg = Colors.grey.withAlpha(25);
-        badgeText = Colors.grey.shade700;
-        badgeLabel = 'لم يُسجل';
+        statusColor = AppColors.textSecondary;
+        statusBg = AppColors.surfaceMuted;
+        statusText = 'لم يرصد';
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Student Title & Attendance Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        student.displayName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      if (student.studentNumber != null)
-                        Text(
-                          'رقم الطالب: ${student.studentNumber}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textMuted,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    badgeLabel,
-                    style: TextStyle(
-                      color: badgeText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: AppTheme.dividerColor),
-            const SizedBox(height: 12),
+    final initial = student.displayName.isNotEmpty ? student.displayName[0] : 'ط';
 
-            // Recitation Today Status
-            if (student.todayMemorization != null) ...[
-              Row(
-                children: [
-                  const Icon(Icons.check_circle_outline, color: AppTheme.primary, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    'حفظ اليوم: سورة ${QuranData.getSurahName(student.todayMemorization!['surahNumber'] as int?)} (${student.todayMemorization!['fromAyah']}-${student.todayMemorization!['toAyah']}) • درجة: ${student.todayMemorization!['evaluationScore'] ?? 100}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.primaryDark),
+    return ModernCard(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: AppColors.primaryDark,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      student.displayName,
+                      style: AppTypography.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      student.studentNumber ?? 'STU-2026',
+                      style: AppTypography.label,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
-
-            // Action Buttons Row
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      context.push(
-                        '/teacher/students/${student.studentId}/memorization?halaqaId=$halaqaId&name=${Uri.encodeComponent(student.displayName)}',
-                      );
-                    },
-                    icon: const Icon(Icons.record_voice_over_outlined, size: 16),
-                    label: const Text('تسميع حفظ', style: TextStyle(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      context.push(
-                        '/teacher/students/${student.studentId}/revision?halaqaId=$halaqaId&name=${Uri.encodeComponent(student.displayName)}',
-                      );
-                    },
-                    icon: const Icon(Icons.repeat_rounded, size: 16),
-                    label: const Text('مراجعة', style: TextStyle(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.bar_chart_rounded, color: AppTheme.primary),
-                  tooltip: 'سجل تقدم الطالب',
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          // Recitation action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: () {
                     context.push(
-                      '/teacher/students/${student.studentId}/progress?name=${Uri.encodeComponent(student.displayName)}',
+                      '/teacher/halaqas/$halaqaId/memorization?studentId=${student.studentId}&name=${Uri.encodeComponent(student.displayName)}',
                     );
                   },
+                  icon: const Icon(Icons.menu_book_outlined, size: 14),
+                  label: const Text('تسميع حفظ', style: TextStyle(fontSize: 11.5)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    minimumSize: const Size(0, 34),
+                  ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    context.push(
+                      '/teacher/halaqas/$halaqaId/revision?studentId=${student.studentId}&name=${Uri.encodeComponent(student.displayName)}',
+                    );
+                  },
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: const Text('مراجعة وتثبيت', style: TextStyle(fontSize: 11.5)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    minimumSize: const Size(0, 34),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              InkWell(
+                onTap: () {
+                  context.push(
+                    '/teacher/students/${student.studentId}/progress?name=${Uri.encodeComponent(student.displayName)}',
+                  );
+                },
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(Icons.analytics_outlined, size: 16, color: AppColors.primaryDark),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

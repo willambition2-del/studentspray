@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/quick_action_item.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
@@ -15,6 +20,7 @@ class StudentHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('بوابة الطالب القرآني'),
         actions: const [
@@ -43,7 +49,8 @@ class _StudentChatBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadChat > 0,
         label: Text('$unreadChat'),
-        child: const Icon(Icons.chat_bubble_outline_rounded),
+        backgroundColor: AppColors.error,
+        child: const Icon(Icons.chat_bubble_outline),
       ),
       tooltip: 'المحادثات',
       onPressed: () => context.push('/chat'),
@@ -61,6 +68,7 @@ class _StudentNotificationBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadNotifs > 0,
         label: Text('$unreadNotifs'),
+        backgroundColor: AppColors.error,
         child: const Icon(Icons.notifications_outlined),
       ),
       tooltip: 'الإشعارات',
@@ -75,7 +83,7 @@ class _StudentRefreshAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      icon: const Icon(Icons.refresh_rounded),
+      icon: const Icon(Icons.refresh),
       tooltip: 'تحديث البيانات',
       onPressed: () {
         ref.read(sessionCacheServiceProvider).clearStudentDashboard();
@@ -91,20 +99,31 @@ class _StudentLogoutAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      icon: const Icon(Icons.logout_rounded),
+      icon: const Icon(Icons.logout),
       tooltip: 'تسجيل الخروج',
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('تسجيل الخروج'),
-            content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+            title: const Text(
+              'تسجيل الخروج',
+              style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
+              style: AppTypography.body,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('إلغاء'),
               ),
-              FilledButton(
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('خروج'),
               ),
@@ -160,32 +179,53 @@ class _StudentHomeBody extends ConsumerWidget {
                 ],
 
                 // 5. Overall Progress analytics summary
-                Card(
-                  elevation: 0,
-                  color: Colors.blueGrey.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.blueGrey.shade200),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
+                ModernCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('مؤشرات الإنجاز والتميز', style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text('سجل تفصيلي لتقدمك في الحفظ والالتزام', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                            Text(
+                              'مؤشرات الإنجاز والتميز',
+                              style: TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.5,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'سجل تفصيلي لتقدمك في الحفظ والالتزام',
+                              style: AppTypography.label,
+                            ),
                           ],
                         ),
-                        FilledButton.tonal(
-                          onPressed: () => context.push('/student/progress'),
-                          child: const Text('عرض المؤشرات'),
+                      ),
+                      InkWell(
+                        onTap: () => context.push('/student/progress'),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: const Text(
+                            'عرض المؤشرات',
+                            style: TextStyle(
+                              fontFamily: AppTypography.fontFamily,
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12.5,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ]),
@@ -193,12 +233,7 @@ class _StudentHomeBody extends ConsumerWidget {
           ),
         ],
       ),
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      loading: () => const LoadingView(message: 'جاري تحميل لوحة الطالب...'),
       error: (err, stack) => ErrorView(
         message: 'تعذر تحميل بيانات لوحة الطالب',
         onRetry: () => ref.refresh(studentDashboardProvider),
@@ -214,89 +249,125 @@ class _StudentHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: const Icon(Icons.person, color: Colors.white, size: 30),
+    final initial = data.student.name.isNotEmpty ? data.student.name[0] : 'ط';
+
+    return ModernCard(
+      backgroundColor: AppColors.primaryDark,
+      borderColor: Colors.transparent,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data.student.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.student.name,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      const SizedBox(height: 4),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'الحلقة: ${data.student.halaqaName}',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        color: AppColors.accentGoldSoft,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (data.latestEvaluation != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGoldSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.star, color: AppColors.accentGoldDark, size: 16),
+                      SizedBox(width: 4),
                       Text(
-                        'الحلقة: ${data.student.halaqaName}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(204),
-                            ),
+                        'متميز',
+                        style: TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          color: AppColors.accentGoldDark,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                if (data.latestEvaluation != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade700,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          'متميز',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'المعلم: ${data.student.teacherName}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'المعلم: ${data.student.teacherName}',
+                style: const TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: data.attendance.attendanceRate >= 90 ? Colors.green.shade700 : Colors.amber.shade800,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'حضور: ${data.attendance.attendanceRate.toStringAsFixed(0)}%',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: data.attendance.attendanceRate >= 90
+                      ? AppColors.statusPresentBg
+                      : AppColors.statusLateBg,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  'حضور: ${data.attendance.attendanceRate.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: data.attendance.attendanceRate >= 90
+                        ? AppColors.statusPresent
+                        : AppColors.statusLate,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11.5,
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -309,178 +380,387 @@ class _StudentPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return ModernCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'الخطة التعليمية الحالية',
+                style: AppTypography.titleMedium,
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.arrow_forward_ios, size: 12),
+                label: const Text('تفاصيل الخطة'),
+                onPressed: () => context.push('/student/plan'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            plan.name,
+            style: AppTypography.bodyMedium,
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: LinearProgressIndicator(
+              value: (plan.progressPercentage / 100).clamp(0.0, 1.0),
+              backgroundColor: AppColors.surfaceMuted,
+              color: AppColors.primary,
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'المكتمل: ${plan.completedItems} من ${plan.totalItems}',
+                style: AppTypography.label,
+              ),
+              Text(
+                '${plan.progressPercentage.toStringAsFixed(1)}%',
+                style: AppTypography.labelBold.copyWith(color: AppColors.primary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StudentQuickActionsSection extends ConsumerWidget {
+  const _StudentQuickActionsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'الخدمات والأقسام',
+          icon: Icons.grid_view,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: QuickActionItem(
+                title: 'سجل التسميع',
+                subtitle: 'الحفظ والمراجعة',
+                icon: Icons.menu_book_outlined,
+                iconColor: AppColors.secondary,
+                iconBgColor: AppColors.secondarySoft,
+                onTap: () => context.push('/student/recitation'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: QuickActionItem(
+                title: 'الحضور والغياب',
+                subtitle: 'سجل الحضور',
+                icon: Icons.fact_check_outlined,
+                iconColor: AppColors.statusPresent,
+                iconBgColor: AppColors.statusPresentBg,
+                onTap: () => context.push('/student/attendance'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: QuickActionItem(
+                title: 'الاختبارات والنتائج',
+                subtitle: 'نتائج الاختبارات',
+                icon: Icons.assignment_turned_in_outlined,
+                iconColor: const Color(0xFF7C3AED),
+                iconBgColor: const Color(0xFFF3E8FF),
+                onTap: () => context.push('/student/exams'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: QuickActionItem(
+                title: 'التقييمات الدورية',
+                subtitle: 'التقييم السلوكي',
+                icon: Icons.star_outline,
+                iconColor: const Color(0xFFD97706),
+                iconBgColor: const Color(0xFFFEF3C7),
+                onTap: () => context.push('/student/evaluations'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: QuickActionItem(
+                title: 'الأنشطة والفعاليات',
+                subtitle: 'البرامج والرحلات',
+                icon: Icons.event_available_outlined,
+                iconColor: Colors.blue.shade700,
+                iconBgColor: const Color(0xFFE0F2FE),
+                onTap: () => context.push('/student/activities'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: QuickActionItem(
+                title: 'المسابقات والنتائج',
+                subtitle: 'لوحة التنافس',
+                icon: Icons.emoji_events_outlined,
+                iconColor: const Color(0xFF9333EA),
+                iconBgColor: const Color(0xFFFAF5FF),
+                onTap: () => context.push('/student/competitions'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: QuickActionItem(
+                title: 'لوحة الأوسمة',
+                subtitle: 'أوسمة التميز',
+                icon: Icons.emoji_events_outlined,
+                iconColor: AppColors.accentGoldDark,
+                iconBgColor: AppColors.accentGoldSoft,
+                onTap: () => context.push('/student/awards'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: QuickActionItem(
+                title: 'التواصل والمقترحات',
+                subtitle: 'المساعد الذكي والمقترحات',
+                icon: Icons.contact_support_outlined,
+                iconColor: const Color(0xFF0D9488),
+                iconBgColor: const Color(0xFFCCFBF1),
+                onTap: () => _showStudentCommunicationHub(context, ref),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: QuickActionItem(
+                title: 'الرف العام',
+                subtitle: 'المقالات والمصادر',
+                icon: Icons.library_books_outlined,
+                iconColor: AppColors.primary,
+                iconBgColor: AppColors.primarySoft,
+                onTap: () => context.push('/shelf'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: QuickActionItem(
+                title: 'محادثة المعلم',
+                subtitle: 'التواصل المباشر',
+                icon: Icons.chat_outlined,
+                iconColor: const Color(0xFF6366F1),
+                iconBgColor: const Color(0xFFEEF2FF),
+                onTap: () => context.push('/chat'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showStudentCommunicationHub(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'الخطة التعليمية الحالية',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                const Text(
+                  'مركز التواصل والمقترحات الطلابية',
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.arrow_forward_ios, size: 14),
-                  label: const Text('تفاصيل الخطة'),
-                  onPressed: () => context.push('/student/plan'),
-                ),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              plan.name,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.assignment_turned_in, color: Color(0xFF6366F1)),
+              ),
+              title: const Text('تسليم واجب / ملاحظة تسميع'),
+              subtitle: const Text('إرسال استفسار أو إجابة تكليف إلى معلم الحلقة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showTaskResponseDialog(context, ref);
+              },
             ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: plan.progressPercentage / 100,
-              backgroundColor: Colors.grey.shade200,
-              color: AppTheme.primary,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
+            const Divider(),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.lightbulb_outline, color: Color(0xFFD97706)),
+              ),
+              title: const Text('تقديم مقترح تطويري للحلقة'),
+              subtitle: const Text('شارك أفكارك ومقترحاتك لتعزيز بيئة الحلقة القرآنية'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showProposalDialog(context, ref);
+              },
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'المكتمل: ${plan.completedItems} من ${plan.totalItems}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                Text(
-                  '${plan.progressPercentage.toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                      ),
-                ),
-              ],
+            const Divider(),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFFFE4E6), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.event_busy, color: Color(0xFFE11D48)),
+              ),
+              title: const Text('إرسال إشعار عذر غياب'),
+              subtitle: const Text('إشعار مسبق لمعلم الحلقة وإدارة الفرع'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/student/attendance');
+              },
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _StudentQuickActionsSection extends StatelessWidget {
-  const _StudentQuickActionsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'الخدمات والأقسام',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Column(
+  void _showTaskResponseDialog(BuildContext context, WidgetRef ref) {
+    final textController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تسليم واجب / إشعار المعلم'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'سجل التسميع',
-                    subtitle: 'الحفظ والمراجعة',
-                    icon: Icons.menu_book_rounded,
-                    color: Colors.teal,
-                    onTap: () => context.push('/student/recitation'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'الحضور والغياب',
-                    subtitle: 'سجل الحضور',
-                    icon: Icons.fact_check_rounded,
-                    color: Colors.indigo,
-                    onTap: () => context.push('/student/attendance'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'الاختبارات والنتائج',
-                    subtitle: 'نتائج الاختبارات',
-                    icon: Icons.assignment_turned_in_rounded,
-                    color: Colors.deepOrange,
-                    onTap: () => context.push('/student/exams'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'التقييمات الدورية',
-                    subtitle: 'التقييم السلوكي',
-                    icon: Icons.grade_rounded,
-                    color: Colors.amber.shade800,
-                    onTap: () => context.push('/student/evaluations'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'الأنشطة والفعاليات',
-                    subtitle: 'البرامج والرحلات',
-                    icon: Icons.event_available_rounded,
-                    color: Colors.blue.shade700,
-                    onTap: () => context.push('/student/activities'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'المسابقات والنتائج',
-                    subtitle: 'لوحة التنافس',
-                    icon: Icons.emoji_events_rounded,
-                    color: Colors.purple.shade700,
-                    onTap: () => context.push('/student/competitions'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'لوحة الأوسمة',
-                    subtitle: 'أوسمة التميز',
-                    icon: Icons.workspace_premium_rounded,
-                    color: Colors.amber.shade900,
-                    onTap: () => context.push('/student/awards'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _QuickNavCard(
-                    title: 'الرف العام',
-                    subtitle: 'المقالات والمصادر',
-                    icon: Icons.menu_book_rounded,
-                    color: Colors.teal.shade700,
-                    onTap: () => context.push('/shelf'),
-                  ),
-                ),
-              ],
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
+                labelText: 'اكتب نص الإجابة أو الاستفسار *',
+                border: OutlineInputBorder(),
+                hintText: 'تمت مراجعة سورة البقرة من الآية 1 إلى 50...',
+              ),
+              maxLines: 4,
             ),
           ],
         ),
-      ],
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            onPressed: () async {
+              if (textController.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                final apiClient = ref.read(apiClientProvider);
+                await apiClient.post('/student/me/homework-submissions', data: {
+                  'taskTitle': 'واجب يومي',
+                  'content': textController.text.trim(),
+                });
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✓ تم تسليم إجابتك وتكليفك وحفظه في السيرفر بنجاح'), backgroundColor: AppColors.statusPresent),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تعذر تسليم الواجب: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text('إرسال'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProposalDialog(BuildContext context, WidgetRef ref) {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تقديم مقترح تطويري'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'عنوان المقترح *', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: contentController,
+              decoration: const InputDecoration(labelText: 'تفاصيل الفكرة والمقترح *', border: OutlineInputBorder()),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D9488), foregroundColor: Colors.white),
+            onPressed: () async {
+              if (titleController.text.trim().isEmpty || contentController.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                final apiClient = ref.read(apiClientProvider);
+                await apiClient.post('/student/me/proposals', data: {
+                  'title': titleController.text.trim(),
+                  'description': contentController.text.trim(),
+                });
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✓ شكراً لمشاركتك! تم رفع مقترحك واعتماده في السيرفر بنجاح'), backgroundColor: Color(0xFF0D9488)),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تعذر رفع المقترح: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text('رفع المقترح'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -495,84 +775,47 @@ class _StudentUpcomingExamsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'الاختبارات القادمة',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        const SectionHeader(
+          title: 'الاختبارات القادمة',
+          icon: Icons.event_note,
         ),
         const SizedBox(height: 8),
         ...upcomingExams.map(
-          (e) => Card(
+          (e) => ModernCard(
             margin: const EdgeInsets.only(bottom: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.deepOrange.shade100,
-                child: Icon(Icons.event_note, color: Colors.deepOrange.shade800),
-              ),
-              title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(e.scheduledDate != null ? 'الموعد: ${e.scheduledDate}' : 'الدرجة القصوى: ${e.maxScore}'),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () => context.push('/student/exams'),
+            padding: const EdgeInsets.all(12),
+            onTap: () => context.push('/student/exams'),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(Icons.event_note, color: Color(0xFF7C3AED), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(e.title, style: AppTypography.bodyMedium),
+                      const SizedBox(height: 2),
+                      Text(
+                        e.scheduledDate != null ? 'الموعد: ${e.scheduledDate}' : 'الدرجة القصوى: ${e.maxScore}',
+                        style: AppTypography.label,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_left, size: 18, color: AppColors.textMuted),
+              ],
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _QuickNavCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickNavCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withAlpha(38),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

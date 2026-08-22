@@ -72,69 +72,6 @@ import {
 } from './lib/api/roles';
 import { getDashboardSummary } from './lib/api/reports';
 
-const LEGACY_SEARCH_USERS = [
-  {
-    id: 'u-1',
-    name: 'الشيخ عبدالرحمن بن محمد السعيد',
-    username: 'admin',
-    email: 'hgh357790@gmail.com',
-    type: 'admin',
-    roleName: 'المدير العام',
-    description: 'يمتلك الصلاحيات المطلقة لمراقبة كافة المجمعات والفروع وإدارة القرارات والنسخ الاحتياطي.',
-    avatar: '👨‍💼'
-  },
-  {
-    id: 'u-2',
-    name: 'الأستاذ خالد بن عبدالله النفيسي',
-    username: 'khalid_n',
-    email: 'khalid.n@alhudacenter.org',
-    type: 'branch_manager',
-    roleName: 'المدير التنفيذي',
-    description: 'مشرف الفروع الرئيسي، مخوّل بمتابعة كفاءة المدرسين، تسكين الحلقات، وإقرار الاعتمادات بالفروع.',
-    avatar: '👨‍💼'
-  },
-  {
-    id: 'u-3',
-    name: 'الأستاذ محمد بن فهد الدوسري',
-    username: 'm_dosari',
-    email: 'm.fهد@alhudacenter.org',
-    type: 'supervisor',
-    roleName: 'الموجه الفني التربوي',
-    description: 'مكلف بالزيارات الميدانية، تقييم مستويات التسميع والتجويد، وتنمية الكفاءة التربوية للمدرسين.',
-    avatar: '👨‍🏫'
-  },
-  {
-    id: 'u-4',
-    name: 'الأستاذ عمر بن عبدالعزيز التركي',
-    username: 'omar_t',
-    email: 'omar.t@alhudacenter.org',
-    type: 'teacher',
-    roleName: 'مدرس حلقة عاصم',
-    description: 'يسجل حضور وغياب الطلاب بشكل يومي، ويدخل مقادير التسميع والمراجعة والدرجات التحصيلية.',
-    avatar: '👳'
-  },
-  {
-    id: 'u-5',
-    name: 'الأستاذ صالح بن سليمان العويّد',
-    username: 'saleh_o',
-    email: 'saleh.o@gmail.com',
-    type: 'parent',
-    roleName: 'ولي أمر الطالب',
-    description: 'يتابع إنجازات ابنه معاذ، غيابه، درجاته اليومية، تواصله مع المعلم، ويتلقى التنبيهات التربوية السريعة.',
-    avatar: '🧔'
-  },
-  {
-    id: 'u-stu',
-    name: 'الطالب معاذ بن خالد بن عبدالله النفيسي',
-    username: 'moaz_n',
-    email: 'moaz.n@alhudacenter.org',
-    type: 'student',
-    roleName: 'الطالب المتميز بالحلقة',
-    description: 'الحساب المخصص للطالب لاستعراض خطته التسميعية اليومية، أوسمته المكتسبة، وطلب الدعم الاستباقي.',
-    avatar: '🎓'
-  }
-];
-
 export const canViewStrategicDashboard = (user: any) => {
   if (!user) return false;
   if (user.type === 'admin' || user.type === 'branch_manager') return true;
@@ -1193,7 +1130,7 @@ export default function App() {
         currentUser={currentUser}
         currentContextTab={activeTab}
         onNavigateToTab={(tabId) => setActiveTab(tabId)}
-        demoUsers={LEGACY_SEARCH_USERS}
+        demoUsers={users}
       />
     </div>
   );

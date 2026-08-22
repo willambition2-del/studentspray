@@ -181,6 +181,7 @@ class _RecommendationDetailScreenState
                           border: OutlineInputBorder(),
                         ),
                         items: const [
+                          DropdownMenuItem(value: 'OPEN', child: Text('إعادة فتح التوصية (OPEN)')),
                           DropdownMenuItem(value: 'IN_PROGRESS', child: Text('قيد المعالجة (IN_PROGRESS)')),
                           DropdownMenuItem(value: 'COMPLETED', child: Text('تم الإنجاز وإغلاق التوصية (COMPLETED)')),
                           DropdownMenuItem(value: 'CANCELLED', child: Text('إلغاء التوصية (CANCELLED)')),

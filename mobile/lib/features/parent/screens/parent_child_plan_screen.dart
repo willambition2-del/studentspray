@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/parent_provider.dart';
 
@@ -14,6 +18,7 @@ class ParentChildPlanScreen extends ConsumerWidget {
     final planAsync = ref.watch(childPlanProvider(studentId));
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('الخطة التعليمية للابن'),
       ),
@@ -31,59 +36,75 @@ class ParentChildPlanScreen extends ConsumerWidget {
           final items = plan.items;
 
           return RefreshIndicator(
+            color: AppColors.primary,
             onRefresh: () async => ref.refresh(childPlanProvider(studentId).future),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // Header Plan Card
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
+                ModernCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
                               plan.name,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                              style: AppTypography.titleMedium,
                             ),
-                            Chip(
-                              label: Text(plan.type == 'HIFZ' ? 'حفظ جديد' : 'مراجعة'),
-                              backgroundColor: AppTheme.primaryLight.withAlpha(50),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primarySoft,
+                              borderRadius: BorderRadius.circular(AppRadius.full),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: plan.progressPercentage / 100,
-                          backgroundColor: Colors.grey.shade200,
-                          color: AppTheme.primary,
-                          minHeight: 10,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('المنجز: ${plan.completedItems} من ${plan.totalItems} مستهدف'),
-                            Text(
-                              '${plan.progressPercentage.toStringAsFixed(1)}%',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+                            child: Text(
+                              plan.type == 'HIFZ' ? 'حفظ جديد' : 'مراجعة',
+                              style: const TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                color: AppColors.primaryDark,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                              ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        child: LinearProgressIndicator(
+                          value: (plan.progressPercentage / 100).clamp(0.0, 1.0),
+                          backgroundColor: AppColors.surfaceMuted,
+                          color: AppColors.primary,
+                          minHeight: 6,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'المنجز: ${plan.completedItems} من ${plan.totalItems} مستهدف',
+                            style: AppTypography.label,
+                          ),
+                          Text(
+                            '${plan.progressPercentage.toStringAsFixed(1)}%',
+                            style: AppTypography.labelBold.copyWith(color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'المقررات والمستهدفات',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                const SectionHeader(
+                  title: 'المقررات والمستهدفات',
+                  icon: Icons.menu_book_outlined,
                 ),
                 const SizedBox(height: 8),
 
@@ -94,43 +115,56 @@ class ParentChildPlanScreen extends ConsumerWidget {
                   final fromAyah = item['fromAyah'];
                   final toAyah = item['toAyah'];
 
-                  return Card(
+                  return ModernCard(
                     margin: const EdgeInsets.only(bottom: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isCompleted ? Colors.green.shade100 : Colors.amber.shade100,
-                        child: Icon(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(
                           isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                          color: isCompleted ? Colors.green.shade800 : Colors.amber.shade800,
+                          color: isCompleted ? AppColors.statusPresent : AppColors.textMuted,
+                          size: 20,
                         ),
-                      ),
-                      title: Text(
-                        surahNumber != null ? 'سورة رقم $surahNumber (الآيات $fromAyah - $toAyah)' : 'مقرر تعليمي',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
-                        ),
-                      ),
-                      subtitle: Text(item['notes'] as String? ?? (isCompleted ? 'مكتمل' : 'قيد الإنجاز')),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isCompleted ? Colors.green.shade50 : Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isCompleted ? Colors.green.shade300 : Colors.amber.shade300,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                surahNumber != null ? 'سورة رقم $surahNumber (الآيات $fromAyah - $toAyah)' : 'مقرر تعليمي',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isCompleted ? AppColors.textSecondary : AppColors.textPrimary,
+                                  decoration: isCompleted ? TextDecoration.lineThrough : null,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item['notes'] as String? ?? (isCompleted ? 'مكتمل' : 'قيد الإنجاز'),
+                                style: AppTypography.label,
+                              ),
+                            ],
                           ),
                         ),
-                        child: Text(
-                          isCompleted ? 'تم الإنجاز' : 'مستهدف',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isCompleted ? Colors.green.shade800 : Colors.amber.shade800,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isCompleted ? AppColors.statusPresentBg : AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Text(
+                            isCompleted ? 'تم الإنجاز' : 'مستهدف',
+                            style: TextStyle(
+                              fontFamily: AppTypography.fontFamily,
+                              fontSize: 11,
+                              color: isCompleted ? AppColors.statusPresent : AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   );
                 }),

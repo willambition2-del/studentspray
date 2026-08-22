@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/teacher_provider.dart';
 
@@ -13,10 +16,12 @@ class HalaqasListScreen extends ConsumerWidget {
     final halaqasAsync = ref.watch(myHalaqasProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('جميع الحلقات المكلف بها'),
       ),
       body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async => ref.invalidate(myHalaqasProvider),
         child: halaqasAsync.when(
           data: (halaqas) {
@@ -28,42 +33,54 @@ class HalaqasListScreen extends ConsumerWidget {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.all(16),
               itemCount: halaqas.length,
               itemBuilder: (context, index) {
                 final halaqa = halaqas[index];
-                return Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    leading: CircleAvatar(
-                      backgroundColor: AppTheme.primary.withAlpha(25),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        color: AppTheme.primary,
+                return ModernCard(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  onTap: () => context.push('/teacher/halaqas/${halaqa.id}'),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: const Icon(
+                          Icons.group_outlined,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
                       ),
-                    ),
-                    title: Text(
-                      halaqa.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              halaqa.name,
+                              style: AppTypography.bodyMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${halaqa.branchName} • الرمز: ${halaqa.code} • ${halaqa.studentsCount} طالب',
+                              style: AppTypography.secondary,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        '${halaqa.branchName} • الرمز: ${halaqa.code} • ${halaqa.studentsCount} طالب',
-                        style: const TextStyle(color: AppTheme.textSecondary),
+                      const Icon(
+                        Icons.arrow_back_ios,
+                        size: 14,
+                        color: AppColors.textMuted,
                       ),
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_left_rounded,
-                      color: AppTheme.primary,
-                    ),
-                    onTap: () => context.push('/teacher/halaqas/${halaqa.id}'),
+                    ],
                   ),
                 );
               },

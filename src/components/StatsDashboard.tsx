@@ -143,6 +143,7 @@ export default function StatsDashboard({
         {activeTabMenu === 'overview' && (
           <div className="animate-fade-in" id="viewport-overview">
             <ExecutiveSummaryView 
+              stats={stats}
               onNavigateToTab={(index) => {
                 const tabsMapping: Record<number, 'overview' | 'educational' | 'teachers' | 'timeline' | 'reports'> = {
                   0: 'overview',

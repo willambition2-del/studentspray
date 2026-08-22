@@ -3,8 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class TokenStorage {
   final FlutterSecureStorage _secureStorage;
 
-  // In-memory access token
+  // In-memory access token & refresh token cache
   String? _accessToken;
+  String? _inMemoryRefreshToken;
 
   static const String _kRefreshTokenKey = 'qf_mobile_refresh_token';
   static const String _kLastUserIdKey = 'qf_last_user_id';
@@ -22,23 +23,44 @@ class TokenStorage {
   }
 
   Future<void> saveRefreshToken(String token) async {
-    await _secureStorage.write(key: _kRefreshTokenKey, value: token);
+    _inMemoryRefreshToken = token;
+    try {
+      await _secureStorage.write(key: _kRefreshTokenKey, value: token);
+    } catch (_) {
+      // In-memory token preserved even if disk write fails
+    }
   }
 
   Future<String?> getRefreshToken() async {
-    return await _secureStorage.read(key: _kRefreshTokenKey);
+    if (_inMemoryRefreshToken != null) return _inMemoryRefreshToken;
+    try {
+      final token = await _secureStorage.read(key: _kRefreshTokenKey);
+      if (token != null) _inMemoryRefreshToken = token;
+      return token;
+    } catch (_) {
+      return _inMemoryRefreshToken;
+    }
   }
 
   Future<void> saveLastUserId(String userId) async {
-    await _secureStorage.write(key: _kLastUserIdKey, value: userId);
+    try {
+      await _secureStorage.write(key: _kLastUserIdKey, value: userId);
+    } catch (_) {}
   }
 
   Future<String?> getLastUserId() async {
-    return await _secureStorage.read(key: _kLastUserIdKey);
+    try {
+      return await _secureStorage.read(key: _kLastUserIdKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clearAll() async {
     _accessToken = null;
-    await _secureStorage.delete(key: _kRefreshTokenKey);
+    _inMemoryRefreshToken = null;
+    try {
+      await _secureStorage.delete(key: _kRefreshTokenKey);
+    } catch (_) {}
   }
 }

@@ -180,3 +180,11 @@ final childProgressProvider =
   sessionCache.setFeature<Map<String, dynamic>>(cacheKey, data);
   return data;
 });
+
+// Parent Requests and Tracking Provider
+final parentRequestsProvider = FutureProvider.autoDispose<List<ParentRequestModel>>((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/parent/me/requests');
+  final list = ApiParsing.extractList(response.data);
+  return list.map((item) => ParentRequestModel.fromJson(item as Map<String, dynamic>)).toList();
+});

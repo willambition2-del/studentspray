@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../models/supervisor_models.dart';
 import '../providers/supervisor_provider.dart';
+import '../../../core/utils/file_export_util.dart';
 
 class VisitWorkspaceScreen extends ConsumerStatefulWidget {
   final String visitId;
@@ -42,6 +43,87 @@ class _VisitWorkspaceScreenState extends ConsumerState<VisitWorkspaceScreen> {
     }
   }
 
+  void _exportVisitReport(FieldVisitItem visit) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'تقرير الزيارة الميدانية والتقييم',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'الزيارة: ${visit.visitNumber} • الحلقة: ${visit.halaqaName} • المعلم: ${visit.teacherName}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.teal.shade200),
+              ),
+              child: Text(
+                'الدرجة الإجمالية: ${visit.evaluationScore ?? "قيد التنفيذ"} • الحالة: ${visit.status}\n'
+                'جاهز للتصدير والمشاركة مع الإدارة والمعلم.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal.shade900),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade800,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('تصدير تقرير الزيارة بصيغة PDF / طباعة', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    final res = await FileExportUtil.exportVisitReportPdf(visit);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('✓ تم حفظ تقرير الزيارة: ${res.fileName} (${res.formattedSize})'),
+                        backgroundColor: Colors.teal,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('تعذر تصدير تقرير الزيارة: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final workspaceAsync = ref.watch(supervisorVisitWorkspaceProvider(widget.visitId));
@@ -50,6 +132,17 @@ class _VisitWorkspaceScreenState extends ConsumerState<VisitWorkspaceScreen> {
       appBar: AppBar(
         title: const Text('مساحة تحضير وتنفيذ الزيارة'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.print_outlined),
+            tooltip: 'تصدير تقرير الزيارة',
+            onPressed: () {
+              final data = workspaceAsync.valueOrNull;
+              if (data != null && data['visit'] is Map) {
+                final visit = FieldVisitItem.fromJson(data['visit'] as Map<String, dynamic>);
+                _exportVisitReport(visit);
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.invalidate(supervisorVisitWorkspaceProvider(widget.visitId)),

@@ -37,10 +37,9 @@ void main() {
   testWidgets('LoginScreen renders inputs and action button', (WidgetTester tester) async {
     await tester.pumpWidget(createTestApp(const LoginScreen()));
 
-    expect(find.text('الملتقى القرآني'), findsOneWidget);
-    expect(find.text('تسجيل الدخول إلى حساب المعلم'), findsOneWidget);
-    expect(find.text('معرف الملتقى (Slug)'), findsOneWidget);
-    expect(find.text('دخول'), findsOneWidget);
+    expect(find.text('ملتقى القرآن'), findsOneWidget);
+    expect(find.text('منصة إدارة ومتابعة الحلقات القرآنية'), findsOneWidget);
+    expect(find.text('تسجيل الدخول'), findsOneWidget);
   });
 
   testWidgets('UnsupportedRoleScreen renders courteous message and role prompt', (WidgetTester tester) async {

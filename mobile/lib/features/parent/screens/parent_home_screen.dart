@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/quick_action_item.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
@@ -15,6 +20,7 @@ class ParentHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('بوابة ولي الأمر — الملتقى القرآني'),
         actions: const [
@@ -43,7 +49,8 @@ class _ParentChatBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadChat > 0,
         label: Text('$unreadChat'),
-        child: const Icon(Icons.chat_bubble_outline_rounded),
+        backgroundColor: AppColors.error,
+        child: const Icon(Icons.chat_bubble_outline),
       ),
       tooltip: 'المحادثات',
       onPressed: () => context.push('/chat'),
@@ -61,6 +68,7 @@ class _ParentNotificationBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadNotifs > 0,
         label: Text('$unreadNotifs'),
+        backgroundColor: AppColors.error,
         child: const Icon(Icons.notifications_outlined),
       ),
       tooltip: 'الإشعارات',
@@ -75,7 +83,7 @@ class _ParentRefreshAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      icon: const Icon(Icons.refresh_rounded),
+      icon: const Icon(Icons.refresh),
       tooltip: 'تحديث البيانات',
       onPressed: () {
         ref.read(sessionCacheServiceProvider).clearParentHome();
@@ -91,20 +99,31 @@ class _ParentLogoutAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      icon: const Icon(Icons.logout_rounded),
+      icon: const Icon(Icons.logout),
       tooltip: 'تسجيل الخروج',
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('تسجيل الخروج'),
-            content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+            title: const Text(
+              'تسجيل الخروج',
+              style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
+              style: AppTypography.body,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('إلغاء'),
               ),
-              FilledButton(
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('خروج'),
               ),
@@ -138,7 +157,7 @@ class _ParentHomeBody extends ConsumerWidget {
           return const EmptyStateView(
             title: 'لا يوجد أبناء مرتبطين بحسابك',
             subtitle: 'يرجى التواصل مع إدارة المجمع القرآني لربط بيانات الأبناء برقم الهوية أو الهاتف',
-            icon: Icons.family_restroom,
+            icon: Icons.people_outline,
           );
         }
 
@@ -158,66 +177,69 @@ class _ParentHomeBody extends ConsumerWidget {
                   // 1. Multi-Child Horizontal Switcher
                   Text(
                     'الأبناء والمنتسبين (${children.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: AppTypography.titleMedium,
                   ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 48,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: children.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (ctx, i) {
-                    final child = children[i];
-                    final isSelected = child.id == currentChildId;
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 42,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: children.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (ctx, i) {
+                        final child = children[i];
+                        final isSelected = child.id == currentChildId;
 
-                    return FilterChip(
-                      selected: isSelected,
-                      showCheckmark: false,
-                      avatar: CircleAvatar(
-                        backgroundColor: isSelected ? Colors.white : AppTheme.primary,
-                        child: Icon(
-                          Icons.person,
-                          size: 14,
-                          color: isSelected ? AppTheme.primary : Colors.white,
-                        ),
-                      ),
-                      label: Text(
-                        child.name,
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? Colors.white : AppTheme.textPrimary,
-                        ),
-                      ),
-                      selectedColor: AppTheme.primary,
-                      backgroundColor: Colors.grey.shade100,
-                      onSelected: (_) {
-                        ref.read(activeChildIdProvider.notifier).state = child.id;
+                        return ChoiceChip(
+                          selected: isSelected,
+                          showCheckmark: false,
+                          avatar: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: isSelected ? Colors.white : AppColors.primarySoft,
+                            child: Icon(
+                              Icons.person_outline,
+                              size: 12,
+                              color: isSelected ? AppColors.primary : AppColors.primaryDark,
+                            ),
+                          ),
+                          label: Text(child.name),
+                          labelStyle: TextStyle(
+                            fontFamily: AppTypography.fontFamily,
+                            fontSize: 12.5,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected ? Colors.white : AppColors.textPrimary,
+                          ),
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            side: BorderSide(
+                              color: isSelected ? AppColors.primary : AppColors.border,
+                              width: 0.8,
+                            ),
+                          ),
+                          onSelected: (_) {
+                            ref.read(activeChildIdProvider.notifier).state = child.id;
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-              // 2. Active Child Header Card
-              _ActiveChildHeaderCard(child: currentChild),
-              const SizedBox(height: 16),
+                  // 2. Active Child Header Card
+                  _ActiveChildHeaderCard(child: currentChild),
+                  const SizedBox(height: 16),
 
-              // 3. Active Child Dashboard Content
-              _ActiveChildDashboardSection(currentChildId: currentChildId, childName: currentChild.name),
+                  // 3. Active Child Dashboard Content
+                  _ActiveChildDashboardSection(currentChildId: currentChildId, childName: currentChild.name),
                 ]),
               ),
             ),
           ],
         );
       },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      loading: () => const LoadingView(message: 'جاري تحميل بيانات الأبناء...'),
       error: (err, stack) => ErrorView(
         message: 'تعذر تحميل قائمة الأبناء',
         onRetry: () => ref.refresh(parentChildrenProvider),
@@ -233,70 +255,101 @@ class _ActiveChildHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: const Icon(Icons.school, color: Colors.white, size: 28),
+    final initial = child.name.isNotEmpty ? child.name[0] : 'ط';
+
+    return ModernCard(
+      backgroundColor: AppColors.primaryDark,
+      borderColor: Colors.transparent,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        child.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      child.name,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'الحلقة: ${child.halaqaName} • الصلة: ${child.relationship}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer.withAlpha(204),
-                            ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'الحلقة: ${child.halaqaName} • الصلة: ${child.relationship}',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        color: AppColors.accentGoldSoft,
+                        fontSize: 12.5,
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'المعلم: ${child.teacherName}',
+                style: const TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: child.attendanceRate >= 90
+                      ? AppColors.statusPresentBg
+                      : AppColors.statusLateBg,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  'حضور: ${child.attendanceRate.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: child.attendanceRate >= 90
+                        ? AppColors.statusPresent
+                        : AppColors.statusLate,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11.5,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'المعلم: ${child.teacherName}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: child.attendanceRate >= 90 ? Colors.green.shade700 : Colors.amber.shade800,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'حضور: ${child.attendanceRate.toStringAsFixed(0)}%',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -321,240 +374,234 @@ class _ActiveChildDashboardSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (dash.plan != null) ...[
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'الخطة التعليمية للابن',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        TextButton.icon(
-                          icon: const Icon(Icons.arrow_forward_ios, size: 14),
-                          label: const Text('التفاصيل'),
-                          onPressed: () => context.push('/parent/children/$currentChildId/plan'),
-                        ),
-                      ],
+            ModernCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'الخطة التعليمية للابن',
+                        style: AppTypography.titleMedium,
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.arrow_forward_ios, size: 12),
+                        label: const Text('التفاصيل'),
+                        onPressed: () => context.push('/parent/children/$currentChildId/plan'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    dash.plan!.name,
+                    style: AppTypography.bodyMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    child: LinearProgressIndicator(
+                      value: (dash.plan!.progressPercentage / 100).clamp(0.0, 1.0),
+                      backgroundColor: AppColors.surfaceMuted,
+                      color: AppColors.primary,
+                      minHeight: 6,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      dash.plan!.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: dash.plan!.progressPercentage / 100,
-                      backgroundColor: Colors.grey.shade200,
-                      color: AppTheme.primary,
-                      minHeight: 8,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('المنجز: ${dash.plan!.completedItems} من ${dash.plan!.totalItems}'),
-                        Text(
-                          '${dash.plan!.progressPercentage.toStringAsFixed(1)}%',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'المنجز: ${dash.plan!.completedItems} من ${dash.plan!.totalItems}',
+                        style: AppTypography.label,
+                      ),
+                      Text(
+                        '${dash.plan!.progressPercentage.toStringAsFixed(1)}%',
+                        style: AppTypography.labelBold.copyWith(color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
           ],
 
           // Quick Navigation Grid
-          Text(
-            'متابعة مستوى الابن',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          const SectionHeader(
+            title: 'متابعة مستوى الابن',
+            icon: Icons.analytics_outlined,
           ),
           const SizedBox(height: 10),
-          Column(
+
+          // 2x3 Action Cards Grid
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'سجل التسميع',
-                      subtitle: '${dash.totalMemorizations} حفظ • ${dash.totalRevisions} مراجعة',
-                      icon: Icons.menu_book_rounded,
-                      color: Colors.teal,
-                      onTap: () => context.push('/parent/children/$currentChildId/recitation'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'الحضور والغياب',
-                      subtitle: '${dash.attendance.attendanceRate.toStringAsFixed(1)}% نسبة الحضور',
-                      icon: Icons.fact_check_rounded,
-                      color: Colors.indigo,
-                      onTap: () => context.push('/parent/children/$currentChildId/attendance'),
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: QuickActionItem(
+                  title: 'سجل التسميع',
+                  subtitle: '${dash.totalMemorizations} حفظ • ${dash.totalRevisions} مراجعة',
+                  icon: Icons.menu_book_outlined,
+                  iconColor: AppColors.secondary,
+                  iconBgColor: AppColors.secondarySoft,
+                  onTap: () => context.push('/parent/children/$currentChildId/recitation'),
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'الاختبارات والنتائج',
-                      subtitle: '${dash.recentResults.length} نتائج معتمدة',
-                      icon: Icons.assignment_turned_in_rounded,
-                      color: Colors.deepOrange,
-                      onTap: () => context.push('/parent/children/$currentChildId/exams'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'التقييمات الدورية',
-                      subtitle: dash.latestEvaluation?.rating ?? 'عرض التقييمات',
-                      icon: Icons.grade_rounded,
-                      color: Colors.amber.shade800,
-                      onTap: () => context.push('/parent/children/$currentChildId/evaluations'),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: QuickActionItem(
+                  title: 'الحضور والغياب',
+                  subtitle: '${dash.attendance.attendanceRate.toStringAsFixed(1)}% نسبة الحضور',
+                  icon: Icons.fact_check_outlined,
+                  iconColor: AppColors.statusPresent,
+                  iconBgColor: AppColors.statusPresentBg,
+                  onTap: () => context.push('/parent/children/$currentChildId/attendance'),
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'الأنشطة والجوائز',
-                      subtitle: 'المسابقات والأوسمة',
-                      icon: Icons.workspace_premium_rounded,
-                      color: Colors.purple.shade700,
-                      onTap: () => context.push(
-                        '/parent/children/$currentChildId/activities-awards?name=${Uri.encodeComponent(childName)}',
-                      ),
-                    ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: QuickActionItem(
+                  title: 'الاختبارات والنتائج',
+                  subtitle: '${dash.recentResults.length} نتائج معتمدة',
+                  icon: Icons.assignment_turned_in_outlined,
+                  iconColor: const Color(0xFF7C3AED),
+                  iconBgColor: const Color(0xFFF3E8FF),
+                  onTap: () => context.push('/parent/children/$currentChildId/exams'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: QuickActionItem(
+                  title: 'التقييمات الدورية',
+                  subtitle: dash.latestEvaluation?.rating ?? 'عرض التقييمات',
+                  icon: Icons.star_outline,
+                  iconColor: const Color(0xFFD97706),
+                  iconBgColor: const Color(0xFFFEF3C7),
+                  onTap: () => context.push('/parent/children/$currentChildId/evaluations'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: QuickActionItem(
+                  title: 'الأنشطة والجوائز',
+                  subtitle: 'المسابقات والأوسمة',
+                  icon: Icons.emoji_events_outlined,
+                  iconColor: AppColors.accentGoldDark,
+                  iconBgColor: AppColors.accentGoldSoft,
+                  onTap: () => context.push(
+                    '/parent/children/$currentChildId/activities-awards?name=${Uri.encodeComponent(childName)}',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickNavCard(
-                      title: 'الرف العام',
-                      subtitle: 'المقالات والمصادر',
-                      icon: Icons.menu_book_rounded,
-                      color: Colors.teal.shade700,
-                      onTap: () => context.push('/shelf'),
-                    ),
-                  ),
-                ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: QuickActionItem(
+                  title: 'الرف العام',
+                  subtitle: 'المقالات والمصادر',
+                  icon: Icons.library_books_outlined,
+                  iconColor: AppColors.primary,
+                  iconBgColor: AppColors.primarySoft,
+                  onTap: () => context.push('/shelf'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: QuickActionItem(
+                  title: 'مركز الطلبات',
+                  subtitle: 'الدعم والمواعيد والتواصل',
+                  icon: Icons.contact_support_outlined,
+                  iconColor: const Color(0xFF0D9488),
+                  iconBgColor: const Color(0xFFCCFBF1),
+                  onTap: () => context.push('/parent/requests'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: QuickActionItem(
+                  title: 'محادثة المعلم',
+                  subtitle: 'التواصل المباشر',
+                  icon: Icons.chat_outlined,
+                  iconColor: const Color(0xFF6366F1),
+                  iconBgColor: const Color(0xFFEEF2FF),
+                  onTap: () => context.push('/chat'),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
 
           // Cumulative Progress Banner
-          Card(
-            elevation: 0,
-            color: Colors.blueGrey.shade50,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.blueGrey.shade200),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+          ModernCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('تقرير الإنجاز الشامل', style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('مؤشرات الأداء التراكمية ومستوى التميز', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                      const Text(
+                        'تقرير الإنجاز الشامل',
+                        style: TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14.5,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'مؤشرات الأداء التراكمية ومستوى التميز',
+                        style: AppTypography.label,
+                      ),
                     ],
                   ),
-                  FilledButton.tonal(
-                    onPressed: () => context.push('/parent/children/$currentChildId/progress'),
-                    child: const Text('عرض التقرير'),
+                ),
+                InkWell(
+                  onTap: () => context.push('/parent/children/$currentChildId/progress'),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: const Text(
+                      'عرض التقرير',
+                      style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                      ),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(24),
+        child: LoadingView(message: 'جاري تحميل ملخص مستوى الابن...'),
       ),
       error: (err, stack) => ErrorView(
         message: 'تعذر تحميل بيانات الابن',
         onRetry: () => ref.refresh(childDashboardProvider(currentChildId)),
-      ),
-    );
-  }
-}
-
-class _QuickNavCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickNavCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withAlpha(38),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

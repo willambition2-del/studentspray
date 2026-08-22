@@ -19,6 +19,13 @@ export class TeacherWorkspaceController {
     return this.service.getMobileHomeSummary(user);
   }
 
+  @Get('trends')
+  @RequireRoles('TEACHER')
+  @RequirePermissions('halaqas.read')
+  getTrends(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getTrends(user);
+  }
+
   @Get('halaqas')
   @RequirePermissions('halaqas.read')
   getMyHalaqas(@CurrentUser() user: AuthenticatedUser) {

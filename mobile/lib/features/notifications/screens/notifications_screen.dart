@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
@@ -96,53 +101,104 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
 
   IconData _getIconForType(String type) {
     switch (type) {
-      case 'ATTENDANCE':
-        return Icons.event_busy_rounded;
+      case 'SUPERVISOR_VISIT':
+        return Icons.visibility_outlined;
       case 'EXAM_RESULT':
-        return Icons.workspace_premium_rounded;
-      case 'STUDENT_EVALUATION':
-        return Icons.star_rate_rounded;
+        return Icons.fact_check_outlined;
+      case 'EDUCATIONAL_PLAN':
+      case 'PLAN':
+        return Icons.menu_book_outlined;
       case 'NEW_MESSAGE':
-        return Icons.chat_bubble_rounded;
+        return Icons.chat_bubble_outline;
+      case 'COMPETITION':
+      case 'AWARD':
+        return Icons.emoji_events_outlined;
+      case 'ATTENDANCE':
+        return Icons.event_available_outlined;
+      case 'STUDENT_EVALUATION':
+        return Icons.star_outline;
       case 'BEHAVIORAL_ALERT':
-        return Icons.warning_amber_rounded;
+        return Icons.warning_amber_outlined;
       default:
-        return Icons.notifications_rounded;
+        return Icons.notifications_outlined;
     }
   }
 
   Color _getColorForType(String type) {
     switch (type) {
-      case 'ATTENDANCE':
-        return Colors.orange;
+      case 'SUPERVISOR_VISIT':
+        return const Color(0xFF0284C7);
       case 'EXAM_RESULT':
-        return const Color(0xFF10B981);
-      case 'STUDENT_EVALUATION':
-        return Colors.amber.shade700;
+        return AppColors.statusPresent;
+      case 'EDUCATIONAL_PLAN':
+      case 'PLAN':
+        return AppColors.primary;
       case 'NEW_MESSAGE':
-        return Colors.blue;
+        return const Color(0xFF4F46E5);
+      case 'COMPETITION':
+      case 'AWARD':
+        return const Color(0xFFD97706);
+      case 'ATTENDANCE':
+        return AppColors.statusLate;
+      case 'STUDENT_EVALUATION':
+        return AppColors.accentGoldDark;
       case 'BEHAVIORAL_ALERT':
-        return Colors.red;
+        return AppColors.statusAbsent;
       default:
-        return Colors.teal;
+        return AppColors.primary;
+    }
+  }
+
+  Color _getBgColorForType(String type) {
+    switch (type) {
+      case 'SUPERVISOR_VISIT':
+        return const Color(0xFFE0F2FE);
+      case 'EXAM_RESULT':
+        return AppColors.statusPresentBg;
+      case 'EDUCATIONAL_PLAN':
+      case 'PLAN':
+        return AppColors.primarySoft;
+      case 'NEW_MESSAGE':
+        return const Color(0xFFEEF2FF);
+      case 'COMPETITION':
+      case 'AWARD':
+        return const Color(0xFFFEF3C7);
+      case 'ATTENDANCE':
+        return AppColors.statusLateBg;
+      case 'STUDENT_EVALUATION':
+        return AppColors.accentGoldSoft;
+      case 'BEHAVIORAL_ALERT':
+        return AppColors.statusAbsentBg;
+      default:
+        return AppColors.primarySoft;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('الإشعارات والتنبيهات'),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all_rounded),
+            icon: const Icon(Icons.done_all),
             tooltip: 'تحديد الكل كمقروء',
             onPressed: _markAllRead,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 3,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          labelStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
           tabs: const [
             Tab(text: 'جميع الإشعارات'),
             Tab(text: 'غير مقروءة'),
@@ -157,12 +213,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
             onTap: _handleNotificationTap,
             getIcon: _getIconForType,
             getColor: _getColorForType,
+            getBgColor: _getBgColorForType,
           ),
           _NotificationList(
             filter: const NotificationFilter(unreadOnly: true),
             onTap: _handleNotificationTap,
             getIcon: _getIconForType,
             getColor: _getColorForType,
+            getBgColor: _getBgColorForType,
           ),
         ],
       ),
@@ -172,157 +230,142 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
 
 class _NotificationList extends ConsumerWidget {
   final NotificationFilter filter;
-  final ValueChanged<AppNotification> onTap;
+  final Function(AppNotification) onTap;
   final IconData Function(String) getIcon;
   final Color Function(String) getColor;
+  final Color Function(String) getBgColor;
 
   const _NotificationList({
     required this.filter,
     required this.onTap,
     required this.getIcon,
     required this.getColor,
+    required this.getBgColor,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncList = ref.watch(notificationsListProvider(filter));
+    final notificationsAsync = ref.watch(notificationsListProvider(filter));
 
-    return asyncList.when(
+    return notificationsAsync.when(
+      skipLoadingOnReload: true,
       data: (items) {
         if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.notifications_off_outlined,
-                  size: 64,
-                  color: Colors.grey.shade400,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  filter.unreadOnly ? 'لا توجد إشعارات غير مقروءة' : 'لا توجد إشعارات حالياً',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+          return const EmptyStateView(
+            title: 'لا توجد إشعارات حالياً',
+            subtitle: 'ستظهر هنا التنبيهات والرسائل الجديدة فور وصولها',
+            icon: Icons.notifications_none,
           );
         }
 
+        final dateFormat = DateFormat('yyyy/MM/dd - hh:mm a', 'ar');
+
         return RefreshIndicator(
+          color: AppColors.primary,
           onRefresh: () async {
             ref.invalidate(notificationsListProvider(filter));
             ref.invalidate(unreadNotificationsCountProvider);
           },
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(16),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final notif = items[index];
               final icon = getIcon(notif.type);
-              final color = getColor(notif.type);
-              final timeStr = DateFormat('yyyy/MM/dd - hh:mm a', 'ar').format(notif.createdAt);
+              final iconColor = getColor(notif.type);
+              final iconBg = getBgColor(notif.type);
 
-              return Card(
-                elevation: notif.isRead ? 0 : 1,
-                color: notif.isRead ? Colors.white : Colors.teal.shade50.withValues(alpha: 0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: notif.isRead ? Colors.grey.shade200 : Colors.teal.shade200,
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => onTap(notif),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: color.withValues(alpha: 0.12),
-                          child: Icon(icon, color: color, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              return ModernCard(
+                onTap: () => onTap(notif),
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Type Icon
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: iconBg,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: iconColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      notif.title,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: notif.isRead ? FontWeight.w600 : FontWeight.bold,
-                                        color: Colors.grey.shade900,
-                                      ),
-                                    ),
+                              Expanded(
+                                child: Text(
+                                  notif.title,
+                                  style: notif.isRead
+                                      ? AppTypography.bodyMedium
+                                      : AppTypography.cardTitle.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (!notif.isRead) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
                                   ),
-                                  if (!notif.isRead)
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      margin: const EdgeInsets.only(right: 6),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.teal,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                notif.body,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade700,
-                                  height: 1.4,
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                timeStr,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
+                              ],
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            notif.body,
+                            style: AppTypography.secondary,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            dateFormat.format(notif.createdAt),
+                            style: AppTypography.label.copyWith(
+                              color: AppColors.textMuted,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
           ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            Text('حدث خطأ أثناء تحميل الإشعارات: $err'),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(notificationsListProvider(filter)),
-              child: const Text('إعادة المحاولة'),
-            ),
-          ],
-        ),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(24),
+        child: LoadingView(message: 'جاري تحميل الإشعارات...'),
+      ),
+      error: (err, _) => ErrorView(
+        message: err.toString(),
+        onRetry: () {
+          ref.invalidate(notificationsListProvider(filter));
+          ref.invalidate(unreadNotificationsCountProvider);
+        },
       ),
     );
   }

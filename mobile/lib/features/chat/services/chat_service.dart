@@ -124,16 +124,26 @@ class ChatService {
     String conversationId,
     String text, {
     String? clientMessageId,
+    String type = 'TEXT',
+    Map<String, dynamic>? metadata,
   }) async {
     if (_socket != null && _socket!.connected) {
       _socket!.emit('send_message', {
         'conversationId': conversationId,
         'text': text,
         'clientMessageId': clientMessageId,
+        'type': type,
+        if (metadata != null) 'metadata': metadata,
       });
     } else {
       // REST fallback if socket is reconnecting
-      await sendRestMessage(conversationId, text, clientMessageId: clientMessageId);
+      await sendRestMessage(
+        conversationId,
+        text,
+        clientMessageId: clientMessageId,
+        type: type,
+        metadata: metadata,
+      );
     }
   }
 
@@ -178,11 +188,15 @@ class ChatService {
     String conversationId,
     String text, {
     String? clientMessageId,
+    String type = 'TEXT',
+    Map<String, dynamic>? metadata,
   }) async {
     final response = await apiClient.post(
       '/chat/conversations/$conversationId/messages',
       data: {
         'text': text,
+        'type': type,
+        if (metadata != null) 'metadata': metadata,
         if (clientMessageId != null) 'clientMessageId': clientMessageId,
       },
     );

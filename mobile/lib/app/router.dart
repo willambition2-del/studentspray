@@ -44,6 +44,7 @@ import '../features/parent/screens/parent_child_recitation_screen.dart';
 import '../features/parent/screens/parent_child_exams_screen.dart';
 import '../features/parent/screens/parent_child_evaluations_screen.dart';
 import '../features/parent/screens/parent_child_progress_screen.dart';
+import '../features/parent/screens/parent_requests_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
 import '../features/chat/screens/conversations_screen.dart';
 import '../features/chat/screens/chat_room_screen.dart';
@@ -417,6 +418,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final name = state.uri.queryParameters['name'] ?? 'الطالب';
           return ParentChildActivitiesAwardsScreen(studentId: studentId, studentName: name);
         },
+      ),
+      GoRoute(
+        path: '/parent/requests',
+        builder: (context, state) => const ParentRequestsScreen(),
       ),
 
       // Administrative Hub (Teacher & Technical Supervisor)

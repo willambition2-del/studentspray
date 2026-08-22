@@ -41,6 +41,11 @@ export class CreateAttendanceRecordItemDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  arrivalTime?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   notes?: string;
 }

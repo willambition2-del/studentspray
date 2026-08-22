@@ -1,10 +1,11 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import { RequireRoles } from '../auth/decorators/require-roles.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { ParentPortalService } from './parent-portal.service';
+import { CreateParentRequestDto } from './dto/parent-requests.dto';
 
 @ApiTags('Parent Portal (Mobile & Web)')
 @ApiBearerAuth()
@@ -135,5 +136,32 @@ export class ParentPortalController {
     @Param('studentId') studentId: string,
   ) {
     return this.service.getChildAwards(user, studentId);
+  }
+
+  @Post('requests')
+  @RequireRoles('PARENT')
+  @ApiOperation({ summary: 'Submit an official administrative request for child' })
+  createRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateParentRequestDto,
+  ) {
+    return this.service.createRequest(user, dto);
+  }
+
+  @Get('requests')
+  @RequireRoles('PARENT')
+  @ApiOperation({ summary: 'List submitted requests and tracking status for parent' })
+  getRequests(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getRequests(user);
+  }
+
+  @Get('requests/:id')
+  @RequireRoles('PARENT')
+  @ApiOperation({ summary: 'Get single request tracking details' })
+  getRequestDetail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.getRequestDetail(user, id);
   }
 }

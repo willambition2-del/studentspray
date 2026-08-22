@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/parent_provider.dart';
 
@@ -14,6 +17,7 @@ class ParentChildEvaluationsScreen extends ConsumerWidget {
     final evalsAsync = ref.watch(childEvaluationsProvider(studentId));
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('التقييمات التربوية للابن'),
       ),
@@ -28,6 +32,7 @@ class ParentChildEvaluationsScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
+            color: AppColors.primary,
             onRefresh: () async => ref.refresh(childEvaluationsProvider(studentId).future),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -36,169 +41,154 @@ class ParentChildEvaluationsScreen extends ConsumerWidget {
                 final ev = evaluations[i];
 
                 Color ratingColor;
+                Color ratingBg;
                 String ratingLabel;
 
                 switch (ev.rating) {
                   case 'EXCELLENT':
-                    ratingColor = Colors.green;
+                    ratingColor = AppColors.statusPresent;
+                    ratingBg = AppColors.statusPresentBg;
                     ratingLabel = 'ممتاز ومتميز';
                     break;
                   case 'VERY_GOOD':
-                    ratingColor = Colors.teal;
+                    ratingColor = AppColors.primary;
+                    ratingBg = AppColors.primarySoft;
                     ratingLabel = 'جيد جداً';
                     break;
                   case 'GOOD':
-                    ratingColor = Colors.blue;
+                    ratingColor = AppColors.statusExcused;
+                    ratingBg = AppColors.statusExcusedBg;
                     ratingLabel = 'جيد';
                     break;
                   case 'ACCEPTABLE':
-                    ratingColor = Colors.amber.shade800;
+                    ratingColor = AppColors.statusLate;
+                    ratingBg = AppColors.statusLateBg;
                     ratingLabel = 'مقبول';
                     break;
                   default:
-                    ratingColor = Colors.red;
+                    ratingColor = AppColors.statusAbsent;
+                    ratingBg = AppColors.statusAbsentBg;
                     ratingLabel = 'يحتاج إلى تحسين';
                 }
 
-                return Card(
+                return ModernCard(
                   margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              ev.period ?? 'تقييم دوري',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: ratingColor.withAlpha(38),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: ratingColor.withAlpha(128)),
-                              ),
-                              child: Text(
-                                ratingLabel,
-                                style: TextStyle(color: ratingColor, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'تاريخ التقييم: ${ev.evaluationDate}',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(),
-                        const SizedBox(height: 8),
-
-                        // Score breakdown
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            if (ev.behaviorScore != null)
-                              _ScoreBadge(title: 'السلوك', score: ev.behaviorScore!),
-                            if (ev.discipline != null)
-                              _ScoreBadge(title: 'الانضباط', score: ev.discipline!),
-                            if (ev.participation != null)
-                              _ScoreBadge(title: 'المشاركة', score: ev.participation!),
-                            if (ev.overallScore != null)
-                              _ScoreBadge(title: 'الإجمالي', score: ev.overallScore!, isOverall: true),
-                          ],
-                        ),
-
-                        if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            ev.period ?? 'التقييم الفصلي',
+                            style: AppTypography.cardTitle,
+                          ),
                           Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.grey.shade200),
+                              color: ratingBg,
+                              borderRadius: BorderRadius.circular(AppRadius.full),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('توجيهات وملاحظات المعلم:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                const SizedBox(height: 4),
-                                Text(ev.teacherNotes!, style: TextStyle(color: Colors.grey.shade800, fontSize: 12)),
-                              ],
+                            child: Text(
+                              ratingLabel,
+                              style: TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                color: ratingColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11.5,
+                              ),
                             ),
                           ),
                         ],
-
-                        if (ev.actionLabel != null && ev.actionLabel!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'تاريخ التقييم: ${ev.evaluationDate}',
+                        style: AppTypography.label,
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          if (ev.behaviorScore != null)
+                            _buildScorePill('السلوك والأخلاق', ev.behaviorScore!),
+                          if (ev.overallScore != null) ...[
+                            const SizedBox(width: 8),
+                            _buildScorePill('الدرجة الإجمالية', ev.overallScore!),
+                          ],
+                        ],
+                      ),
+                      if (ev.actionLabel != null && ev.actionLabel!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'التوصية: ${ev.actionLabel}',
+                          style: AppTypography.labelBold.copyWith(color: AppColors.primary),
+                        ),
+                      ],
+                      if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.thumb_up_alt_outlined, size: 16, color: Colors.green),
-                              const SizedBox(width: 6),
+                              const Text(
+                                'توجيهات وملاحظات المعلم:',
+                                style: TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11.5,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
                               Text(
-                                'التوصية: ${ev.actionLabel}',
-                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                                ev.teacherNotes!,
+                                style: AppTypography.secondary,
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 );
               },
             ),
           );
         },
-        loading: () => const LoadingView(message: 'جاري تحميل تقييمات الابن...'),
+        loading: () => const LoadingView(message: 'جاري تحميل التقييمات التربوية...'),
         error: (err, stack) => ErrorView(
-          message: 'تعذر تحميل تقييمات الابن',
+          message: 'تعذر تحميل التقييمات التربوية',
           onRetry: () => ref.refresh(childEvaluationsProvider(studentId)),
         ),
       ),
     );
   }
-}
 
-class _ScoreBadge extends StatelessWidget {
-  final String title;
-  final double score;
-  final bool isOverall;
-
-  const _ScoreBadge({
-    required this.title,
-    required this.score,
-    this.isOverall = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          '${score.toStringAsFixed(0)}%',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isOverall ? AppTheme.primary : Colors.grey.shade800,
-          ),
+  Widget _buildScorePill(String label, double score) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Text(
+        '$label: ${score.toStringAsFixed(0)}',
+        style: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
         ),
-        const SizedBox(height: 2),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 11,
-            color: isOverall ? AppTheme.primary : Colors.grey.shade600,
-            fontWeight: isOverall ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

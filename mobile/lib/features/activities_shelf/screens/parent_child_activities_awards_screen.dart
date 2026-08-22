@@ -25,7 +25,7 @@ class ParentChildActivitiesAwardsScreen extends ConsumerWidget {
             tabs: [
               Tab(text: 'الأنشطة', icon: Icon(Icons.event)),
               Tab(text: 'المسابقات', icon: Icon(Icons.emoji_events)),
-              Tab(text: 'الأوسمة', icon: Icon(Icons.workspace_premium)),
+              Tab(text: 'الأوسمة', icon: Icon(Icons.military_tech)),
             ],
           ),
         ),
@@ -271,7 +271,7 @@ class _ChildAwardsTab extends ConsumerWidget {
                           color: Colors.amber.shade100,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(Icons.workspace_premium, color: Colors.amber.shade800),
+                        child: Icon(Icons.military_tech, color: Colors.amber.shade800),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

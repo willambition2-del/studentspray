@@ -80,3 +80,53 @@ class ParentMobileHomeSnapshot {
     );
   }
 }
+
+class ParentRequestModel {
+  final String id;
+  final String title;
+  final String description;
+  final String status;
+  final String priority;
+  final String? studentId;
+  final String createdAt;
+  final String? adminResponse;
+
+  const ParentRequestModel({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.status,
+    required this.priority,
+    this.studentId,
+    required this.createdAt,
+    this.adminResponse,
+  });
+
+  factory ParentRequestModel.fromJson(Map<String, dynamic> json) {
+    return ParentRequestModel(
+      id: ApiParsing.parseString(json['id']) ?? '',
+      title: ApiParsing.parseString(json['title']) ?? '',
+      description: ApiParsing.parseString(json['description']) ?? '',
+      status: ApiParsing.parseString(json['status'], 'SUBMITTED')!,
+      priority: ApiParsing.parseString(json['priority'], 'NORMAL')!,
+      studentId: ApiParsing.parseString(json['studentId']),
+      createdAt: ApiParsing.parseString(json['createdAt'], '')!,
+      adminResponse: ApiParsing.parseString(json['adminResponse']),
+    );
+  }
+
+  String get statusLabel {
+    switch (status) {
+      case 'APPROVED':
+      case 'COMPLETED':
+        return 'تم الرد والاعتماد';
+      case 'UNDER_REVIEW':
+      case 'SUBMITTED':
+        return 'قيد المراجعة والتدقيق';
+      case 'REJECTED':
+        return 'تم الرفض';
+      default:
+        return status;
+    }
+  }
+}

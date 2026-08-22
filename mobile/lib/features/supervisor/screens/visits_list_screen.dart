@@ -13,6 +13,7 @@ class VisitsListScreen extends ConsumerStatefulWidget {
 class _VisitsListScreenState extends ConsumerState<VisitsListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  DateTimeRange? _selectedDateRange;
 
   @override
   void initState() {
@@ -42,6 +43,30 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen>
           ],
         ),
         actions: [
+          if (_selectedDateRange != null)
+            IconButton(
+              icon: const Icon(Icons.filter_alt_off, color: Colors.amber),
+              tooltip: 'إلغاء تصفية التاريخ',
+              onPressed: () => setState(() => _selectedDateRange = null),
+            ),
+          IconButton(
+            icon: Icon(
+              Icons.date_range_outlined,
+              color: _selectedDateRange != null ? Colors.amber : null,
+            ),
+            tooltip: 'تصفية حسب نطاق التاريخ',
+            onPressed: () async {
+              final range = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                initialDateRange: _selectedDateRange,
+              );
+              if (range != null) {
+                setState(() => _selectedDateRange = range);
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -52,11 +77,11 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          _VisitsSubList(status: null),
-          _VisitsSubList(status: 'PLANNED'),
-          _VisitsSubList(status: 'IN_PROGRESS'),
-          _VisitsSubList(status: 'COMPLETED'),
+        children: [
+          _VisitsSubList(status: null, dateRange: _selectedDateRange),
+          _VisitsSubList(status: 'PLANNED', dateRange: _selectedDateRange),
+          _VisitsSubList(status: 'IN_PROGRESS', dateRange: _selectedDateRange),
+          _VisitsSubList(status: 'COMPLETED', dateRange: _selectedDateRange),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -69,17 +94,152 @@ class _VisitsListScreenState extends ConsumerState<VisitsListScreen>
 
 class _VisitsSubList extends ConsumerWidget {
   final String? status;
+  final DateTimeRange? dateRange;
 
-  const _VisitsSubList({required this.status});
+  const _VisitsSubList({required this.status, this.dateRange});
+
+  void _showCancelDialog(BuildContext context, WidgetRef ref, String visitId, String visitNumber) {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('إلغاء الزيارة الميدانية: $visitNumber'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('هل أنت متأكد من إلغاء هذه الزيارة الميدانية؟ يرجى توضيح سبب الإلغاء:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'سبب الإلغاء',
+                border: OutlineInputBorder(),
+                hintText: 'ظرف طارئ، تأجيل الجلسة...',
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              try {
+                await ref.read(supervisorActionsProvider.notifier).updateVisitStatus(
+                      visitId: visitId,
+                      status: 'CANCELLED',
+                      generalNotes: reasonController.text.trim().isNotEmpty ? 'سبب الإلغاء: ${reasonController.text.trim()}' : null,
+                    );
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✓ تم إلغاء الزيارة الميدانية بنجاح'), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تعذر إلغاء الزيارة: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('تأكيد الإلغاء'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRescheduleDialog(BuildContext context, WidgetRef ref, String visitId, String visitNumber) {
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 2));
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('إعادة جدولة الزيارة: $visitNumber'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('حدد الموعد الجديد للزيارة الميدانية:'),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today, color: Colors.teal),
+                title: Text('التاريخ: ${selectedDate.toIso8601String().substring(0, 10)}'),
+                trailing: ElevatedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 90)),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                  child: const Text('تغيير'),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              onPressed: () async {
+                try {
+                  await ref.read(supervisorActionsProvider.notifier).updateVisitStatus(
+                        visitId: visitId,
+                        status: 'PLANNED',
+                        scheduledDate: selectedDate.toIso8601String(),
+                        generalNotes: 'تمت إعادة الجدولة إلى: ${selectedDate.toIso8601String().substring(0, 10)}',
+                      );
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('✓ تمت إعادة جدولة الزيارة الميدانية بنجاح'), backgroundColor: Colors.teal),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('تعذر إعادة الجدولة: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('حفظ الموعد الجديد'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visitsAsync = ref.watch(supervisorVisitsProvider(status));
 
     return visitsAsync.when(
-      data: (visits) {
+      data: (allVisits) {
+        final visits = dateRange == null
+            ? allVisits
+            : allVisits.where((v) {
+                if (v.scheduledDate == null) return false;
+                try {
+                  final dt = DateTime.parse(v.scheduledDate!);
+                  return dt.isAfter(dateRange!.start.subtract(const Duration(days: 1))) &&
+                      dt.isBefore(dateRange!.end.add(const Duration(days: 1)));
+                } catch (_) {
+                  return false;
+                }
+              }).toList();
+
         if (visits.isEmpty) {
-          return const Center(child: Text('لا توجد زيارات في هذه الفئة'));
+          return const Center(child: Text('لا توجد زيارات مطابقة للتصفية'));
         }
 
         return ListView.separated(
@@ -88,6 +248,8 @@ class _VisitsSubList extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final v = visits[index];
+            final isPlanned = v.status == 'PLANNED';
+
             return Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -106,7 +268,46 @@ class _VisitsSubList extends ConsumerWidget {
                             v.visitNumber,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
-                          _StatusBadge(status: v.status),
+                          Row(
+                            children: [
+                              _StatusBadge(status: v.status),
+                              if (isPlanned) ...[
+                                const SizedBox(width: 4),
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                                  onSelected: (val) {
+                                    if (val == 'reschedule') {
+                                      _showRescheduleDialog(context, ref, v.id, v.visitNumber);
+                                    } else if (val == 'cancel') {
+                                      _showCancelDialog(context, ref, v.id, v.visitNumber);
+                                    }
+                                  },
+                                  itemBuilder: (ctx) => [
+                                    const PopupMenuItem(
+                                      value: 'reschedule',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit_calendar, size: 18, color: Colors.teal),
+                                          SizedBox(width: 8),
+                                          Text('إعادة جدولة الزيارة'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'cancel',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.cancel_outlined, size: 18, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('إلغاء الزيارة'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),

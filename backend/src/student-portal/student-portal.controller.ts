@@ -1,9 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { StudentPortalService } from './student-portal.service';
+import { CreateHomeworkSubmissionDto, CreateStudentProposalDto } from './dto/student-portal.dto';
 
 @ApiTags('Student Portal (Mobile & Web)')
 @ApiBearerAuth()
@@ -25,6 +26,22 @@ export class StudentPortalController {
   async getPlan(@CurrentUser() user: AuthenticatedUser) {
     const student = await this.service.requireStudentProfile(user);
     return this.service.getPlanForStudent(student.id);
+  }
+
+  @Get('plan-history')
+  @RequirePermissions('educational_plans.read')
+  @ApiOperation({ summary: 'Get archived and completed educational plans for current student' })
+  async getPlanHistory(@CurrentUser() user: AuthenticatedUser) {
+    const student = await this.service.requireStudentProfile(user);
+    return this.service.getPlanHistoryForStudent(student.id, user.forumId);
+  }
+
+  @Get('progress-history')
+  @RequirePermissions('student_progress.read')
+  @ApiOperation({ summary: 'Get chronological historical progress curve points for current student' })
+  async getProgressHistory(@CurrentUser() user: AuthenticatedUser) {
+    const student = await this.service.requireStudentProfile(user);
+    return this.service.getProgressHistoryForStudent(student.id);
   }
 
   @Get('attendance')
@@ -97,5 +114,29 @@ export class StudentPortalController {
   async getAwards(@CurrentUser() user: AuthenticatedUser) {
     const student = await this.service.requireStudentProfile(user);
     return this.service.getAwardsForStudent(student.id);
+  }
+
+  @Post('proposals')
+  @ApiOperation({ summary: 'Submit a student proposal for activities or improvements' })
+  createProposal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateStudentProposalDto,
+  ) {
+    return this.service.createProposal(user, dto);
+  }
+
+  @Post('homework-submissions')
+  @ApiOperation({ summary: 'Submit completed homework or audio recitation assignment' })
+  createHomeworkSubmission(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateHomeworkSubmissionDto,
+  ) {
+    return this.service.createHomeworkSubmission(user, dto);
+  }
+
+  @Get('proposals')
+  @ApiOperation({ summary: 'List submitted student proposals' })
+  getProposals(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getProposals(user);
   }
 }

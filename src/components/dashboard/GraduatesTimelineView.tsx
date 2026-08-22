@@ -41,31 +41,8 @@ export default function GraduatesTimelineView() {
   const [showDisconnectedModal, setShowDisconnectedModal] = useState<boolean>(false);
   const [showFullQuranExamModal, setShowFullQuranExamModal] = useState<boolean>(false);
 
-  // Mock list for Disconnected Graduates
-  const [disconnectedGraduates] = useState<DisconnectedGraduate[]>([
-    { id: 'dg-1', name: 'معاذ بن عبدالكريم السلمان', year: '1446 هـ', reason: 'الانتقال للترشيح الوظيفي خارج المنطقة', contact: '0551122334', lastSeen: '1447/08/15', circleName: 'حلقة عاصم الكوفي' },
-    { id: 'dg-2', name: 'فيصل بن فهد القحطاني', year: '1445 هـ', reason: 'الانشغال بالدراسة الجامعية المسائية', contact: '0509988776', lastSeen: '1447/05/10', circleName: 'حلقة قالون الأدائية' },
-    { id: 'dg-3', name: 'عمر بن توفيق الشمري', year: '1445 هـ', reason: 'الارتباط بظروف العمل والورديات', contact: '0543322110', lastSeen: '1447/02/20', circleName: 'حلقة ابن كثير للمتقدمين' },
-    { id: 'dg-4', name: 'خالد بن سعد الماجد', year: '1444 هـ', reason: 'عدم التجاوب مع اتصالات وحدة المتابعة', contact: '0567788990', lastSeen: '1446/11/05', circleName: 'حلقة ابن عامر الشامي' },
-    { id: 'dg-5', name: 'بكر بن إبراهيم الهويريني', year: '1444 هـ', reason: 'تغيير مقر السكن لحي بعيد', contact: '0532211445', lastSeen: '1446/09/12', circleName: 'حلقة الكسائي المبتدئة' },
-    { id: 'dg-6', name: 'وليد بن يوسف الرشيد', year: '1443 هـ', reason: 'السفر والابتعاث الخارجي', contact: '0514455667', lastSeen: '1446/04/01', circleName: 'حلقة نافع المدني' },
-  ]);
-
-  // Mock list for Full Quran Test-Taker Graduates
-  const [fullQuranExamGraduates] = useState<FullQuranExamGraduate[]>([
-    { id: 'fq-1', name: 'عبدالرحمن بن خالد التميمي', year: '1446 هـ', score: 99.5, rating: 'ممتاز مرتفع مع مرتبة الشرف', committee: 'لجنة اختبار التجاوز الممركزة', examDate: '1446/11/20' },
-    { id: 'fq-2', name: 'عبد الله بن إبراهيم السبيعي', year: '1446 هـ', score: 100.0, rating: 'ممتاز مرتفع (الدرجة الكاملة)', committee: 'لجنة المقارئ والتجاوز بالملتقى', examDate: '1446/12/05' },
-    { id: 'fq-3', name: 'سلمان بن فهد الدوسري', year: '1446 هـ', score: 98.0, rating: 'ممتاز مرتفع', committee: 'لجنة التجاوز والضبط', examDate: '1446/10/14' },
-    { id: 'fq-4', name: 'نايف بن محمد السبيعي', year: '1446 هـ', score: 96.5, rating: 'ممتاز', committee: 'لجنة التجاوز المركزية', examDate: '1446/09/28' },
-    { id: 'fq-5', name: 'رياض بن عبد العزيز الموسى', year: '1445 هـ', score: 97.0, rating: 'ممتاز', committee: 'لجنة الاختارات الشاملة', examDate: '1445/11/15' },
-    { id: 'fq-6', name: 'عبد الرحمن بن خالد السيف', year: '1445 هـ', score: 99.0, rating: 'ممتاز مرتفع', committee: 'لجنة المقارئ العلمية', examDate: '1445/12/01' },
-    { id: 'fq-7', name: 'سلطان بن فهد التميمي', year: '1444 هـ', score: 95.0, rating: 'ممتاز', committee: 'لجنة التجاوز الممركزة', examDate: '1444/10/10' },
-    { id: 'fq-8', name: 'بدر بن يوسف السلمان', year: '1444 هـ', score: 96.0, rating: 'ممتاز', committee: 'لجنة الضبط والتدقيق', examDate: '1444/11/02' },
-    { id: 'fq-9', name: 'عبد المحسن بن مبارك الدوسري', year: '1446 هـ', score: 98.5, rating: 'ممتاز مرتفع', committee: 'لجنة التجاوز الممركزة', examDate: '1446/12/12' },
-    { id: 'fq-10', name: 'زياد بن منصور الخالدي', year: '1445 هـ', score: 94.5, rating: 'ممتاز', committee: 'لجنة اختبار التجاوز المركزية', examDate: '1445/10/22' },
-    { id: 'fq-11', name: 'أسامة بن بدر المطيري', year: '1445 هـ', score: 97.5, rating: 'ممتاز مرتفع', committee: 'لجنة المقارئ والتجاوز', examDate: '1445/12/18' },
-    { id: 'fq-12', name: 'حسام بن طارق الغامدي', year: '1444 هـ', score: 93.0, rating: 'جيد جداً مرتفع', committee: 'لجنة الاختبارات العامة', examDate: '1444/08/30' },
-  ]);
+  const [disconnectedGraduates] = useState<DisconnectedGraduate[]>([]);
+  const [fullQuranExamGraduates] = useState<FullQuranExamGraduate[]>([]);
 
   // Graduation rate calculator by year
   const yearlyGraduationStats = {

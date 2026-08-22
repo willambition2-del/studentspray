@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/metric_card.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/teacher_provider.dart';
 
@@ -13,11 +19,13 @@ class TeacherReportsScreen extends ConsumerWidget {
     final halaqasAsync = ref.watch(myHalaqasProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('التقارير والإحصائيات التحليلية'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
             onPressed: () {
               ref.invalidate(teacherDashboardStatsProvider);
               ref.invalidate(myHalaqasProvider);
@@ -26,6 +34,7 @@ class TeacherReportsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async {
           ref.invalidate(teacherDashboardStatsProvider);
           ref.invalidate(myHalaqasProvider);
@@ -38,82 +47,84 @@ class TeacherReportsScreen extends ConsumerWidget {
               data: (stats) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'الملخص التراكمي العام للحلقات',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryDark,
-                    ),
+                  const SectionHeader(
+                    title: 'الملخص التراكمي العام للحلقات',
+                    icon: Icons.analytics_outlined,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatTile(
+                        child: MetricCard(
                           title: 'معدل الحضور',
                           value: '${stats.attendanceRate.toStringAsFixed(1)}%',
-                          subtitle: 'حاضر: ${stats.todayPresent} • غائب: ${stats.todayAbsent}',
-                          icon: Icons.fact_check_rounded,
-                          color: stats.attendanceRate >= 80 ? AppTheme.statusPresent : AppTheme.statusAbsent,
+                          subtitle: '${stats.todayPresent} حاضر • ${stats.todayAbsent} غائب',
+                          icon: Icons.fact_check_outlined,
+                          iconColor: stats.attendanceRate >= 80 ? AppColors.statusPresent : AppColors.statusAbsent,
+                          iconBgColor: stats.attendanceRate >= 80 ? AppColors.statusPresentBg : AppColors.statusAbsentBg,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatTile(
+                        child: MetricCard(
                           title: 'إجمالي الطلاب',
                           value: '${stats.totalStudents}',
-                          subtitle: 'عبر ${stats.totalHalaqas} حلقات',
-                          icon: Icons.school_rounded,
-                          color: AppTheme.primaryLight,
+                          subtitle: '${stats.totalHalaqas} حلقات تعليمية',
+                          icon: Icons.school_outlined,
+                          iconColor: AppColors.primary,
+                          iconBgColor: AppColors.primarySoft,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatTile(
+                        child: MetricCard(
                           title: 'جلسات التسميع',
                           value: '${stats.todayMemorization}',
-                          subtitle: 'تسميع يومي منجز',
-                          icon: Icons.auto_stories_rounded,
-                          color: Colors.teal,
+                          subtitle: 'جلسات يومية منجزة',
+                          icon: Icons.menu_book_outlined,
+                          iconColor: AppColors.secondary,
+                          iconBgColor: AppColors.secondarySoft,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatTile(
+                        child: MetricCard(
                           title: 'جلسات المراجعة',
                           value: '${stats.todayRevision}',
-                          subtitle: 'تثبيت ومراجعة',
-                          icon: Icons.refresh_rounded,
-                          color: Colors.indigo,
+                          subtitle: 'تثبيت ومراجعة مستمرة',
+                          icon: Icons.refresh,
+                          iconColor: const Color(0xFF4F46E5),
+                          iconBgColor: const Color(0xFFEEF2FF),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatTile(
-                          title: 'الاختبارات المعتمدة',
+                        child: MetricCard(
+                          title: 'الاختبارات المقررة',
                           value: '${stats.upcomingExams}',
-                          subtitle: 'اختبارات مقررة',
-                          icon: Icons.assignment_turned_in_rounded,
-                          color: Colors.purple.shade700,
+                          subtitle: 'اختبارات معتمدة',
+                          icon: Icons.assignment_turned_in_outlined,
+                          iconColor: const Color(0xFF7C3AED),
+                          iconBgColor: const Color(0xFFF3E8FF),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatTile(
-                          title: 'التقييمات التربوية',
+                        child: MetricCard(
+                          title: 'التقييمات المسجلة',
                           value: '${stats.recordedEvaluations}',
-                          subtitle: 'تقييمات سلوكية',
-                          icon: Icons.star_half_rounded,
-                          color: Colors.amber.shade800,
+                          subtitle: 'تقييمات سلوكية دورية',
+                          icon: Icons.star_outline,
+                          iconColor: const Color(0xFFD97706),
+                          iconBgColor: const Color(0xFFFEF3C7),
                         ),
                       ),
                     ],
@@ -123,18 +134,14 @@ class TeacherReportsScreen extends ConsumerWidget {
               loading: () => const LoadingView(message: 'جاري حساب المؤشرات التراكمية...'),
               error: (err, _) => ErrorView(message: err.toString()),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Performance by Halaqa Section
-            const Text(
-              'مؤشرات الأداء حسب الحلقة',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryDark,
-              ),
+            const SectionHeader(
+              title: 'مؤشرات الأداء حسب الحلقة',
+              icon: Icons.group_outlined,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
 
             halaqasAsync.when(
               data: (halaqas) {
@@ -145,134 +152,66 @@ class TeacherReportsScreen extends ConsumerWidget {
                   );
                 }
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: halaqas.length,
-                  itemBuilder: (context, index) {
-                    final h = halaqas[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                return Column(
+                  children: halaqas.map((h) {
+                    return ModernCard(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: AppColors.primarySoft,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: const Icon(
+                              Icons.group_outlined,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   h.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: AppTheme.primaryDark,
-                                  ),
+                                  style: AppTypography.bodyMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary.withAlpha(15),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    '${h.studentsCount} طالب',
-                                    style: const TextStyle(
-                                      color: AppTheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${h.branchName} • رمز: ${h.code} • ${h.studentsCount} طالب',
+                                  style: AppTypography.secondary,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${h.branchName} • الرمز: ${h.code}',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          ),
+                          TextButton(
+                            onPressed: () => context.push('/teacher/halaqas/${h.id}'),
+                            child: const Row(
+                              children: [
+                                Text('عرض', style: TextStyle(fontFamily: AppTypography.fontFamily)),
+                                SizedBox(width: 2),
+                                Icon(Icons.arrow_back_ios, size: 10),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
-                  },
+                  }).toList(),
                 );
               },
-              loading: () => const LoadingView(message: 'جاري تحميل مؤشرات الحلقات...'),
+              loading: () => const LoadingView(message: 'جاري تحميل حلقات المعلم...'),
               error: (err, _) => ErrorView(message: err.toString()),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatTile({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(5),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 18),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

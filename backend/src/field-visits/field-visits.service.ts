@@ -269,6 +269,7 @@ export class FieldVisitsService {
       status: dto.status,
       summary: dto.summary ?? existing.summary,
       generalNotes: dto.generalNotes ?? existing.generalNotes,
+      scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : existing.scheduledDate,
     };
 
     if (dto.status === 'IN_PROGRESS' && !existing.startedAt) {

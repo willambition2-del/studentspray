@@ -248,3 +248,53 @@ class StudentDashboardModel {
     );
   }
 }
+
+class StudentProgressHistoryPoint {
+  final String period;
+  final String label;
+  final int memorized;
+  final int revision;
+  final int cumulativeMemorized;
+  final int cumulativeRevision;
+
+  StudentProgressHistoryPoint({
+    required this.period,
+    required this.label,
+    required this.memorized,
+    required this.revision,
+    required this.cumulativeMemorized,
+    required this.cumulativeRevision,
+  });
+
+  factory StudentProgressHistoryPoint.fromJson(Map<String, dynamic> json) {
+    return StudentProgressHistoryPoint(
+      period: ApiParsing.parseString(json['period']) ?? '',
+      label: ApiParsing.parseString(json['label']) ?? '',
+      memorized: ApiParsing.parseInt(json['memorized'], 0)!,
+      revision: ApiParsing.parseInt(json['revision'], 0)!,
+      cumulativeMemorized: ApiParsing.parseInt(json['cumulativeMemorized'], 0)!,
+      cumulativeRevision: ApiParsing.parseInt(json['cumulativeRevision'], 0)!,
+    );
+  }
+}
+
+class StudentProgressHistoryModel {
+  final String studentId;
+  final int totalRecords;
+  final List<StudentProgressHistoryPoint> points;
+
+  StudentProgressHistoryModel({
+    required this.studentId,
+    required this.totalRecords,
+    required this.points,
+  });
+
+  factory StudentProgressHistoryModel.fromJson(Map<String, dynamic> json) {
+    final rawPoints = ApiParsing.extractList(json['points']);
+    return StudentProgressHistoryModel(
+      studentId: ApiParsing.parseString(json['studentId']) ?? '',
+      totalRecords: ApiParsing.parseInt(json['totalRecords'], 0)!,
+      points: rawPoints.map((p) => StudentProgressHistoryPoint.fromJson(p as Map<String, dynamic>)).toList(),
+    );
+  }
+}

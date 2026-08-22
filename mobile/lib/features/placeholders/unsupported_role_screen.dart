@@ -17,7 +17,7 @@ class UnsupportedRoleScreen extends ConsumerWidget {
         title: const Text('الملتقى القرآني'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout),
             tooltip: 'تسجيل الخروج',
             onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
@@ -38,7 +38,7 @@ class UnsupportedRoleScreen extends ConsumerWidget {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.dashboard_customize_rounded,
+                    Icons.dashboard_customize_outlined,
                     size: 56,
                     color: AppTheme.primary,
                   ),
@@ -66,7 +66,7 @@ class UnsupportedRoleScreen extends ConsumerWidget {
                 const SizedBox(height: 32),
                 OutlinedButton.icon(
                   onPressed: () => ref.read(authProvider.notifier).logout(),
-                  icon: const Icon(Icons.logout_rounded),
+                  icon: const Icon(Icons.logout),
                   label: const Text('تسجيل الخروج والتبديل لحساب آخر'),
                 ),
               ],

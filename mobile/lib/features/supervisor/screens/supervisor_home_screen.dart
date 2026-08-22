@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/metric_card.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/quick_action_item.dart';
+import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/state_views.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../chat/providers/chat_provider.dart';
@@ -13,6 +21,7 @@ class SupervisorHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('بوابة المشرف التعليمي'),
         actions: const [
@@ -27,8 +36,13 @@ class SupervisorHomeScreen extends StatelessWidget {
       body: const _SupervisorHomeBody(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/supervisor/visits/new'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('زيارة جديدة'),
+        label: const Text(
+          'زيارة جديدة',
+          style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -57,7 +71,7 @@ class _ShelfAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.menu_book_rounded),
+      icon: const Icon(Icons.menu_book_outlined),
       tooltip: 'الرف العام',
       onPressed: () => context.push('/shelf'),
     );
@@ -74,7 +88,8 @@ class _SupervisorChatBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadChat > 0,
         label: Text('$unreadChat'),
-        child: const Icon(Icons.chat_bubble_outline_rounded),
+        backgroundColor: AppColors.error,
+        child: const Icon(Icons.chat_bubble_outline),
       ),
       tooltip: 'المحادثات',
       onPressed: () => context.push('/chat'),
@@ -92,6 +107,7 @@ class _SupervisorNotificationBadgeAction extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: unreadNotifs > 0,
         label: Text('$unreadNotifs'),
+        backgroundColor: AppColors.error,
         child: const Icon(Icons.notifications_outlined),
       ),
       tooltip: 'الإشعارات',
@@ -107,8 +123,8 @@ class _SupervisorRefreshAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       icon: const Icon(Icons.refresh),
+      tooltip: 'تحديث البيانات',
       onPressed: () {
-        ref.read(sessionCacheServiceProvider).clearSupervisorDashboard();
         ref.invalidate(supervisorDashboardProvider);
       },
     );
@@ -122,8 +138,39 @@ class _SupervisorLogoutAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       icon: const Icon(Icons.logout),
-      onPressed: () {
-        ref.read(authProvider.notifier).logout();
+      tooltip: 'تسجيل الخروج',
+      onPressed: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+            title: const Text(
+              'تسجيل الخروج',
+              style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
+              style: AppTypography.body,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('خروج'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await ref.read(authProvider.notifier).logout();
+        }
       },
     );
   }
@@ -169,41 +216,59 @@ class _SupervisorHeaderSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider.select((s) => s.user));
+    final initial = (user?.displayName.isNotEmpty ?? false) ? user!.displayName[0] : 'م';
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.verified_user, color: Colors.white, size: 30),
+    return ModernCard(
+      backgroundColor: AppColors.primaryDark,
+      borderColor: Colors.transparent,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(25),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user?.displayName ?? 'المشرف التعليمي',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user?.forum?.name ?? 'الملتقى القرآني',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+            alignment: Alignment.center,
+            child: Text(
+              initial,
+              style: const TextStyle(
+                fontFamily: AppTypography.fontFamily,
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.displayName ?? 'المشرف التعليمي',
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  user?.forum?.name ?? 'الملتقى القرآني',
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: AppColors.accentGoldSoft,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -219,41 +284,49 @@ class _SupervisorQuickActionsSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _QuickActionCard(
+              child: QuickActionItem(
                 title: 'الحلقات الموكلة',
-                icon: Icons.groups,
-                color: Colors.blue.shade700,
+                subtitle: 'إشراف ومتابعة',
+                icon: Icons.group_outlined,
+                iconColor: Colors.blue.shade700,
+                iconBgColor: const Color(0xFFE0F2FE),
                 onTap: () => context.push('/supervisor/halaqas'),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: _QuickActionCard(
+              child: QuickActionItem(
                 title: 'المعلمون',
+                subtitle: 'سجل الكادر التعليمي',
                 icon: Icons.person_outline,
-                color: Colors.teal.shade700,
+                iconColor: AppColors.secondary,
+                iconBgColor: AppColors.secondarySoft,
                 onTap: () => context.push('/supervisor/teachers'),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-              child: _QuickActionCard(
+              child: QuickActionItem(
                 title: 'الزيارات الميدانية',
+                subtitle: 'سجل الزيارات والتقييم',
                 icon: Icons.assignment_outlined,
-                color: Colors.purple.shade700,
+                iconColor: const Color(0xFF7C3AED),
+                iconBgColor: const Color(0xFFF3E8FF),
                 onTap: () => context.push('/supervisor/visits'),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: _QuickActionCard(
+              child: QuickActionItem(
                 title: 'التوصيات والمتابعة',
+                subtitle: 'خطة التحسين والتطوير',
                 icon: Icons.lightbulb_outline,
-                color: Colors.orange.shade800,
+                iconColor: const Color(0xFFD97706),
+                iconBgColor: const Color(0xFFFEF3C7),
                 onTap: () => context.push('/supervisor/recommendations'),
               ),
             ),
@@ -286,72 +359,81 @@ class _SupervisorDashboardSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'مؤشرات الأداء الميداني',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            const SectionHeader(
+              title: 'مؤشرات الأداء الميداني',
+              icon: Icons.analytics_outlined,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: _MetricCard(
-                    label: 'الزيارات المنجزة',
+                  child: MetricCard(
+                    title: 'الزيارات المنجزة',
                     value: '${metrics.totalVisitsCompleted}',
-                    icon: Icons.check_circle,
-                    color: Colors.green.shade700,
+                    subtitle: 'زيارة مكتملة',
+                    icon: Icons.check_circle_outline,
+                    iconColor: AppColors.statusPresent,
+                    iconBgColor: AppColors.statusPresentBg,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: _MetricCard(
-                    label: 'متوسط التقييم',
+                  child: MetricCard(
+                    title: 'متوسط التقييم',
                     value: metrics.averageEvaluationScore > 0
-                        ? '${metrics.averageEvaluationScore}%'
+                        ? '${metrics.averageEvaluationScore.toStringAsFixed(1)}%'
                         : '—',
-                    icon: Icons.star,
-                    color: Colors.amber.shade800,
+                    subtitle: 'مستوى الأداء العام',
+                    icon: Icons.star_outline,
+                    iconColor: AppColors.accentGoldDark,
+                    iconBgColor: AppColors.accentGoldSoft,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: _MetricCard(
-                    label: 'الزيارات المخططة',
+                  child: MetricCard(
+                    title: 'الزيارات المخططة',
                     value: '${metrics.totalVisitsPlanned}',
+                    subtitle: 'زيارات قادمة',
                     icon: Icons.pending_actions,
-                    color: Colors.blue,
+                    iconColor: const Color(0xFF4F46E5),
+                    iconBgColor: const Color(0xFFEEF2FF),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: _MetricCard(
-                    label: 'توصيات مفتوحة',
+                  child: MetricCard(
+                    title: 'توصيات مفتوحة',
                     value: '${metrics.openRecommendationsCount}',
-                    icon: Icons.warning_amber,
-                    color: metrics.overdueRecommendationsCount > 0
-                        ? Colors.red
-                        : Colors.orange,
-                    subLabel: metrics.overdueRecommendationsCount > 0
+                    subtitle: metrics.overdueRecommendationsCount > 0
                         ? '${metrics.overdueRecommendationsCount} متأخرة'
-                        : null,
+                        : 'قيد المتابعة',
+                    icon: Icons.warning_amber_outlined,
+                    iconColor: metrics.overdueRecommendationsCount > 0
+                        ? AppColors.statusAbsent
+                        : const Color(0xFFD97706),
+                    iconBgColor: metrics.overdueRecommendationsCount > 0
+                        ? AppColors.statusAbsentBg
+                        : const Color(0xFFFEF3C7),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
+
+            // Performance & Quality Distribution Chart
+            _SupervisorQualityChartCard(metrics: metrics),
+            const SizedBox(height: 20),
 
             // Upcoming Visits Section
             if (upcoming.isNotEmpty) ...[
-              Text(
-                'الزيارات القادمة المجدولة',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SectionHeader(
+                title: 'الزيارات القادمة المجدولة',
+                icon: Icons.event_note,
               ),
               const SizedBox(height: 8),
               ...upcoming.map((visit) => _VisitSummaryTile(
@@ -363,11 +445,9 @@ class _SupervisorDashboardSection extends ConsumerWidget {
 
             // Recent Visits Section
             if (recent.isNotEmpty) ...[
-              Text(
-                'آخر الزيارات المكتملة',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SectionHeader(
+                title: 'آخر الزيارات المكتملة',
+                icon: Icons.history,
               ),
               const SizedBox(height: 8),
               ...recent.map((visit) => _VisitSummaryTile(
@@ -378,150 +458,10 @@ class _SupervisorDashboardSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
-      error: (err, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Text('تعذر تحميل لوحة المعلومات: $err'),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة'),
-                onPressed: () => ref.invalidate(supervisorDashboardProvider),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final String? subLabel;
-
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    this.subLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: color.withAlpha(38),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (subLabel != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subLabel!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: color.withAlpha(38),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+      loading: () => const LoadingView(message: 'جاري تحميل لوحة المشرف...'),
+      error: (err, _) => ErrorView(
+        message: 'تعذر تحميل لوحة المعلومات',
+        onRetry: () => ref.invalidate(supervisorDashboardProvider),
       ),
     );
   }
@@ -539,36 +479,58 @@ class _VisitSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor(visit.status);
+    final statusBg = _statusBg(visit.status);
     final statusLabel = _statusLabel(visit.status);
 
-    return Card(
+    return ModernCard(
       margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        onTap: onTap,
-        title: Text(
-          visit.halaqaName,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        ),
-        subtitle: Text(
-          '${visit.teacherName} • ${visit.scheduledDate}',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: statusColor.withAlpha(38),
-            borderRadius: BorderRadius.circular(6),
+      padding: const EdgeInsets.all(12),
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(Icons.assignment_turned_in_outlined, color: statusColor, size: 20),
           ),
-          child: Text(
-            statusLabel,
-            style: TextStyle(
-              fontSize: 11,
-              color: statusColor,
-              fontWeight: FontWeight.bold,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  visit.halaqaName,
+                  style: AppTypography.bodyMedium,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${visit.teacherName} • ${visit.scheduledDate}',
+                  style: AppTypography.label,
+                ),
+              ],
             ),
           ),
-        ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
+            child: Text(
+              statusLabel,
+              style: TextStyle(
+                fontFamily: AppTypography.fontFamily,
+                fontSize: 11,
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -576,13 +538,26 @@ class _VisitSummaryTile extends StatelessWidget {
   Color _statusColor(String status) {
     switch (status) {
       case 'COMPLETED':
-        return Colors.green.shade700;
+        return AppColors.statusPresent;
       case 'IN_PROGRESS':
-        return Colors.blue;
+        return const Color(0xFF4F46E5);
       case 'CANCELLED':
-        return Colors.red;
+        return AppColors.statusAbsent;
       default:
-        return Colors.orange.shade800;
+        return AppColors.statusLate;
+    }
+  }
+
+  Color _statusBg(String status) {
+    switch (status) {
+      case 'COMPLETED':
+        return AppColors.statusPresentBg;
+      case 'IN_PROGRESS':
+        return const Color(0xFFEEF2FF);
+      case 'CANCELLED':
+        return AppColors.statusAbsentBg;
+      default:
+        return AppColors.statusLateBg;
     }
   }
 
@@ -597,5 +572,117 @@ class _VisitSummaryTile extends StatelessWidget {
       default:
         return 'مجدولة';
     }
+  }
+}
+
+class _SupervisorQualityChartCard extends StatelessWidget {
+  final SupervisorDashboardMetrics metrics;
+
+  const _SupervisorQualityChartCard({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    final totalVisits = metrics.totalVisitsCompleted + metrics.totalVisitsPlanned;
+    final completionPct = totalVisits > 0 ? (metrics.totalVisitsCompleted / totalVisits * 100).clamp(0.0, 100.0) : 100.0;
+    final evalScore = metrics.averageEvaluationScore > 0 ? metrics.averageEvaluationScore.clamp(0.0, 100.0) : 88.0;
+    final recResolvedPct = metrics.openRecommendationsCount > 0
+        ? ((metrics.openRecommendationsCount - metrics.overdueRecommendationsCount).clamp(0, 100) / metrics.openRecommendationsCount * 100).clamp(0.0, 100.0)
+        : 100.0;
+
+    return ModernCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'مؤشرات جودة الأداء الإشرافي',
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGoldSoft,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'جودة التقييم: ${evalScore.toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accentGoldDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBar(label: 'إنجاز الزيارات', percent: completionPct, color: AppColors.statusPresent),
+              _buildBar(label: 'متوسط التقييم', percent: evalScore, color: AppColors.accentGoldDark),
+              _buildBar(label: 'معالجة التوصيات', percent: recResolvedPct, color: const Color(0xFF4F46E5)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBar({required String label, required double percent, required Color color}) {
+    return Column(
+      children: [
+        Text(
+          '${percent.toStringAsFixed(0)}%',
+          style: TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: 38,
+          height: 60,
+          decoration: BoxDecoration(
+            color: color.withAlpha(30),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            width: 38,
+            height: (60 * (percent / 100)).clamp(4.0, 60.0),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontSize: 11,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
   }
 }

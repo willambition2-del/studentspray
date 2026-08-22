@@ -93,7 +93,7 @@ void main() {
     await tester.pumpWidget(createTestWidget(const TeacherHomeScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('لوحة المعلم — ملتقى القرآن'), findsOneWidget);
+    expect(find.text('لوحة المعلم'), findsOneWidget);
     expect(find.text('أحمد المعلم'), findsOneWidget);
     expect(find.text('مؤشرات الأداء والإحصائيات'), findsOneWidget);
     expect(find.text('الوصول السريع والإجراءات'), findsOneWidget);
@@ -152,7 +152,7 @@ void main() {
 
     expect(find.text('الاختبارات ورصد الدرجات'), findsOneWidget);
     expect(find.text('اختبار تجويد جزء عم'), findsOneWidget);
-    expect(find.text('رصد درجات الطلاب'), findsOneWidget);
+    expect(find.text('رصد الدرجات'), findsOneWidget);
   });
 
   testWidgets('5. TeacherEvaluationsScreen renders periodic evaluations', (tester) async {

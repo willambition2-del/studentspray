@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/utils/file_export_util.dart';
+import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/teacher_provider.dart';
 
@@ -12,16 +16,19 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
     final evaluationsAsync = ref.watch(teacherEvaluationsProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('التقييم التربوي والسلوكي'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
             onPressed: () => ref.invalidate(teacherEvaluationsProvider),
           ),
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async => ref.invalidate(teacherEvaluationsProvider),
         child: evaluationsAsync.when(
           data: (evaluations) {
@@ -37,74 +44,93 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
               itemCount: evaluations.length,
               itemBuilder: (context, index) {
                 final ev = evaluations[index];
-                return Card(
+                return ModernCard(
                   margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              ev.studentName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryDark,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentGold.withAlpha(30),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${ev.overallScore.toStringAsFixed(0)} / 100 (${ev.ratingLabel})',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryDark,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'التاريخ: ${ev.evaluationDate.toIso8601String().substring(0, 10)}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _buildScoreBadge('السلوك: ${ev.behaviorScore.toStringAsFixed(0)}'),
-                            const SizedBox(width: 8),
-                            _buildScoreBadge('الانضباط: ${ev.discipline.toStringAsFixed(0)}'),
-                            const SizedBox(width: 8),
-                            _buildScoreBadge('المشاركة: ${ev.participation.toStringAsFixed(0)}'),
-                          ],
-                        ),
-                        if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Text(
-                              'ملاحظات وتوجيهات المعلم: ${ev.teacherNotes}',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            ev.studentName,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.fontFamily,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft,
+                                  borderRadius: BorderRadius.circular(AppRadius.full),
+                                ),
+                                child: Text(
+                                  '${ev.overallScore.toStringAsFixed(0)} / 100 (${ev.ratingLabel})',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.fontFamily,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryDark,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
+                                tooltip: 'تصدير تقرير تقييم الطالب PDF',
+                                onPressed: () async {
+                                  final res = await FileExportUtil.exportTeacherEvaluationPdf(ev);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('✓ تم تصدير تقرير التقييم PDF بنجاح (${res.formattedSize})'),
+                                        backgroundColor: AppColors.statusPresent,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'التاريخ: ${ev.evaluationDate.toIso8601String().substring(0, 10)}',
+                        style: AppTypography.label,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _buildScoreBadge('السلوك: ${ev.behaviorScore.toStringAsFixed(0)}'),
+                          _buildScoreBadge('الانضباط: ${ev.discipline.toStringAsFixed(0)}'),
+                          _buildScoreBadge('المشاركة: ${ev.participation.toStringAsFixed(0)}'),
+                        ],
+                      ),
+                      if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: Text(
+                            'ملاحظات المعلم: ${ev.teacherNotes}',
+                            style: AppTypography.secondary,
+                          ),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 );
               },
@@ -118,11 +144,17 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         onPressed: () => _showAddEvaluationDialog(context, ref),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('تقييم طالب جديد'),
+        icon: const Icon(Icons.add, size: 20),
+        label: const Text(
+          'تقييم طالب جديد',
+          style: TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -131,12 +163,17 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(6),
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+        style: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -161,7 +198,7 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -182,10 +219,15 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
                 children: [
                   const Text(
                     'إضافة تقييم تربوي وسلوكي',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                    style: TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -195,7 +237,6 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
                 initialValue: selectedStudentId,
                 decoration: const InputDecoration(
                   labelText: 'اختر الطالب',
-                  border: OutlineInputBorder(),
                 ),
                 items: allStudents
                     .map((s) => DropdownMenuItem(
@@ -204,96 +245,109 @@ class TeacherEvaluationsScreen extends ConsumerWidget {
                         ))
                     .toList(),
                 onChanged: (val) {
-                  if (val != null) setModalState(() => selectedStudentId = val);
+                  if (val != null) {
+                    setModalState(() => selectedStudentId = val);
+                  }
                 },
               ),
-              const SizedBox(height: 12),
-              Text('السلوك والآداب (${behavior.toInt()})'),
+              const SizedBox(height: 16),
+              Text(
+                'السلوك والأخلاق: ${behavior.toStringAsFixed(0)} / 100',
+                style: AppTypography.secondaryMedium,
+              ),
               Slider(
                 value: behavior,
-                min: 50,
+                min: 0,
                 max: 100,
-                divisions: 10,
-                label: '${behavior.toInt()}',
+                divisions: 20,
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => behavior = val),
               ),
-              Text('الانضباط والالتزام (${discipline.toInt()})'),
+              Text(
+                'الانضباط والمواظبة: ${discipline.toStringAsFixed(0)} / 100',
+                style: AppTypography.secondaryMedium,
+              ),
               Slider(
                 value: discipline,
-                min: 50,
+                min: 0,
                 max: 100,
-                divisions: 10,
-                label: '${discipline.toInt()}',
+                divisions: 20,
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => discipline = val),
               ),
-              Text('المشاركة والتفاعل (${participation.toInt()})'),
+              Text(
+                'المشاركة والتفاعل: ${participation.toStringAsFixed(0)} / 100',
+                style: AppTypography.secondaryMedium,
+              ),
               Slider(
                 value: participation,
-                min: 50,
+                min: 0,
                 max: 100,
-                divisions: 10,
-                label: '${participation.toInt()}',
+                divisions: 20,
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => participation = val),
               ),
+              const SizedBox(height: 8),
               TextField(
                 controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: 'توجيهات وملاحظات المعلم',
-                  border: OutlineInputBorder(),
-                ),
                 maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: 'ملاحظات إضافية على التقييم...',
+                ),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () async {
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    final now = DateTime.now().toIso8601String().split('T')[0];
                     final overall = (behavior + discipline + participation) / 3;
-                    String rating = 'VERY_GOOD';
-                    if (overall >= 90) {
-                      rating = 'EXCELLENT';
-                    } else if (overall >= 80) {
-                      rating = 'VERY_GOOD';
-                    } else if (overall >= 70) {
-                      rating = 'GOOD';
-                    } else {
+                    String rating = 'EXCELLENT';
+                    if (overall < 60) {
+                      rating = 'NEEDS_REVIEW';
+                    } else if (overall < 70) {
                       rating = 'ACCEPTABLE';
+                    } else if (overall < 80) {
+                      rating = 'GOOD';
+                    } else if (overall < 90) {
+                      rating = 'VERY_GOOD';
                     }
 
-                    try {
-                      final ops = ref.read(teacherOperationsProvider);
-                      await ops.submitStudentEvaluation(
-                        studentId: selectedStudentId,
-                        halaqaId: 'halaqa-auto',
-                        evaluationDate: DateTime.now().toIso8601String().substring(0, 10),
-                        behaviorScore: behavior,
-                        discipline: discipline,
-                        participation: participation,
-                        overallScore: overall,
-                        rating: rating,
-                        teacherNotes: notesController.text.trim(),
+                    await ref.read(teacherOperationsProvider).submitStudentEvaluation(
+                          studentId: selectedStudentId,
+                          halaqaId: 'halaqa-auto',
+                          evaluationDate: now,
+                          behaviorScore: behavior,
+                          discipline: discipline,
+                          participation: participation,
+                          overallScore: overall,
+                          rating: rating,
+                          teacherNotes: notesController.text.isNotEmpty ? notesController.text : null,
+                        );
+                    ref.invalidate(teacherEvaluationsProvider);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ تم حفظ التقييم بنجاح'),
+                          backgroundColor: AppColors.statusPresent,
+                        ),
                       );
-                      if (context.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تم إضافة التقييم التربوي بنجاح')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('تعذر حفظ التقييم: $e')),
-                        );
-                      }
                     }
-                  },
-                  child: const Text('حفظ التقييم'),
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('فشل حفظ التقييم: $e'),
+                          backgroundColor: AppColors.statusAbsent,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 46),
                 ),
+                child: const Text('حفظ التقييم'),
               ),
             ],
           ),

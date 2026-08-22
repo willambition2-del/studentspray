@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
+import { CreateHomeworkSubmissionDto, CreateStudentProposalDto } from './dto/student-portal.dto';
 
 @Injectable()
 export class StudentPortalService {
@@ -211,6 +212,111 @@ export class StudentPortalService {
         items: p.items,
       };
     });
+  }
+
+  async getPlanHistoryForStudent(studentId: string, forumId: string) {
+    const plans = await this.prisma.educationalPlan.findMany({
+      where: {
+        OR: [{ studentId }, { forumId }],
+        deletedAt: null,
+      },
+      include: {
+        items: { orderBy: { order: 'asc' } },
+        halaqa: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return plans.map((p) => {
+      const totalItems = p.items.length;
+      const completedItems = p.items.filter((i) => i.status === 'COMPLETED').length;
+      const progressPercentage = totalItems > 0 ? Number(((completedItems / totalItems) * 100).toFixed(1)) : (p.status === 'COMPLETED' ? 100 : 0);
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        status: p.status,
+        halaqaName: p.halaqa?.name,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        totalItems,
+        completedItems,
+        progressPercentage,
+        items: p.items,
+        isArchived: p.status === 'ARCHIVED' || p.status === 'COMPLETED',
+      };
+    });
+  }
+
+  async getProgressHistoryForStudent(studentId: string) {
+    const [hifzRecords, revRecords] = await Promise.all([
+      this.prisma.memorizationRecord.findMany({
+        where: { studentId },
+        orderBy: { date: 'asc' },
+        select: { id: true, date: true, pageFrom: true, pageTo: true, surahNumber: true, evaluationScore: true },
+      }),
+      this.prisma.revisionRecord.findMany({
+        where: { studentId },
+        orderBy: { date: 'asc' },
+        select: { id: true, date: true, pageFrom: true, pageTo: true, juzNumber: true, evaluationScore: true },
+      }),
+    ]);
+
+    const monthNamesArabic = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const now = new Date();
+    const periodsMap = new Map<string, { label: string; year: number; month: number; memorized: number; revision: number }>();
+
+    // Generate last 6 chronological calendar months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const label = `${monthNamesArabic[month]}`;
+      periodsMap.set(key, { label, year, month: month + 1, memorized: 0, revision: 0 });
+    }
+
+    // Populate actual DB records into corresponding period
+    for (const rec of hifzRecords) {
+      const recDate = new Date(rec.date);
+      const key = `${recDate.getFullYear()}-${String(recDate.getMonth() + 1).padStart(2, '0')}`;
+      if (periodsMap.has(key)) {
+        const pages = rec.pageTo && rec.pageFrom ? Math.max(1, rec.pageTo - rec.pageFrom + 1) : 1;
+        periodsMap.get(key)!.memorized += pages;
+      }
+    }
+
+    for (const rec of revRecords) {
+      const recDate = new Date(rec.date);
+      const key = `${recDate.getFullYear()}-${String(recDate.getMonth() + 1).padStart(2, '0')}`;
+      if (periodsMap.has(key)) {
+        const pages = rec.pageTo && rec.pageFrom ? Math.max(1, rec.pageTo - rec.pageFrom + 1) : 1;
+        periodsMap.get(key)!.revision += pages;
+      }
+    }
+
+    let runningCumulativeHifz = 0;
+    let runningCumulativeRev = 0;
+    const points = [];
+
+    for (const [periodKey, data] of periodsMap.entries()) {
+      runningCumulativeHifz += data.memorized;
+      runningCumulativeRev += data.revision;
+      points.push({
+        period: periodKey,
+        label: data.label,
+        memorized: data.memorized,
+        revision: data.revision,
+        cumulativeMemorized: runningCumulativeHifz,
+        cumulativeRevision: runningCumulativeRev,
+      });
+    }
+
+    return {
+      studentId,
+      totalRecords: hifzRecords.length + revRecords.length,
+      points,
+    };
   }
 
   async getAttendanceForStudent(studentId: string) {
@@ -457,6 +563,79 @@ export class StudentPortalService {
         awardedBy: { select: { id: true, displayName: true } },
       },
       orderBy: { awardedAt: 'desc' },
+    });
+  }
+
+  async createProposal(user: AuthenticatedUser, dto: CreateStudentProposalDto) {
+    const student = await this.requireStudentProfile(user);
+    const request = await this.prisma.administrativeRequest.create({
+      data: {
+        forumId: user.forumId,
+        type: 'ACTIVITY_PROPOSAL',
+        title: dto.title,
+        description: dto.description,
+        requestedById: user.id,
+        relatedEntityType: 'STUDENT',
+        relatedEntityId: student.id,
+        status: 'SUBMITTED',
+        priority: 'NORMAL',
+        submittedAt: new Date(),
+      },
+    });
+    return {
+      id: request.id,
+      title: request.title,
+      description: request.description,
+      status: request.status,
+      createdAt: request.createdAt,
+    };
+  }
+
+  async createHomeworkSubmission(user: AuthenticatedUser, dto: CreateHomeworkSubmissionDto) {
+    const student = await this.requireStudentProfile(user);
+    const fullDesc = dto.attachmentUrl
+      ? `${dto.content}\n[المرفق: ${dto.attachmentUrl}]`
+      : dto.content;
+
+    const request = await this.prisma.administrativeRequest.create({
+      data: {
+        forumId: user.forumId,
+        type: 'GENERAL',
+        title: `حل واجب: ${dto.taskTitle}`,
+        description: fullDesc,
+        requestedById: user.id,
+        relatedEntityType: 'STUDENT',
+        relatedEntityId: student.id,
+        status: 'SUBMITTED',
+        priority: 'NORMAL',
+        submittedAt: new Date(),
+      },
+    });
+    return {
+      id: request.id,
+      title: request.title,
+      description: request.description,
+      status: request.status,
+      createdAt: request.createdAt,
+    };
+  }
+
+  async getProposals(user: AuthenticatedUser) {
+    const student = await this.requireStudentProfile(user);
+    return this.prisma.administrativeRequest.findMany({
+      where: {
+        forumId: user.forumId,
+        requestedById: user.id,
+        type: 'ACTIVITY_PROPOSAL',
+        deletedAt: null,
+      },
+      include: {
+        approvalActions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

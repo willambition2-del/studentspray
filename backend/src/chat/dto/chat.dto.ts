@@ -8,6 +8,14 @@ export class SendMessageDto {
   @MaxLength(4000)
   text: string;
 
+  @ApiPropertyOptional({ description: 'Message type (TEXT, IMAGE, FILE)' })
+  @IsOptional()
+  type?: any;
+
+  @ApiPropertyOptional({ description: 'Attachment metadata (url, fileName, fileSize)' })
+  @IsOptional()
+  metadata?: any;
+
   @ApiPropertyOptional({ description: 'Client message UUID for idempotency' })
   @IsUUID()
   @IsOptional()

@@ -1,11 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { SearchResultItem, SearchResultCategory } from './searchTypes';
-import { mockStudents, mockCircles } from '../../components/dashboard/dashboardData';
-import { INITIAL_MOCK_FIELD_VISITS } from '../../data/mockFieldVisits';
 import { 
   getOrCreateCircleCodeRecord, 
   assignStudentToCircle, 
@@ -24,9 +17,10 @@ import {
  */
 
 // 1. Students Indexer
-export function getStudentSearchItems(): SearchResultItem[] {
-  return mockStudents.map((rawStudent, idx) => {
-    const student = assignStudentToCircle(rawStudent, rawStudent.circleName || rawStudent.circleId || 'حلقة عاصم الكوفي', idx + 1);
+export function getStudentSearchItems(studentsList: any[] = []): SearchResultItem[] {
+  if (!Array.isArray(studentsList) || studentsList.length === 0) return [];
+  return studentsList.map((rawStudent, idx) => {
+    const student = assignStudentToCircle(rawStudent, rawStudent.circleName || rawStudent.circle || 'حلقة قرآنية', idx + 1);
     const isExceeding = student.status === 'exceeding';
     const isCommitted = student.status === 'committed';
     const isLagging = student.status === 'lagging';
@@ -37,7 +31,7 @@ export function getStudentSearchItems(): SearchResultItem[] {
     return {
       id: `student-${student.id}`,
       title: `${student.name} | ${student.organizationalId}`,
-      subtitle: `الرقم الداخلي: ${student.permanentId} • ${student.circleName} (${student.circleCode})`,
+      subtitle: `الرقم الداخلي: ${student.permanentId} • ${student.circleName || student.circle || ''} (${student.circleCode})`,
       category: 'students',
       categoryLabel: 'الطلاب',
       badge: `${badgeLabel} • ${student.organizationalId}`,
@@ -46,10 +40,10 @@ export function getStudentSearchItems(): SearchResultItem[] {
         { label: 'الرمز التنظيمي', value: student.organizationalId },
         { label: 'المعرف الثابت', value: student.permanentId },
         { label: 'رمز الحلقة', value: student.circleCode },
-        { label: 'المحفوظ', value: `${student.memorizedPages} ص` },
-        { label: 'إنجاز الخطة', value: `${student.planComplianceRate || student.attendanceRate}%`, color: isLagging ? 'text-rose-600' : 'text-emerald-600' },
+        { label: 'المحفوظ', value: `${student.memorizedPages || 0} ص` },
+        { label: 'إنجاز الخطة', value: `${student.planComplianceRate || student.attendanceRate || 0}%`, color: isLagging ? 'text-rose-600' : 'text-emerald-600' },
       ],
-      snippet: `الاسم: ${student.name} | المعرف الداخلي الثابت: ${student.permanentId} | الرقم التنظيمي للحلقة: ${student.organizationalId} | الحلقة: ${student.circleName} (${student.circleCode})`,
+      snippet: `الاسم: ${student.name} | المعرف الداخلي الثابت: ${student.permanentId} | الرقم التنظيمي للحلقة: ${student.organizationalId} | الحلقة: ${student.circleName || student.circle || ''}`,
       relevanceScore: 0,
       actionTab: 'students',
       actionParams: {
@@ -64,31 +58,28 @@ export function getStudentSearchItems(): SearchResultItem[] {
 }
 
 // 2. Circles Indexer
-export function getCircleSearchItems(): SearchResultItem[] {
-  return mockCircles.map(rawCircle => {
+export function getCircleSearchItems(circlesList: any[] = []): SearchResultItem[] {
+  if (!Array.isArray(circlesList) || circlesList.length === 0) return [];
+  return circlesList.map(rawCircle => {
     const circleRecord = getOrCreateCircleCodeRecord(rawCircle.id || rawCircle.name, rawCircle.name);
-    const branch = (rawCircle as any).branch || 'فرع شمال الرياض';
-    const regCount = (rawCircle as any).regularStudentsCount || rawCircle.activeStudentsCount || rawCircle.studentsCount;
-    const lagCount = (rawCircle as any).laggingStudentsCount || 0;
-    const visitDate = (rawCircle as any).lastVisitDate || '2026-08-12';
-    const visitScore = (rawCircle as any).lastVisitScore || rawCircle.overallScore;
+    const branch = (rawCircle as any).branch || 'الفرع الرئيسي';
+    const regCount = (rawCircle as any).regularStudentsCount || rawCircle.activeStudentsCount || rawCircle.studentsCount || 0;
 
     return {
       id: `circle-${rawCircle.id}`,
       title: `${rawCircle.name} | ${circleRecord.circleCode}`,
-      subtitle: `رمز الحلقة: ${circleRecord.circleCode} • ${branch} • المعلم: ${rawCircle.teacherName}`,
+      subtitle: `رمز الحلقة: ${circleRecord.circleCode} • ${branch} • المعلم: ${rawCircle.teacherName || 'كادر تعليمي'}`,
       category: 'circles',
       categoryLabel: 'الحلقات',
       badge: `${circleRecord.circleCode} • ${rawCircle.priorityLabel || 'حلقة قرآنية'}`,
-      badgeColor: rawCircle.overallScore >= 90 ? 'emerald' : rawCircle.overallScore >= 80 ? 'indigo' : 'amber',
+      badgeColor: (rawCircle.overallScore || 0) >= 90 ? 'emerald' : (rawCircle.overallScore || 0) >= 80 ? 'indigo' : 'amber',
       keyMetrics: [
         { label: 'رمز الحلقة', value: circleRecord.circleCode },
-        { label: 'الطلاب', value: `${rawCircle.studentsCount} طالب` },
-        { label: 'التقييم العام', value: `${rawCircle.overallScore}%` },
-        { label: 'إنجاز الخطة', value: `${rawCircle.planComplianceRate}%` },
-        { label: 'تقييم المعلم', value: `★ 4.9` }
+        { label: 'الطلاب', value: `${regCount} طالب` },
+        { label: 'التقييم العام', value: `${rawCircle.overallScore || 0}%` },
+        { label: 'إنجاز الخطة', value: `${rawCircle.planComplianceRate || 0}%` },
       ],
-      snippet: `رمز الحلقة التنظيمي: ${circleRecord.circleCode} | الاسم: ${rawCircle.name} | المعلم: ${rawCircle.teacherName} | عدد الطلاب: ${regCount}`,
+      snippet: `رمز الحلقة التنظيمي: ${circleRecord.circleCode} | الاسم: ${rawCircle.name} | المعلم: ${rawCircle.teacherName || ''} | عدد الطلاب: ${regCount}`,
       relevanceScore: 0,
       actionTab: 'circles',
       actionParams: {
@@ -102,10 +93,9 @@ export function getCircleSearchItems(): SearchResultItem[] {
 }
 
 // 3. Teachers & Staff Indexer
-export function getTeachersStaffSearchItems(demoUsers: any[]): SearchResultItem[] {
+export function getTeachersStaffSearchItems(demoUsers: any[] = []): SearchResultItem[] {
   const staffItems: SearchResultItem[] = [];
 
-  // Index demo users
   if (Array.isArray(demoUsers)) {
     demoUsers.forEach((rawU, idx) => {
       const u = assignStaffToCircle(rawU, rawU.circleName, idx + 1);
@@ -138,58 +128,31 @@ export function getTeachersStaffSearchItems(demoUsers: any[]): SearchResultItem[
     });
   }
 
-  // Also index circle teachers
-  mockCircles.forEach((circle, idx) => {
-    const teacherStaff = assignStaffToCircle({ name: circle.teacherName, role: 'معلم حلقة' }, circle.name, idx + 1);
-    const branch = (circle as any).branch || 'فرع شمال الرياض';
-    if (!staffItems.some(i => i.title.includes(circle.teacherName))) {
-      staffItems.push({
-        id: `teacher-${circle.id}`,
-        title: `${circle.teacherName} | ${teacherStaff.organizationalId}`,
-        subtitle: `المعرف الداخلي: ${teacherStaff.permanentId} • معلم ${circle.name}`,
-        category: 'teachers_staff',
-        categoryLabel: 'الكادر والمعلمون',
-        badge: teacherStaff.organizationalId,
-        badgeColor: 'indigo',
-        keyMetrics: [
-          { label: 'المعرف الثابت', value: teacherStaff.permanentId },
-          { label: 'الرمز التنظيمي', value: teacherStaff.organizationalId },
-          { label: 'الحلقة', value: circle.name },
-        ],
-        snippet: `الاسم: ${circle.teacherName} | المعرف الثابت: ${teacherStaff.permanentId} | الرمز التنظيمي: ${teacherStaff.organizationalId} | الحلقة: ${circle.name}`,
-        relevanceScore: 0,
-        actionTab: 'teachers',
-        actionParams: { circleId: circle.id, filterText: circle.teacherName },
-        rawEntity: { ...circle, ...teacherStaff },
-        allowedUserTypes: ['admin', 'branch_manager', 'supervisor', 'teacher']
-      });
-    }
-  });
-
   return staffItems;
 }
 
 // 4. Field Visits Indexer
-export function getFieldVisitSearchItems(): SearchResultItem[] {
-  return INITIAL_MOCK_FIELD_VISITS.map(visit => {
+export function getFieldVisitSearchItems(visitsList: any[] = []): SearchResultItem[] {
+  if (!Array.isArray(visitsList) || visitsList.length === 0) return [];
+  return visitsList.map(visit => {
     return {
       id: `visit-${visit.id}`,
-      title: `زيارة ميدانية: ${visit.circleName}`,
-      subtitle: `الموجه: ${visit.supervisorName} • التاريخ: ${visit.visitDate} (رقم ${visit.visitNumber})`,
+      title: `زيارة ميدانية: ${visit.circleName || visit.halaqa?.name || 'حلقة'}`,
+      subtitle: `الموجه: ${visit.supervisorName || visit.supervisor?.user?.displayName || ''} • التاريخ: ${visit.visitDate || visit.scheduledDate || ''} (رقم ${visit.visitNumber || ''})`,
       category: 'field_visits',
       categoryLabel: 'الزيارات الميدانية',
-      badge: `درجة الزيارة: ${visit.axes.reduce((acc, curr) => acc + (curr.score * (curr.weight / 100)), 0).toFixed(0)}%`,
+      badge: `زيارة ميدانية`,
       badgeColor: 'purple',
       keyMetrics: [
-        { label: 'رقم الزيارة', value: visit.visitNumber },
+        { label: 'رقم الزيارة', value: visit.visitNumber || visit.id },
         { label: 'نوع الزيارة', value: visit.visitType === 'periodic' ? 'دورية' : 'توجيهية' },
-        { label: 'المعلم', value: visit.teacherName },
-        { label: 'التاريخ', value: visit.visitDate }
+        { label: 'المعلم', value: visit.teacherName || visit.teacher?.user?.displayName || '' },
+        { label: 'التاريخ', value: visit.visitDate || visit.scheduledDate || '' }
       ],
-      snippet: `السبب والملاحظات: ${visit.reason} - ${visit.initialNotes}`,
+      snippet: `السبب والملاحظات: ${visit.reason || ''} - ${visit.initialNotes || visit.summary || ''}`,
       relevanceScore: 0,
       actionTab: 'field-visits',
-      actionParams: { entityId: visit.id, circleId: visit.circleId },
+      actionParams: { entityId: visit.id, circleId: visit.circleId || visit.halaqaId },
       rawEntity: visit,
       allowedUserTypes: ['admin', 'branch_manager', 'supervisor', 'teacher']
     };

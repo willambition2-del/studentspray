@@ -158,6 +158,7 @@ class SupervisorActionsNotifier extends StateNotifier<AsyncValue<void>> {
   Future<dynamic> updateVisitStatus({
     required String visitId,
     required String status,
+    String? scheduledDate,
     String? summary,
     String? generalNotes,
   }) async {
@@ -174,6 +175,7 @@ class SupervisorActionsNotifier extends StateNotifier<AsyncValue<void>> {
         method: 'PATCH',
         payload: {
           'status': status,
+          if (scheduledDate != null) 'scheduledDate': scheduledDate,
           if (summary != null) 'summary': summary,
           if (generalNotes != null) 'generalNotes': generalNotes,
         },

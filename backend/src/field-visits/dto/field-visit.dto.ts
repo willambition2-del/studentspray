@@ -121,6 +121,11 @@ export class UpdateFieldVisitStatusDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  scheduledDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   summary?: string;
 

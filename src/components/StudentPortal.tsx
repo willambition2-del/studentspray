@@ -33,19 +33,19 @@ export default function StudentPortal({ currentUser }: { currentUser?: any }) {
   
   // Dynamic student profile details
   const studentProfile = {
-    name: currentUser?.name || 'معاذ بن خالد بن عبدالله النفيسي',
-    id: currentUser?.studentId || currentUser?.id || 'STU-1447-089',
-    circleName: currentUser?.circleName || 'حلقة الإمام عاصم (المستوى المتقدم)',
-    teacherName: currentUser?.teacherName || 'الشيخ عمر بن عبدالعزيز التركي',
-    supervisorName: currentUser?.supervisorName || 'الشيخ محمد بن فهد الدوسري',
-    joiningDate: currentUser?.joiningDate || '01/09/1445 هـ',
-    currentLevel: currentUser?.currentLevel || 'المستوى الثالث - المهرة بالقرآن'
+    name: currentUser?.displayName || currentUser?.name || 'الطالب',
+    id: currentUser?.studentNumber || currentUser?.id || '',
+    circleName: currentUser?.circleName || 'الحلقة القرآنية',
+    teacherName: currentUser?.teacherName || 'معلم الحلقة',
+    supervisorName: currentUser?.supervisorName || 'المشرف التربوي',
+    joiningDate: currentUser?.joiningDate || '',
+    currentLevel: currentUser?.currentLevel || 'المسار التعليمي'
   };
 
   const currentStudentPlan: any = Object.values(storedPlans).find((p: any) => 
     (currentUser?.name && p?.studentName?.includes(currentUser.name.split(' ')?.[0] || '')) ||
     (currentUser?.id && p?.studentId === currentUser.id)
-  ) || (storedPlans as any)['ST-000004'] || (storedPlans as any)['ST-000001'];
+  ) || null;
   const [showCertificate, setShowCertificate] = useState(false);
 
   // Student communication hub state

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_typography.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -7,20 +8,21 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: AppTheme.primaryDark,
+      backgroundColor: AppColors.primaryDark,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.menu_book_rounded,
+              Icons.menu_book_outlined,
               size: 72,
-              color: AppTheme.accentGold,
+              color: AppColors.accentGold,
             ),
             SizedBox(height: 24),
             Text(
               'الملتقى القرآني',
               style: TextStyle(
+                fontFamily: AppTypography.fontFamily,
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -31,13 +33,14 @@ class SplashScreen extends StatelessWidget {
             Text(
               'بوابة المعلم وحلقات التحفيظ',
               style: TextStyle(
+                fontFamily: AppTypography.fontFamily,
                 fontSize: 14,
-                color: AppTheme.accentGoldLight,
+                color: AppColors.accentGoldSoft,
               ),
             ),
             SizedBox(height: 36),
             CircularProgressIndicator(
-              color: AppTheme.accentGold,
+              color: AppColors.accentGold,
               strokeWidth: 2.5,
             ),
           ],

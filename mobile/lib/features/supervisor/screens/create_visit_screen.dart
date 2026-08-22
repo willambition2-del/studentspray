@@ -23,6 +23,7 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
   String? _selectedTeacherId;
   String _visitType = 'ROUTINE';
   DateTime _scheduledDate = DateTime.now();
+  TimeOfDay _scheduledTime = const TimeOfDay(hour: 16, minute: 30);
   final _reasonController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isLoading = false;
@@ -53,11 +54,19 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final scheduledDateTime = DateTime(
+        _scheduledDate.year,
+        _scheduledDate.month,
+        _scheduledDate.day,
+        _scheduledTime.hour,
+        _scheduledTime.minute,
+      );
+
       final res = await ref.read(supervisorActionsProvider.notifier).createVisit(
             halaqaId: _selectedHalaqaId!,
             teacherId: _selectedTeacherId!,
             visitType: _visitType,
-            scheduledDate: _scheduledDate.toIso8601String(),
+            scheduledDate: scheduledDateTime.toIso8601String(),
             reason: _reasonController.text.trim().isNotEmpty
                 ? _reasonController.text.trim()
                 : null,
@@ -121,17 +130,16 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
                 onChanged: (val) {
                   setState(() {
                     _selectedHalaqaId = val;
-                    // Auto-select teacher if only 1 teacher in this halaqa
-                    final match = halaqas.firstWhere((h) => h.id == val);
-                    if (match.teachers.isNotEmpty) {
-                      _selectedTeacherId = match.teachers.first['id'] as String?;
+                    final selectedHalaqa = halaqas.firstWhere((h) => h.id == val);
+                    if (selectedHalaqa.teachers.isNotEmpty) {
+                      _selectedTeacherId = selectedHalaqa.teachers.first['id'] as String?;
                     }
                   });
                 },
-                validator: (val) => val == null ? 'مطلوب اختيار الحلقة' : null,
+                validator: (v) => v == null ? 'يرجى اختيار الحلقة' : null,
               ),
-              loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('خطأ في جلب الحلقات: $e'),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Text('خطأ في تحميل الحلقات: $err'),
             ),
             const SizedBox(height: 16),
 
@@ -151,10 +159,10 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
                         ))
                     .toList(),
                 onChanged: (val) => setState(() => _selectedTeacherId = val),
-                validator: (val) => val == null ? 'مطلوب اختيار المعلم' : null,
+                validator: (v) => v == null ? 'يرجى اختيار المعلم' : null,
               ),
-              loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('خطأ في جلب المعلمين: $e'),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Text('خطأ في تحميل المعلمين: $err'),
             ),
             const SizedBox(height: 16),
 
@@ -177,29 +185,57 @@ class _CreateVisitScreenState extends ConsumerState<CreateVisitScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Scheduled Date Picker
-            ListTile(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-                side: BorderSide(color: Colors.grey.shade400),
-              ),
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('تاريخ وموعد الزيارة'),
-              subtitle: Text(
-                '${_scheduledDate.year}-${_scheduledDate.month.toString().padLeft(2, "0")}-${_scheduledDate.day.toString().padLeft(2, "0")}',
-              ),
-              trailing: const Icon(Icons.edit_calendar),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _scheduledDate,
-                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                  lastDate: DateTime.now().add(const Duration(days: 90)),
-                );
-                if (picked != null) {
-                  setState(() => _scheduledDate = picked);
-                }
-              },
+            // Scheduled Date & Time Picker
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      side: BorderSide(color: Colors.grey.shade400),
+                    ),
+                    leading: const Icon(Icons.calendar_today),
+                    title: const Text('التاريخ'),
+                    subtitle: Text(
+                      '${_scheduledDate.year}-${_scheduledDate.month.toString().padLeft(2, "0")}-${_scheduledDate.day.toString().padLeft(2, "0")}',
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _scheduledDate,
+                        firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                        lastDate: DateTime.now().add(const Duration(days: 90)),
+                      );
+                      if (picked != null) {
+                        setState(() => _scheduledDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      side: BorderSide(color: Colors.grey.shade400),
+                    ),
+                    leading: const Icon(Icons.access_time),
+                    title: const Text('الوقت'),
+                    subtitle: Text('${_scheduledTime.hour.toString().padLeft(2, "0")}:${_scheduledTime.minute.toString().padLeft(2, "0")}'),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _scheduledTime,
+                      );
+                      if (picked != null) {
+                        setState(() => _scheduledTime = picked);
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 

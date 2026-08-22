@@ -43,7 +43,7 @@ class StudentProgressScreen extends ConsumerWidget {
                         radius: 26,
                         backgroundColor: AppTheme.accentGold.withAlpha(40),
                         child: const Icon(
-                          Icons.school_rounded,
+                          Icons.school_outlined,
                           color: AppTheme.accentGold,
                           size: 30,
                         ),
@@ -138,7 +138,7 @@ class StudentProgressScreen extends ConsumerWidget {
                     _buildMetricCard(
                       title: 'نسبة الحضور',
                       value: '${progress.attendanceRate}%',
-                      icon: Icons.calendar_today_rounded,
+                      icon: Icons.calendar_today_outlined,
                       color: AppTheme.statusPresent,
                     ),
                     const SizedBox(width: 10),
@@ -147,7 +147,7 @@ class StudentProgressScreen extends ConsumerWidget {
                       value: '${progress.totalMemorizationSessions}',
                       subtitle:
                           'معدل: ${progress.avgMemorizationScore.toStringAsFixed(1)}',
-                      icon: Icons.record_voice_over_rounded,
+                      icon: Icons.record_voice_over_outlined,
                       color: AppTheme.primary,
                     ),
                     const SizedBox(width: 10),
@@ -156,7 +156,7 @@ class StudentProgressScreen extends ConsumerWidget {
                       value: '${progress.totalRevisionSessions}',
                       subtitle:
                           'معدل: ${progress.avgRevisionScore.toStringAsFixed(1)}',
-                      icon: Icons.repeat_rounded,
+                      icon: Icons.replay,
                       color: AppTheme.accentGold,
                     ),
                   ],
@@ -198,7 +198,7 @@ class StudentProgressScreen extends ConsumerWidget {
                         leading: CircleAvatar(
                           backgroundColor: AppTheme.primary.withAlpha(20),
                           child: const Icon(
-                            Icons.book_rounded,
+                            Icons.menu_book_outlined,
                             color: AppTheme.primary,
                             size: 20,
                           ),
@@ -264,7 +264,7 @@ class StudentProgressScreen extends ConsumerWidget {
                         leading: CircleAvatar(
                           backgroundColor: AppTheme.accentGold.withAlpha(20),
                           child: const Icon(
-                            Icons.repeat_rounded,
+                            Icons.replay,
                             color: AppTheme.accentGold,
                             size: 20,
                           ),

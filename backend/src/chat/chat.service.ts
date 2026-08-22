@@ -322,6 +322,7 @@ export class ChatService {
       clientMessageId: msg.clientMessageId,
       type: msg.type,
       text: msg.text,
+      metadata: msg.metadata,
       createdAt: msg.createdAt,
     }));
 
@@ -359,10 +360,14 @@ export class ChatService {
           clientMessageId: existing.clientMessageId,
           type: existing.type,
           text: existing.text,
+          metadata: existing.metadata,
           createdAt: existing.createdAt,
         };
       }
     }
+
+    const msgType = ChatMessageType.TEXT;
+    const msgMetadata = dto.metadata ?? (dto.type && dto.type !== 'TEXT' ? { type: dto.type } : undefined);
 
     // Persist in PostgreSQL BEFORE emit
     const created = await this.prisma.chatMessage.create({
@@ -370,8 +375,9 @@ export class ChatService {
         conversationId,
         senderId: user.id,
         clientMessageId: dto.clientMessageId,
-        type: ChatMessageType.TEXT,
+        type: msgType,
         text: dto.text.trim(),
+        metadata: msgMetadata,
       },
       include: {
         sender: { select: { id: true, displayName: true, username: true } },
@@ -400,8 +406,9 @@ export class ChatService {
       senderName: created.sender?.displayName || created.sender?.username || 'مستخدم',
       isMe: true,
       clientMessageId: created.clientMessageId,
-      type: created.type,
+      type: dto.type || created.type,
       text: created.text,
+      metadata: created.metadata,
       createdAt: created.createdAt,
     };
   }

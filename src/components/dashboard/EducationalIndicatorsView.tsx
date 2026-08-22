@@ -35,23 +35,7 @@ export default function EducationalIndicatorsView({ onAddDecision }: Educational
   const [examSearch, setExamSearch] = useState<string>('');
   const [lastRecordedDate, setLastRecordedDate] = useState<string>('1447/12/10');
 
-  const [examRecords, setExamRecords] = useState<ExamGradeRecord[]>([
-    { id: 'ex-1', studentName: 'عبدالرحمن بن خالد السالم', circleName: 'حلقة الإمام الشاطبي النموذجية', oralScore: 48, writtenScore: 47, finalScore: 95, status: 'tested' },
-    { id: 'ex-2', studentName: 'محمد بن يوسف العلي', circleName: 'حلقة الإمام الشاطبي النموذجية', oralScore: 46, writtenScore: 48, finalScore: 94, status: 'tested' },
-    { id: 'ex-3', studentName: 'سلمان بن فهد الدوسري', circleName: 'حلقة ابن كثير للمتقدمين', oralScore: 45, writtenScore: 46, finalScore: 91, status: 'tested' },
-    { id: 'ex-4', studentName: 'عمر بن عبدالعزيز الشمري', circleName: 'حلقة ابن كثير للمتقدمين', oralScore: 43, writtenScore: 44, finalScore: 87, status: 'tested' },
-    { id: 'ex-5', studentName: 'أحمد بن إبراهيم المعيقلي', circleName: 'حلقة فصول الفجر لتعليم الأشبال', oralScore: 42, writtenScore: 42, finalScore: 84, status: 'tested' },
-    { id: 'ex-6', studentName: 'ياسر بن حمزة القحطاني', circleName: 'حلقة فصول الفجر لتعليم الأشبال', oralScore: 40, writtenScore: 42, finalScore: 82, status: 'tested' },
-    { id: 'ex-7', studentName: 'خالد بن ناصر العتيبي', circleName: 'حلقة الإمام الشاطبي النموذجية', oralScore: 38, writtenScore: 40, finalScore: 78, status: 'tested' },
-    { id: 'ex-8', studentName: 'سعد بن منصور الخالدي', circleName: 'حلقة ابن كثير للمتقدمين', oralScore: 36, writtenScore: 38, finalScore: 74, status: 'tested' },
-    { id: 'ex-9', studentName: 'عبدالملك بن سلطان الحربي', circleName: 'حلقة فصول الفجر لتعليم الأشبال', oralScore: 35, writtenScore: 37, finalScore: 72, status: 'tested' },
-    { id: 'ex-10', studentName: 'حمزة بن توفيق التميمي', circleName: 'حلقة الإمام نافع المسائية', oralScore: 32, writtenScore: 33, finalScore: 65, status: 'tested' },
-    { id: 'ex-11', studentName: 'تركي بن ماجد الرويلي', circleName: 'حلقة الإمام نافع المسائية', oralScore: 28, writtenScore: 27, finalScore: 55, status: 'tested' },
-    { id: 'ex-12', studentName: 'زياد بن معاذ العنزي', circleName: 'حلقة التاج والوقار', oralScore: null, writtenScore: null, finalScore: null, status: 'untested' },
-    { id: 'ex-13', studentName: 'راشد بن فهد السبيعي', circleName: 'حلقة التاج والوقار', oralScore: 47, writtenScore: 49, finalScore: 96, status: 'tested' },
-    { id: 'ex-14', studentName: 'أسامة بن بدر المطيري', circleName: 'حلقة التاج والوقار', oralScore: 44, writtenScore: 45, finalScore: 89, status: 'tested' },
-    { id: 'ex-15', studentName: 'سعود بن طارق الغامدي', circleName: 'حلقة التاج والوقار', oralScore: null, writtenScore: null, finalScore: null, status: 'untested' }
-  ]);
+  const [examRecords, setExamRecords] = useState<ExamGradeRecord[]>([]);
 
   // Dynamic Exam Statistics Calculation
   const examStats = useMemo(() => {

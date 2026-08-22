@@ -33,6 +33,13 @@ final studentPlanProvider = FutureProvider<List<PlanSummaryModel>>((ref) async {
   return items;
 });
 
+// Educational Plan History / Archive Provider
+final studentPlanHistoryProvider = FutureProvider<List<dynamic>>((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/student/me/plan-history');
+  return ApiParsing.extractList(response.data);
+});
+
 // Attendance Provider
 final studentAttendanceProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final sessionCache = ref.watch(sessionCacheServiceProvider);
@@ -126,4 +133,20 @@ final studentProgressProvider = FutureProvider<Map<String, dynamic>>((ref) async
       : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
   sessionCache.setFeature<Map<String, dynamic>>('student_progress', data);
   return data;
+});
+
+// Student Progress History Provider (Real Chronological Monthly Aggregate)
+final studentProgressHistoryProvider = FutureProvider<StudentProgressHistoryModel>((ref) async {
+  final sessionCache = ref.watch(sessionCacheServiceProvider);
+  final cached = sessionCache.getFeature<StudentProgressHistoryModel>('student_progress_history');
+  if (cached != null) return cached;
+
+  final apiClient = ref.watch(apiClientProvider);
+  final response = await apiClient.get('/student/me/progress-history');
+  final map = response.data is Map<String, dynamic>
+      ? response.data as Map<String, dynamic>
+      : (response.data is Map ? (response.data as Map).cast<String, dynamic>() : <String, dynamic>{});
+  final model = StudentProgressHistoryModel.fromJson(map);
+  sessionCache.setFeature<StudentProgressHistoryModel>('student_progress_history', model);
+  return model;
 });

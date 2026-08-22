@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/env.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -49,8 +51,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authProvider.notifier).login(
-            forumSlug: _slugController.text,
-            identifier: _identifierController.text,
+            forumSlug: _slugController.text.trim(),
+            identifier: _identifierController.text.trim(),
             password: _passwordController.text,
           );
     } on AppException catch (e) {
@@ -62,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقًا';
+          _errorMessage = 'تعذر تسجيل الدخول، يرجى التأكد من صحة البيانات والاتصال';
         });
       }
     } finally {
@@ -77,60 +79,100 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surfaceLight,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: _formKey,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header logo & titles
+                    // Top Area: Brand Logo & Identity
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.all(18),
+                        width: 76,
+                        height: 76,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryDark,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryDark.withAlpha(50),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: AppColors.primary.withAlpha(40),
+                            width: 1.2,
+                          ),
                         ),
+                        alignment: Alignment.center,
                         child: const Icon(
-                          Icons.menu_book_rounded,
-                          size: 44,
-                          color: AppTheme.accentGold,
+                          Icons.menu_book_outlined,
+                          size: 38,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
+
                     const Text(
-                      'الملتقى القرآني',
+                      'ملتقى القرآن',
                       textAlign: TextAlign.center,
                       style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryDark,
+                        color: AppColors.primaryDark,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'تسجيل الدخول إلى حساب المعلم',
+                      'منصة إدارة ومتابعة الحلقات القرآنية',
                       textAlign: TextAlign.center,
                       style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
                         fontSize: 14,
-                        color: AppTheme.textSecondary,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 14),
+
+                    // Context chip for demo forum
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                          border: Border.all(color: AppColors.border, width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'ملتقى القرآن التجريبي',
+                              style: TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
 
                     // Error banner
                     if (_errorMessage != null) ...[
@@ -140,17 +182,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.statusAbsentBg,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           border: Border.all(
-                            color: AppTheme.statusAbsent.withAlpha(80),
+                            color: AppColors.statusAbsent.withAlpha(60),
                           ),
                         ),
                         child: Row(
                           children: [
                             const Icon(
-                              Icons.error_outline_rounded,
-                              color: AppTheme.statusAbsent,
+                              Icons.error_outline,
+                              color: AppColors.statusAbsent,
                               size: 20,
                             ),
                             const SizedBox(width: 10),
@@ -158,7 +200,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Text(
                                 _errorMessage!,
                                 style: const TextStyle(
-                                  color: AppTheme.statusAbsent,
+                                  fontFamily: AppTypography.fontFamily,
+                                  color: AppColors.statusAbsent,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -170,80 +213,161 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 20),
                     ],
 
-                    // Forum Slug field
-                    TextFormField(
-                      controller: _slugController,
-                      decoration: const InputDecoration(
-                        labelText: 'معرف الملتقى (Slug)',
-                        prefixIcon: Icon(Icons.domain_rounded),
+                    // Form Container
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border, width: 0.8),
                       ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'يرجى إدخال معرف الملتقى';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Username / Identifier
-                    TextFormField(
-                      controller: _identifierController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم المستخدم أو البريد أو الهاتف',
-                        prefixIcon: Icon(Icons.person_outline_rounded),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'يرجى إدخال اسم المستخدم أو رقم الهاتف';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'كلمة المرور',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.isEmpty) {
-                          return 'يرجى إدخال كلمة المرور';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Submit button
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Username / Identifier Field
+                          TextFormField(
+                            controller: _identifierController,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.fontFamily,
+                              fontSize: 14.5,
+                              color: AppColors.textPrimary,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'اسم المستخدم أو البريد أو الهاتف',
+                              labelStyle: AppTypography.secondary,
+                              prefixIcon: const Icon(
+                                Icons.person_outline,
+                                color: AppColors.primary,
+                                size: 20,
                               ),
-                            )
-                          : const Text('دخول'),
+                              filled: true,
+                              fillColor: AppColors.background,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                              ),
+                            ),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) {
+                                return 'يرجى إدخال اسم المستخدم أو رقم الهاتف';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password Field
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            style: const TextStyle(
+                              fontFamily: AppTypography.fontFamily,
+                              fontSize: 14.5,
+                              color: AppColors.textPrimary,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'كلمة المرور',
+                              labelStyle: AppTypography.secondary,
+                              prefixIcon: const Icon(
+                                Icons.lock_outline,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: AppColors.textMuted,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                              filled: true,
+                              fillColor: AppColors.background,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                              ),
+                            ),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return 'يرجى إدخال كلمة المرور';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Submit Button
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                ),
+                              ),
+                              onPressed: _isLoading ? null : _handleLogin,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'تسجيل الدخول',
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.fontFamily,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Footer
+                    const Text(
+                      'الملتقى القرآني — نظام الإدارة والتعليم',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),

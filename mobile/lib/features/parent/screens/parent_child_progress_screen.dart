@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/metric_card.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/state_views.dart';
 import '../providers/parent_provider.dart';
 
@@ -14,6 +18,7 @@ class ParentChildProgressScreen extends ConsumerWidget {
     final progressAsync = ref.watch(childProgressProvider(studentId));
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('تقرير إنجاز الابن'),
       ),
@@ -29,126 +34,116 @@ class ParentChildProgressScreen extends ConsumerWidget {
           final statusLabel = data['statusLabel'] as String? ?? 'ملتزم بالخطة';
 
           return RefreshIndicator(
+            color: AppColors.primary,
             onRefresh: () async => ref.refresh(childProgressProvider(studentId).future),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // Distinction Banner
-                Container(
+                ModernCard(
+                  backgroundColor: AppColors.primaryDark,
+                  borderColor: Colors.transparent,
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryDark, AppTheme.primary],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryDark.withAlpha(77),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
                   child: Column(
                     children: [
-                      const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 48),
+                      const Icon(Icons.emoji_events_outlined, color: AppColors.accentGold, size: 44),
                       const SizedBox(height: 10),
                       Text(
                         statusLabel,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
                         'متابعة دورية مستمرة لتعزيز مستوى الابن في حفظ القرآن الكريم والتزامه بالحلقة',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                        style: TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          color: Colors.white70,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                Text(
-                  'المؤشرات التراكمية للابن',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                const SectionHeader(
+                  title: 'المؤشرات التراكمية للابن',
+                  icon: Icons.analytics_outlined,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
                 // Metrics Grid
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.3,
+                Row(
                   children: [
-                    _MetricCard(
-                      title: 'نسبة الحضور',
-                      value: '${attendanceRate.toStringAsFixed(1)}%',
-                      subtitle: '$totalSessions جلسة مسجلة',
-                      color: Colors.green,
-                      icon: Icons.check_circle_outline,
+                    Expanded(
+                      child: MetricCard(
+                        title: 'نسبة الحضور',
+                        value: '${attendanceRate.toStringAsFixed(1)}%',
+                        subtitle: '$totalSessions جلسة مسجلة',
+                        icon: Icons.check_circle_outline,
+                        iconColor: AppColors.statusPresent,
+                        iconBgColor: AppColors.statusPresentBg,
+                      ),
                     ),
-                    _MetricCard(
-                      title: 'معدل الاختبارات',
-                      value: '${examAvg.toStringAsFixed(1)}%',
-                      subtitle: '$totalExams اختبارات معتمدة',
-                      color: Colors.deepOrange,
-                      icon: Icons.assignment_turned_in_outlined,
-                    ),
-                    _MetricCard(
-                      title: 'مقررات الحفظ',
-                      value: '$totalHifz',
-                      subtitle: 'تسميعات حفظ متقنة',
-                      color: Colors.teal,
-                      icon: Icons.bookmark_added_outlined,
-                    ),
-                    _MetricCard(
-                      title: 'مقررات المراجعة',
-                      value: '$totalRev',
-                      subtitle: 'تسميعات تثبيت ومراجعة',
-                      color: Colors.indigo,
-                      icon: Icons.auto_stories_outlined,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: MetricCard(
+                        title: 'معدل الاختبارات',
+                        value: '${examAvg.toStringAsFixed(1)}%',
+                        subtitle: '$totalExams اختبارات معتمدة',
+                        icon: Icons.assignment_turned_in_outlined,
+                        iconColor: const Color(0xFF7C3AED),
+                        iconBgColor: const Color(0xFFF3E8FF),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // Overall Evaluation Progress
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('متوسط التقييمات السلوكية والتربوية', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: LinearProgressIndicator(
-                                value: (evalAvg / 100).clamp(0.0, 1.0),
-                                backgroundColor: Colors.grey.shade200,
-                                color: AppTheme.primary,
-                                minHeight: 10,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Text(
-                              '${evalAvg.toStringAsFixed(1)}%',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primary),
-                            ),
-                          ],
-                        ),
-                      ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MetricCard(
+                        title: 'جلسات الحفظ',
+                        value: '$totalHifz',
+                        subtitle: 'مقررات حفظ منجزة',
+                        icon: Icons.menu_book_outlined,
+                        iconColor: AppColors.secondary,
+                        iconBgColor: AppColors.secondarySoft,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: MetricCard(
+                        title: 'جلسات المراجعة',
+                        value: '$totalRev',
+                        subtitle: 'تثبيت ومراجعة',
+                        icon: Icons.refresh,
+                        iconColor: const Color(0xFF4F46E5),
+                        iconBgColor: const Color(0xFFEEF2FF),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: MetricCard(
+                        title: 'متوسط التقييم التربوي',
+                        value: '${evalAvg.toStringAsFixed(1)} / 100',
+                        subtitle: 'السلوك والانضباط',
+                        icon: Icons.star_outline,
+                        iconColor: AppColors.accentGoldDark,
+                        iconBgColor: AppColors.accentGoldSoft,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -156,52 +151,8 @@ class ParentChildProgressScreen extends ConsumerWidget {
         },
         loading: () => const LoadingView(message: 'جاري تحميل تقرير إنجاز الابن...'),
         error: (err, stack) => ErrorView(
-          message: 'تعذر تحميل تقرير الإنجاز للابن',
+          message: 'تعذر تحميل تقرير إنجاز الابن',
           onRetry: () => ref.refresh(childProgressProvider(studentId)),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
-  final MaterialColor color;
-  final IconData icon;
-
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                Icon(icon, size: 18, color: color.shade700),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color.shade900)),
-            const SizedBox(height: 2),
-            Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600), maxLines: 1),
-          ],
         ),
       ),
     );

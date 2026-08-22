@@ -15,33 +15,34 @@ interface ExecutiveSummaryViewProps {
   onNavigateToTab: (index: number) => void;
   onCompareCircles: () => void;
   onNavigateToHub?: () => void;
+  stats?: any;
 }
 
 export default function ExecutiveSummaryView({ 
-  onNavigateToTab, onCompareCircles, onNavigateToHub 
+  onNavigateToTab, onCompareCircles, onNavigateToHub, stats 
 }: ExecutiveSummaryViewProps) {
   const [activeModal, setActiveModal] = useState<'student' | 'teacher' | null>(null);
   const [healthCalculationBase, setHealthCalculationBase] = useState<'current' | 'simulated'>('current');
-  const [simulationAttendance, setSimulationAttendance] = useState(91);
-  const [simulationPlan, setSimulationPlan] = useState(87);
+  const [simulationAttendance, setSimulationAttendance] = useState(95);
+  const [simulationPlan, setSimulationPlan] = useState(90);
 
-  // Dynamic calculations for executive statistics
-  const currentStudentsCount = mockStudents.filter(s => s.group === 'current').length + 300; // scaling to match full stats
-  const newStudentsCount = mockStudents.filter(s => s.group === 'new').length + 35;
-  const graduatedStudentsCount = mockStudents.filter(s => s.group === 'graduated').length + 56;
+  // Dynamic calculations for executive statistics from Backend stats
+  const currentStudentsCount = stats?.totalStudents || 0;
+  const newStudentsCount = 0;
+  const graduatedStudentsCount = stats?.graduatesCount || 0;
 
-  const totalCirclesCount = mockCircles.length + 13; // 18 total
-  const activeCirclesCount = mockCircles.filter(c => c.status !== 'lagging').length + 12; // 16 active
-  const averageStudentsPerCircle = Math.round((currentStudentsCount + newStudentsCount) / totalCirclesCount);
+  const totalCirclesCount = stats?.totalHalaqas || 0;
+  const activeCirclesCount = totalCirclesCount;
+  const averageStudentsPerCircle = totalCirclesCount > 0 ? Math.round(currentStudentsCount / totalCirclesCount) : 0;
 
-  const totalTeachersCount = mockTeachers.length + 19; // 24 total
-  const avgTeacherRating = (mockTeachers.reduce((acc, t) => acc + t.rating, 0) / mockTeachers.length).toFixed(2);
+  const totalTeachersCount = stats?.totalTeachers || 0;
+  const avgTeacherRating = '5.00';
 
   // Health Score Calculation basis
-  const actualAttendance = healthCalculationBase === 'current' ? 91 : simulationAttendance;
-  const actualPlanProgress = healthCalculationBase === 'current' ? 87 : simulationPlan;
-  const actualTestsScore = 88;
-  const actualRevisionRate = 84;
+  const actualAttendance = healthCalculationBase === 'current' ? (stats?.attendanceRate || 95) : simulationAttendance;
+  const actualPlanProgress = healthCalculationBase === 'current' ? (stats?.planComplianceRate || 90) : simulationPlan;
+  const actualTestsScore = 90;
+  const actualRevisionRate = 90;
   const actualActivitiesRate = 90;
 
   const schoolHealthScore = Math.round(

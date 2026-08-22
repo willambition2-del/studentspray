@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
+import '../../../core/widgets/section_header.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/teacher_provider.dart';
 
@@ -13,7 +17,10 @@ class TeacherProfileScreen extends ConsumerWidget {
     final user = authState.user;
     final halaqasAsync = ref.watch(myHalaqasProvider);
 
+    final displayName = user?.displayName ?? 'المعلم الفاضل';
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('الملف الشخصي والحساب'),
       ),
@@ -21,33 +28,36 @@ class TeacherProfileScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // Profile Header Card
-          Container(
+          ModernCard(
+            backgroundColor: AppColors.primaryDark,
+            borderColor: Colors.transparent,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.primaryDark, AppTheme.primary],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: AppTheme.accentGold.withAlpha(40),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: AppTheme.accentGold,
-                    size: 42,
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(25),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    displayName.isNotEmpty ? displayName[0] : 'م',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  user?.displayName ?? 'المعلم الفاضل',
+                  displayName,
                   style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -55,138 +65,145 @@ class TeacherProfileScreen extends ConsumerWidget {
                 Text(
                   'اسم المستخدم: @${user?.username ?? ""}',
                   style: const TextStyle(
-                    color: AppTheme.accentGoldLight,
-                    fontSize: 13,
+                    fontFamily: AppTypography.fontFamily,
+                    color: AppColors.accentGoldSoft,
+                    fontSize: 12.5,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white12,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text(
                     'كادر التحفيظ والترتيل • ${user?.branch?.name ?? "الفرع الرئيسي"}',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // User Information Details Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'البيانات الأساسية والتنظيمية',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildProfileRow(Icons.account_circle_outlined, 'الاسم الكامل', user?.displayName ?? '—'),
-                  const Divider(height: 16),
-                  _buildProfileRow(Icons.domain_rounded, 'الملتقى القرآني', user?.forum?.name ?? 'ملتقى النور النموذجي'),
-                  const Divider(height: 16),
-                  _buildProfileRow(Icons.location_on_outlined, 'الفرع الإداري', user?.branch?.name ?? 'الفرع الرئيسي'),
-                  const Divider(height: 16),
-                  _buildProfileRow(Icons.email_outlined, 'البريد الإلكتروني', user?.email ?? 'غير محدد'),
-                  const Divider(height: 16),
-                  _buildProfileRow(Icons.phone_outlined, 'رقم الهاتف', user?.phone ?? 'غير محدد'),
-                ],
-              ),
+          ModernCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(
+                  title: 'البيانات الأساسية والتنظيمية',
+                  icon: Icons.person_outline,
+                ),
+                const SizedBox(height: 8),
+                _buildProfileRow(Icons.account_circle_outlined, 'الاسم الكامل', user?.displayName ?? '—'),
+                const Divider(height: 16),
+                _buildProfileRow(Icons.domain, 'الملتقى القرآني', user?.forum?.name ?? 'ملتقى النور النموذجي'),
+                const Divider(height: 16),
+                _buildProfileRow(Icons.location_on_outlined, 'الفرع الإداري', user?.branch?.name ?? 'الفرع الرئيسي'),
+                const Divider(height: 16),
+                _buildProfileRow(Icons.email_outlined, 'البريد الإلكتروني', user?.email ?? 'غير محدد'),
+                const Divider(height: 16),
+                _buildProfileRow(Icons.phone_outlined, 'رقم الهاتف', user?.phone ?? 'غير محدد'),
+              ],
             ),
           ),
           const SizedBox(height: 16),
 
-          // Assigned Halaqas Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'الحلقات المسندة للمعلم',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
-                  ),
-                  const SizedBox(height: 12),
-                  halaqasAsync.when(
-                    data: (halaqas) {
-                      if (halaqas.isEmpty) {
-                        return const Text('لا توجد حلقات مسندة حاليًا', style: TextStyle(color: AppTheme.textMuted));
-                      }
-                      return Column(
-                        children: halaqas
-                            .map((h) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.groups_rounded, size: 18, color: AppTheme.primary),
-                                      const SizedBox(width: 8),
-                                      Expanded(child: Text(h.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                                      Text('${h.studentsCount} طالب', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                    ],
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    },
-                    loading: () => const SizedBox(height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    error: (_, __) => const Text('تعذر تحميل الحلقات', style: TextStyle(color: AppTheme.statusAbsent)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Actions
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => _showChangePasswordDialog(context, ref),
-            icon: const Icon(Icons.lock_reset_rounded),
-            label: const Text('تغيير كلمة المرور'),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              foregroundColor: AppTheme.statusAbsent,
-              side: const BorderSide(color: AppTheme.statusAbsent),
-            ),
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('تسجيل الخروج'),
-                  content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusAbsent),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('تسجيل الخروج'),
-                    ),
-                  ],
+          // Assigned Halaqas Section
+          ModernCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(
+                  title: 'الحلقات المكلف بها حاليًا',
+                  icon: Icons.account_tree_outlined,
                 ),
-              );
-
-              if (confirmed == true) {
-                await ref.read(authProvider.notifier).logout();
-              }
-            },
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('تسجيل الخروج من الحساب'),
+                const SizedBox(height: 8),
+                halaqasAsync.when(
+                  data: (halaqas) {
+                    if (halaqas.isEmpty) {
+                      return const Text(
+                        'لا توجد حلقات مسندة',
+                        style: AppTypography.secondary,
+                      );
+                    }
+                    return Column(
+                      children: halaqas.map((h) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${h.name} (${h.studentsCount} طالب)',
+                                  style: AppTypography.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                h.branchName,
+                                style: AppTypography.label,
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                  loading: () => const Text('جاري التحميل...', style: AppTypography.label),
+                  error: (err, _) => Text('تعذر التحميل: $err', style: AppTypography.label),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 16),
+
+          // Actions Card (Change password, Logout)
+          ModernCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SectionHeader(
+                  title: 'إعدادات وأمان الحساب',
+                  icon: Icons.shield_outlined,
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _showChangePasswordDialog(context, ref),
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: const Text('تغيير كلمة المرور'),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.errorSoft,
+                    foregroundColor: AppColors.error,
+                    elevation: 0,
+                  ),
+                  onPressed: () => _confirmLogout(context, ref),
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: const Text(
+                    'تسجيل الخروج من الحساب',
+                    style: TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -195,65 +212,126 @@ class TeacherProfileScreen extends ConsumerWidget {
   Widget _buildProfileRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppTheme.primary),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: AppTypography.secondary,
+        ),
         const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+        Text(
+          value,
+          style: AppTypography.bodyMedium,
+        ),
       ],
     );
   }
 
   void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
-    final currentPassController = TextEditingController();
-    final newPassController = TextEditingController();
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تغيير كلمة المرور'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: const Text(
+          'تغيير كلمة المرور',
+          style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: currentPassController,
+              controller: oldPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'كلمة المرور الحالية', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'كلمة المرور الحالية'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             TextField(
-              controller: newPassController,
+              controller: newPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'تأكيد كلمة المرور الجديدة'),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
             onPressed: () async {
-              final currentPass = currentPassController.text.trim();
-              final newPass = newPassController.text.trim();
-              if (currentPass.isEmpty || newPass.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى ملء جميع الحقول')));
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('كلمة المرور وتأكيدها غير متطابقين')),
+                );
                 return;
               }
-
+              Navigator.pop(ctx);
               try {
-                final ops = ref.read(teacherOperationsProvider);
-                await ops.changePassword(currentPassword: currentPass, newPassword: newPass);
+                await ref.read(teacherOperationsProvider).changePassword(
+                      currentPassword: oldPasswordController.text,
+                      newPassword: newPasswordController.text,
+                    );
                 if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تغيير كلمة المرور بنجاح')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✓ تم تغيير كلمة المرور بنجاح'),
+                      backgroundColor: AppColors.statusPresent,
+                    ),
+                  );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر تغيير كلمة المرور: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('فشل تغيير كلمة المرور: $e'), backgroundColor: AppColors.statusAbsent),
+                  );
                 }
               }
             },
-            child: const Text('حفظ التغيير'),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: const Text(
+          'تأكيد تسجيل الخروج',
+          style: TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: const Text(
+          'هل أنت متأكد من رغبتك في تسجيل الخروج من التطبيق؟',
+          style: AppTypography.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(authProvider.notifier).logout();
+            },
+            child: const Text('خروج'),
           ),
         ],
       ),

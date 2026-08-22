@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_typography.dart';
+import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../activities_shelf/providers/activities_shelf_provider.dart';
 import '../models/teacher_models.dart';
@@ -36,14 +39,29 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
     final awardsAsync = ref.watch(teacherAwardsListProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('الأنشطة والمسابقات والجوائز'),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 3,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          labelStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
           tabs: const [
-            Tab(text: 'الأنشطة', icon: Icon(Icons.event_available_rounded, size: 18)),
-            Tab(text: 'المسابقات', icon: Icon(Icons.emoji_events_rounded, size: 18)),
-            Tab(text: 'أوسمة التميز', icon: Icon(Icons.military_tech_rounded, size: 18)),
+            Tab(text: 'الأنشطة', icon: Icon(Icons.event_available_outlined, size: 18)),
+            Tab(text: 'المسابقات', icon: Icon(Icons.emoji_events_outlined, size: 18)),
+            Tab(text: 'أوسمة التميز', icon: Icon(Icons.emoji_events_outlined, size: 18)),
           ],
         ),
       ),
@@ -57,6 +75,7 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                 return const EmptyStateView(
                   title: 'لا توجد أنشطة معلنة حاليًا',
                   subtitle: 'يتم نشر الأنشطة التربوية والقرآنية من خلال إدارة الملتقى',
+                  icon: Icons.event_busy_outlined,
                 );
               }
               return ListView.builder(
@@ -64,62 +83,69 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                 itemCount: activities.length,
                 itemBuilder: (context, index) {
                   final act = activities[index];
-                  return Card(
+                  return ModernCard(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  act.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryDark,
-                                  ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                act.title,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withAlpha(20),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  act.typeLabel,
-                                  style: const TextStyle(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius: BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                act.typeLabel,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
                                 ),
                               ),
-                            ],
-                          ),
-                          if (act.description != null) ...[
-                            const SizedBox(height: 6),
-                            Text(act.description!, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                            ),
                           ],
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                'التاريخ: ${act.startsAt.toIso8601String().substring(0, 10)}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                              ),
-                              if (act.location != null) ...[
-                                const SizedBox(width: 12),
-                                Text('الموقع: ${act.location}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                              ],
-                            ],
+                        ),
+                        if (act.description != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            act.description!,
+                            style: AppTypography.secondary,
                           ),
                         ],
-                      ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textMuted),
+                            const SizedBox(width: 4),
+                            Text(
+                              'التاريخ: ${act.startsAt.toIso8601String().substring(0, 10)}',
+                              style: AppTypography.label,
+                            ),
+                            if (act.location != null) ...[
+                              const SizedBox(width: 12),
+                              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textMuted),
+                              const SizedBox(width: 4),
+                              Text(act.location!, style: AppTypography.label),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -136,6 +162,7 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                 return const EmptyStateView(
                   title: 'لا توجد مسابقات قرآنية معلنة حاليًا',
                   subtitle: 'يتم الإعلان عن المسابقات والتصفيات المركزية من إدارة الفرع',
+                  icon: Icons.emoji_events_outlined,
                 );
               }
               return ListView.builder(
@@ -143,63 +170,63 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                 itemCount: competitions.length,
                 itemBuilder: (context, index) {
                   final comp = competitions[index];
-                  return Card(
+                  return ModernCard(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  comp.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryDark,
-                                  ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                comp.title,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.shade100,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  comp.categoryLabel,
-                                  style: TextStyle(
-                                    color: Colors.amber.shade900,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGoldSoft,
+                                borderRadius: BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                comp.categoryLabel,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  color: AppColors.accentGoldDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
                                 ),
                               ),
-                            ],
-                          ),
-                          if (comp.description != null) ...[
-                            const SizedBox(height: 6),
-                            Text(comp.description!, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                            ),
                           ],
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                'الدرجة العظمى: ${comp.maxScore.toStringAsFixed(0)}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'التاريخ: ${comp.startsAt.toIso8601String().substring(0, 10)}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                              ),
-                            ],
-                          ),
+                        ),
+                        if (comp.description != null) ...[
+                          const SizedBox(height: 6),
+                          Text(comp.description!, style: AppTypography.secondary),
                         ],
-                      ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Text(
+                              'الدرجة العظمى: ${comp.maxScore.toStringAsFixed(0)}',
+                              style: AppTypography.labelBold.copyWith(color: AppColors.accentGoldDark),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'التاريخ: ${comp.startsAt.toIso8601String().substring(0, 10)}',
+                              style: AppTypography.label,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -209,13 +236,14 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
             error: (err, _) => ErrorView(message: err.toString()),
           ),
 
-          // Tab 3: Awards & Badges
+          // Tab 3: Awards
           awardsAsync.when(
             data: (awards) {
               if (awards.isEmpty) {
                 return const EmptyStateView(
-                  title: 'لا توجد أوسمة معرفة في النظام',
-                  subtitle: 'يتم تعريف أوسمة التميز من لوحة التحكم',
+                  title: 'لا توجد أوسمة تميز معرفة',
+                  subtitle: 'يتم اعتماد الأوسمة والجوائز التشجيعية من إدارة الملتقى',
+                  icon: Icons.military_tech_outlined,
                 );
               }
               return ListView.builder(
@@ -223,38 +251,71 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                 itemCount: awards.length,
                 itemBuilder: (context, index) {
                   final award = awards[index];
-                  return Card(
+                  return ModernCard(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      leading: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.amber.shade100,
-                        child: const Icon(Icons.military_tech_rounded, color: Colors.amber, size: 28),
-                      ),
-                      title: Text(
-                        award.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      subtitle: Text(
-                        award.description ?? 'وسام تميز وتفوق للطلاب المتميزين',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                      ),
-                      trailing: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGoldSoft,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: const Icon(
+                            Icons.emoji_events_outlined,
+                            color: AppColors.accentGoldDark,
+                            size: 26,
+                          ),
                         ),
-                        onPressed: () => _showGrantAwardDialog(context, award),
-                        child: const Text('منح لطالب'),
-                      ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                award.name,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              if (award.description != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  award.description!,
+                                  style: AppTypography.secondary,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              const SizedBox(height: 4),
+                              Text(
+                                'النقاط التحفيزية: +${award.points}',
+                                style: AppTypography.labelBold.copyWith(color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => _showGrantAwardDialog(context, ref, award),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text('منح لطالب', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
                     ),
                   );
                 },
               );
             },
-            loading: () => const LoadingView(message: 'جاري تحميل أوسمة التميز...'),
+            loading: () => const LoadingView(message: 'جاري تحميل الأوسمة...'),
             error: (err, _) => ErrorView(message: err.toString()),
           ),
         ],
@@ -262,34 +323,35 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
     );
   }
 
-  void _showGrantAwardDialog(BuildContext context, TeacherAwardOption award) {
+  void _showGrantAwardDialog(BuildContext context, WidgetRef ref, TeacherAwardOption award) {
     final studentsAsync = ref.read(teacherStudentsProvider);
     final allStudents = studentsAsync.valueOrNull ?? [];
 
     if (allStudents.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد بيانات طلاب متاحة لمنح الوسام')),
+        const SnackBar(content: Text('لا توجد بيانات طلاب متاحة حالياً')),
       );
       return;
     }
 
     String selectedStudentId = allStudents.first.studentId;
-    final reasonController = TextEditingController(text: 'تميز وتفوق في الحفظ والانضباط');
+    final notesController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('منح ${award.name}'),
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+          title: Text(
+            'منح وسام: ${award.name}',
+            style: const TextStyle(fontFamily: AppTypography.fontFamily, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
                 initialValue: selectedStudentId,
-                decoration: const InputDecoration(
-                  labelText: 'اختر الطالب المرشح',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'اختر الطالب المكرم'),
                 items: allStudents
                     .map((s) => DropdownMenuItem(
                           value: s.studentId,
@@ -297,17 +359,15 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
                         ))
                     .toList(),
                 onChanged: (val) {
-                  if (val != null) setDialogState(() => selectedStudentId = val);
+                  if (val != null) {
+                    setModalState(() => selectedStudentId = val);
+                  }
                 },
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: reasonController,
-                decoration: const InputDecoration(
-                  labelText: 'سبب منح الوسام وكلمة التكريم',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
+                controller: notesController,
+                decoration: const InputDecoration(hintText: 'سبب التكريم والمنح...'),
               ),
             ],
           ),
@@ -317,25 +377,27 @@ class _TeacherActivitiesAwardsScreenState extends ConsumerState<TeacherActivitie
               child: const Text('إلغاء'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
               onPressed: () async {
+                Navigator.pop(ctx);
                 try {
-                  final ops = ref.read(teacherOperationsProvider);
-                  await ops.grantAward(
-                    awardId: award.id,
-                    studentId: selectedStudentId,
-                    reason: reasonController.text.trim(),
-                  );
+                  await ref.read(teacherOperationsProvider).grantAward(
+                        studentId: selectedStudentId,
+                        awardId: award.id,
+                        reason: notesController.text.isNotEmpty ? notesController.text : 'تكريم وتميز قرآني',
+                      );
+                  ref.invalidate(teacherAwardsListProvider);
                   if (context.mounted) {
-                    Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم منح الوسام للطالب بنجاح')),
+                      const SnackBar(
+                        content: Text('✓ تم منح الوسام للطالب بنجاح'),
+                        backgroundColor: AppColors.statusPresent,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('تعذر منح الوسام: $e')),
+                      SnackBar(content: Text('فشل منح الوسام: $e'), backgroundColor: AppColors.statusAbsent),
                     );
                   }
                 }

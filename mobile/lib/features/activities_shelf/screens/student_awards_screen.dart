@@ -64,7 +64,7 @@ class StudentAwardsScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
-                            Icons.workspace_premium,
+                            Icons.military_tech,
                             color: Colors.white,
                             size: 28,
                           ),

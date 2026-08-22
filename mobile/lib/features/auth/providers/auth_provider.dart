@@ -76,6 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final SyncService syncService;
   final SessionCacheService sessionCacheService;
   final List<SessionResetCallback> _resetCallbacks = [];
+  int _sessionGeneration = 0;
 
   AuthNotifier({
     required this.apiClient,
@@ -92,12 +93,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> bootstrapSession() async {
+    final gen = ++_sessionGeneration;
     state = state.copyWith(status: AuthStatus.loading);
 
     try {
       final refreshToken = await tokenStorage.getRefreshToken();
+      if (gen != _sessionGeneration) return;
+
       if (refreshToken == null) {
-        state = const AuthState(status: AuthStatus.unauthenticated);
+        if (gen == _sessionGeneration && state.status != AuthStatus.authenticated) {
+          state = const AuthState(status: AuthStatus.unauthenticated);
+        }
         return;
       }
 
@@ -107,13 +113,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: {'refreshToken': refreshToken},
       );
 
+      if (gen != _sessionGeneration) return;
+
       final accessToken = refreshRes.data['accessToken'] as String?;
       final newRefreshToken = refreshRes.data['refreshToken'] as String?;
 
       if (accessToken == null) {
-        await tokenStorage.clearAll();
-        sessionCacheService.clearAll();
-        state = const AuthState(status: AuthStatus.unauthenticated);
+        if (gen == _sessionGeneration && state.status != AuthStatus.authenticated) {
+          await tokenStorage.clearAll();
+          sessionCacheService.clearAll();
+          state = const AuthState(status: AuthStatus.unauthenticated);
+        }
         return;
       }
 
@@ -124,19 +134,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Fetch user profile
       final meRes = await apiClient.get('/auth/me');
+      if (gen != _sessionGeneration) return;
+
       final user = UserProfile.fromJson(meRes.data as Map<String, dynamic>);
 
       await tokenStorage.saveLastUserId(user.id);
       syncService.setCurrentUserId(user.id);
 
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: user,
-      );
+      if (gen == _sessionGeneration) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: user,
+        );
+      }
     } catch (_) {
-      await tokenStorage.clearAll();
-      sessionCacheService.clearAll();
-      state = const AuthState(status: AuthStatus.unauthenticated);
+      if (gen == _sessionGeneration && state.status != AuthStatus.authenticated) {
+        await tokenStorage.clearAll();
+        sessionCacheService.clearAll();
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      }
     }
   }
 
@@ -145,6 +161,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String identifier,
     required String password,
   }) async {
+    final gen = ++_sessionGeneration;
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
 
     try {
@@ -156,6 +173,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'password': password,
         },
       );
+
+      if (gen != _sessionGeneration) return;
 
       final accessToken = loginRes.data['accessToken'] as String?;
       final refreshToken = loginRes.data['refreshToken'] as String?;
@@ -172,32 +191,41 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Fetch authenticated user profile
       final meRes = await apiClient.get('/auth/me');
+      if (gen != _sessionGeneration) return;
+
       final user = UserProfile.fromJson(meRes.data as Map<String, dynamic>);
 
       await tokenStorage.saveLastUserId(user.id);
       syncService.setCurrentUserId(user.id);
 
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: user,
-      );
+      if (gen == _sessionGeneration) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: user,
+        );
+      }
     } on AppException catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.unauthenticated,
-        errorMessage: e.message,
-      );
+      if (gen == _sessionGeneration) {
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          errorMessage: e.message,
+        );
+      }
       rethrow;
     } catch (e) {
-      const msg = 'تعذر تسجيل الدخول، يرجى التأكد من صحة البيانات والاتصال';
-      state = state.copyWith(
-        status: AuthStatus.unauthenticated,
-        errorMessage: msg,
-      );
-      throw const AppException(message: msg);
+      if (gen == _sessionGeneration) {
+        const msg = 'تعذر تسجيل الدخول، يرجى التأكد من صحة البيانات والاتصال';
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          errorMessage: msg,
+        );
+      }
+      throw const AppException(message: 'تعذر تسجيل الدخول، يرجى التأكد من صحة البيانات والاتصال');
     }
   }
 
   Future<void> logout() async {
+    ++_sessionGeneration;
     final refreshToken = await tokenStorage.getRefreshToken();
     if (refreshToken != null) {
       try {
@@ -219,6 +247,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void handleSessionExpired() {
+    if (!state.isAuthenticated) return;
+    ++_sessionGeneration;
     syncService.setCurrentUserId(null);
     tokenStorage.clearAll();
     sessionCacheService.clearAll();

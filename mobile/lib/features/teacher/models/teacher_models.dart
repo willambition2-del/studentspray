@@ -51,8 +51,11 @@ class WorkspaceStudent {
   final String username;
   final String? phone;
   final String? todayAttendanceStatus; // PRESENT, ABSENT, LATE, EXCUSED
+  final String? todayArrivalTime;
   final Map<String, dynamic>? todayMemorization;
   final Map<String, dynamic>? todayRevision;
+  final String? halaqaId;
+  final String? halaqaName;
 
   const WorkspaceStudent({
     required this.studentId,
@@ -61,8 +64,11 @@ class WorkspaceStudent {
     required this.username,
     this.phone,
     this.todayAttendanceStatus,
+    this.todayArrivalTime,
     this.todayMemorization,
     this.todayRevision,
+    this.halaqaId,
+    this.halaqaName,
   });
 
   factory WorkspaceStudent.fromJson(Map<String, dynamic> json) {
@@ -73,8 +79,13 @@ class WorkspaceStudent {
       username: ApiParsing.parseString(json['username']) ?? '',
       phone: ApiParsing.parseString(json['phone']),
       todayAttendanceStatus: ApiParsing.parseString(json['todayAttendanceStatus']),
+      todayArrivalTime: ApiParsing.parseString(json['todayArrivalTime']),
       todayMemorization: json['todayMemorization'] as Map<String, dynamic>?,
       todayRevision: json['todayRevision'] as Map<String, dynamic>?,
+      halaqaId: ApiParsing.parseString(
+          json['halaqaId'] ?? (json['halaqa'] is Map ? (json['halaqa'] as Map)['id'] : null)),
+      halaqaName: ApiParsing.parseString(
+          json['halaqaName'] ?? (json['halaqa'] is Map ? (json['halaqa'] as Map)['name'] : null)),
     );
   }
 }

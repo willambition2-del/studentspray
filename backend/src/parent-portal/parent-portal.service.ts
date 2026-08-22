@@ -9,6 +9,7 @@ import { ChatService } from '../chat/chat.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StudentPortalService } from '../student-portal/student-portal.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
+import { CreateParentRequestDto } from './dto/parent-requests.dto';
 
 @Injectable()
 export class ParentPortalService {
@@ -204,6 +205,104 @@ export class ParentPortalService {
       activeChildDashboard,
       unreadNotificationsCount: unreadNotifications.unreadCount,
       unreadChatCount: unreadChat.unreadCount,
+    };
+  }
+
+  async createRequest(user: AuthenticatedUser, dto: CreateParentRequestDto) {
+    await this.verifyChildAccess(user, dto.studentId);
+    await this.requireParentProfile(user);
+
+    const descriptionWithMeta = dto.meetingDate
+      ? `${dto.details}\n[موعد الاجتماع المقترح: ${dto.meetingDate}]`
+      : dto.details;
+
+    const request = await this.prisma.administrativeRequest.create({
+      data: {
+        forumId: user.forumId,
+        type: 'GENERAL',
+        title: dto.subject,
+        description: descriptionWithMeta,
+        requestedById: user.id,
+        relatedEntityType: 'STUDENT',
+        relatedEntityId: dto.studentId,
+        status: 'SUBMITTED',
+        priority: dto.priority ?? 'NORMAL',
+        submittedAt: new Date(),
+      },
+    });
+
+    return {
+      id: request.id,
+      subject: request.title,
+      details: request.description,
+      status: request.status,
+      priority: request.priority,
+      studentId: request.relatedEntityId,
+      createdAt: request.createdAt,
+    };
+  }
+
+  async getRequests(user: AuthenticatedUser) {
+    await this.requireParentProfile(user);
+    const requests = await this.prisma.administrativeRequest.findMany({
+      where: {
+        forumId: user.forumId,
+        requestedById: user.id,
+        deletedAt: null,
+      },
+      include: {
+        approvalActions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return requests.map((r) => ({
+      id: r.id,
+      title: r.title,
+      description: r.description,
+      status: r.status,
+      priority: r.priority,
+      studentId: r.relatedEntityId,
+      createdAt: r.createdAt,
+      submittedAt: r.submittedAt,
+      adminResponse: r.approvalActions[0]?.comment ?? null,
+    }));
+  }
+
+  async getRequestDetail(user: AuthenticatedUser, id: string) {
+    await this.requireParentProfile(user);
+    const request = await this.prisma.administrativeRequest.findFirst({
+      where: {
+        id,
+        forumId: user.forumId,
+        requestedById: user.id,
+        deletedAt: null,
+      },
+      include: {
+        approvalActions: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    return {
+      id: request.id,
+      title: request.title,
+      description: request.description,
+      status: request.status,
+      priority: request.priority,
+      studentId: request.relatedEntityId,
+      createdAt: request.createdAt,
+      submittedAt: request.submittedAt,
+      actions: request.approvalActions,
+      adminResponse: request.approvalActions[0]?.comment ?? null,
     };
   }
 }

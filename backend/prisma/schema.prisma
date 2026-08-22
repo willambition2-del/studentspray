@@ -753,6 +753,7 @@ model AttendanceRecord {
   sessionId    String           @db.Uuid
   studentId    String           @db.Uuid
   status       AttendanceStatus @default(PRESENT)
+  arrivalTime  DateTime?
   notes        String?
   recordedById String?          @db.Uuid
   recordedAt   DateTime         @default(now())

@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
 import { 
   Sliders, Plus, Trash2, Edit3, Check, X, AlertTriangle, ArrowUpRight, 
@@ -11,6 +6,7 @@ import {
   ChevronRight, ArrowLeftRight, Heart, Star, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { evaluationTemplatesApi, EvaluationTemplateDto } from '../lib/api/evaluation-templates';
 
 // Interfaces for our Dynamic Evaluation Criteria System
 export interface Criterion {
@@ -356,6 +352,32 @@ export default function DynamicCriteriaEngine() {
   ]);
 
   // --- STATE FOR LIVE WORKSPACE WORKINGS ---
+  const [activeTemplate, setActiveTemplate] = useState<EvaluationTemplateDto | null>(null);
+
+  useEffect(() => {
+    evaluationTemplatesApi.getActive().then(tpl => {
+      if (tpl && tpl.axes && tpl.axes.length > 0) {
+        setActiveTemplate(tpl);
+        const mapped: Criterion[] = [];
+        tpl.axes.forEach(axis => {
+          (axis.criteria || []).forEach(c => {
+            mapped.push({
+              id: c.id || `${axis.id}-${c.name}`,
+              name: c.name,
+              description: c.description || axis.name,
+              type: c.type === 'PERCENTAGE' ? 'percentage' : c.type === 'YES_NO' ? 'yes_no' : 'numeric',
+              unit: 'teacher',
+              weight: c.weight || axis.weight || 20,
+              calculationMethod: 'معيار تقييم معتمد من القالب النشط',
+              isDefault: true
+            });
+          });
+        });
+        if (mapped.length > 0) setCriteria(mapped);
+      }
+    }).catch(() => {});
+  }, []);
+
   const [selectedUnit, setSelectedUnit] = useState<'teacher' | 'student' | 'circle'>('teacher');
   const [simulationWeights, setSimulationWeights] = useState<Record<string, number>>({});
   

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/design/app_colors.dart';
+import '../../../core/design/app_radius.dart';
+import '../../../core/design/app_shadows.dart';
+import '../../../core/design/app_typography.dart';
 import '../../../core/utils/quran_data.dart';
+import '../../../core/widgets/metric_card.dart';
+import '../../../core/widgets/modern_card.dart';
 import '../../../core/widgets/state_views.dart';
 import '../models/teacher_models.dart';
 import '../providers/teacher_provider.dart';
@@ -42,17 +47,27 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
     final historyAsync = ref.watch(studentFullHistoryProvider(widget.studentId));
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(widget.studentName),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 3,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          labelStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
           tabs: const [
-            Tab(text: 'نظرة عامة والتقدم', icon: Icon(Icons.analytics_outlined, size: 20)),
-            Tab(text: 'سجل الحفظ', icon: Icon(Icons.menu_book_rounded, size: 20)),
-            Tab(text: 'سجل المراجعة', icon: Icon(Icons.refresh_rounded, size: 20)),
-            Tab(text: 'التقييمات التربوية', icon: Icon(Icons.star_half_rounded, size: 20)),
-            Tab(text: 'الخطة والدرجات', icon: Icon(Icons.assignment_outlined, size: 20)),
+            Tab(text: 'نظرة عامة والتقدم', icon: Icon(Icons.analytics_outlined, size: 18)),
+            Tab(text: 'سجل الحفظ', icon: Icon(Icons.menu_book_outlined, size: 18)),
+            Tab(text: 'سجل المراجعة', icon: Icon(Icons.refresh, size: 18)),
+            Tab(text: 'التقييمات التربوية', icon: Icon(Icons.star_outline, size: 18)),
+            Tab(text: 'الخطة والدرجات', icon: Icon(Icons.assignment_outlined, size: 18)),
           ],
         ),
       ),
@@ -100,53 +115,59 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
         ),
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: AppShadows.elevatedCard,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  onPressed: () {
+                    context.push(
+                      '/teacher/students/${widget.studentId}/memorization?name=${Uri.encodeComponent(widget.studentName)}',
+                    );
+                  },
+                  icon: const Icon(Icons.record_voice_over_outlined, size: 16),
+                  label: const Text('تسميع حفظ', style: TextStyle(fontSize: 13)),
                 ),
-                onPressed: () {
-                  context.push(
-                    '/teacher/students/${widget.studentId}/memorization?name=${Uri.encodeComponent(widget.studentName)}',
-                  );
-                },
-                icon: const Icon(Icons.record_voice_over_rounded, size: 18),
-                label: const Text('تسميع حفظ'),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  onPressed: () {
+                    context.push(
+                      '/teacher/students/${widget.studentId}/revision?name=${Uri.encodeComponent(widget.studentName)}',
+                    );
+                  },
+                  icon: const Icon(Icons.replay, size: 16),
+                  label: const Text('مراجعة', style: TextStyle(fontSize: 13)),
                 ),
-                onPressed: () {
-                  context.push(
-                    '/teacher/students/${widget.studentId}/revision?name=${Uri.encodeComponent(widget.studentName)}',
-                  );
-                },
-                icon: const Icon(Icons.repeat_rounded, size: 18),
-                label: const Text('مراجعة'),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filledTonal(
-              icon: const Icon(Icons.star_outline_rounded, color: AppTheme.primaryDark),
-              tooltip: 'إضافة تقييم تربوي',
-              onPressed: () {
-                _showAddEvaluationModal(context);
-              },
-            ),
-          ],
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _showAddEvaluationModal(context),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGoldSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(Icons.star, color: AppColors.accentGoldDark, size: 22),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -164,43 +185,58 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
     final avgRevScore = (metrics['avgRevisionScore'] as num?)?.toDouble() ?? 100.0;
     final planPercentage = (activePlan?['progressPercentage'] as num?)?.toInt() ?? 0;
 
+    final initial = widget.studentName.isNotEmpty ? widget.studentName[0] : 'ط';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // Profile Info Header Card
-        Container(
+        ModernCard(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppTheme.primary.withAlpha(20),
-                child: const Icon(Icons.person_rounded, color: AppTheme.primary, size: 36),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    color: AppColors.primaryDark,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.studentName,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'الرقم التعريفي: ${student["studentNumber"] ?? "STU-2026"}',
-                      style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                      style: AppTypography.label,
                     ),
                     if (student['activeHalaqa'] is Map) ...[
                       const SizedBox(height: 2),
                       Text(
                         'الحلقة: ${(student["activeHalaqa"] as Map)["name"]}',
-                        style: const TextStyle(fontSize: 13, color: AppTheme.primaryDark, fontWeight: FontWeight.w600),
+                        style: AppTypography.labelBold.copyWith(color: AppColors.primary),
                       ),
                     ],
                   ],
@@ -209,65 +245,64 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // Metrics Grid
         Row(
           children: [
             Expanded(
-              child: _buildMetricTile(
+              child: MetricCard(
                 title: 'معدل الحضور',
                 value: '$attRate%',
-                icon: Icons.fact_check_rounded,
-                color: attRate >= 80 ? AppTheme.statusPresent : AppTheme.statusAbsent,
+                icon: Icons.fact_check_outlined,
+                iconColor: attRate >= 80 ? AppColors.statusPresent : AppColors.statusAbsent,
+                iconBgColor: attRate >= 80 ? AppColors.statusPresentBg : AppColors.statusAbsentBg,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: _buildMetricTile(
+              child: MetricCard(
                 title: 'إنجاز الخطة',
                 value: '$planPercentage%',
-                icon: Icons.track_changes_rounded,
-                color: AppTheme.primary,
+                icon: Icons.track_changes,
+                iconColor: AppColors.primary,
+                iconBgColor: AppColors.primarySoft,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-              child: _buildMetricTile(
+              child: MetricCard(
                 title: 'جلسات الحفظ',
                 value: '$totalMemos',
                 subtitle: 'متوسط: ${avgMemoScore.toStringAsFixed(1)}',
-                icon: Icons.auto_stories_rounded,
-                color: Colors.teal,
+                icon: Icons.menu_book_outlined,
+                iconColor: AppColors.secondary,
+                iconBgColor: AppColors.secondarySoft,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: _buildMetricTile(
+              child: MetricCard(
                 title: 'جلسات المراجعة',
                 value: '$totalRevs',
                 subtitle: 'متوسط: ${avgRevScore.toStringAsFixed(1)}',
-                icon: Icons.refresh_rounded,
-                color: Colors.indigo,
+                icon: Icons.refresh,
+                iconColor: const Color(0xFF4F46E5),
+                iconBgColor: const Color(0xFFEEF2FF),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // Active Plan Summary Card
         if (activePlan != null) ...[
-          Container(
+          ModernCard(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withAlpha(10),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.primary.withAlpha(30)),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -276,26 +311,33 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
                   children: [
                     const Text(
                       'الخطة التعليمية الحالية',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                      style: TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     Text(
                       '$planPercentage% منجز',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+                      style: AppTypography.labelBold.copyWith(color: AppColors.primary),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   activePlan['name'] as String? ?? 'خطة الحفظ والمراجعة',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: AppTypography.bodyMedium,
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: planPercentage / 100,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
-                  borderRadius: BorderRadius.circular(4),
-                  minHeight: 8,
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  child: LinearProgressIndicator(
+                    value: (planPercentage / 100).clamp(0.0, 1.0),
+                    backgroundColor: AppColors.surfaceMuted,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    minHeight: 6,
+                  ),
                 ),
               ],
             ),
@@ -326,53 +368,60 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
         final date = rec['date'] as String? ?? '';
         final notes = rec['teacherNotes'] as String?;
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'سورة $surahName (${rec["fromAyah"]}-${rec["toAyah"]})',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+        return ModernCard(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'سورة $surahName (${rec["fromAyah"]}-${rec["toAyah"]})',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withAlpha(20),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'درجة: $score',
-                        style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'التاريخ: $date • التقييم: $rating • أخطاء: $mistakes',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                ),
-                if (notes != null && notes.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  ),
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: Text('ملاحظات المعلم: $notes', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                    child: Text(
+                      'درجة: $score',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11.5,
+                      ),
+                    ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'التاريخ: $date • التقييم: $rating • أخطاء: $mistakes',
+                style: AppTypography.label,
+              ),
+              if (notes != null && notes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Text('ملاحظات المعلم: $notes', style: AppTypography.secondary),
+                ),
               ],
-            ),
+            ],
           ),
         );
       },
@@ -399,44 +448,52 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
         final date = rec['date'] as String? ?? '';
         final notes = rec['teacherNotes'] as String?;
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      surahNum != null ? 'مراجعة: سورة $surahName (${rec["fromAyah"] ?? 1}-${rec["toAyah"] ?? 10})' : 'مراجعة حزب/جزء',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo),
+        return ModernCard(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    surahNum != null ? 'مراجعة: سورة $surahName (${rec["fromAyah"] ?? 1}-${rec["toAyah"] ?? 10})' : 'مراجعة جزء/حزب',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4F46E5),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.indigo.withAlpha(20),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'درجة: $score',
-                        style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Text(
+                      'درجة: $score',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        color: Color(0xFF4F46E5),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11.5,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'التاريخ: $date • التقييم: $rating',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                ),
-                if (notes != null && notes.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('ملاحظات المعلم: $notes', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'التاريخ: $date • التقييم: $rating',
+                style: AppTypography.label,
+              ),
+              if (notes != null && notes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('ملاحظات المعلم: $notes', style: AppTypography.secondary),
               ],
-            ),
+            ],
           ),
         );
       },
@@ -456,49 +513,57 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
       itemCount: evaluations.length,
       itemBuilder: (context, index) {
         final ev = evaluations[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'تقييم: ${ev.ratingLabel}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+        return ModernCard(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'تقييم: ${ev.ratingLabel}',
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withAlpha(30),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${ev.overallScore.toStringAsFixed(0)} / 100',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryDark, fontSize: 12),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGoldSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Text(
+                      '${ev.overallScore.toStringAsFixed(0)} / 100',
+                      style: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accentGoldDark,
+                        fontSize: 11.5,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildEvalPill('السلوك', ev.behaviorScore),
-                    const SizedBox(width: 8),
-                    _buildEvalPill('الانضباط', ev.discipline),
-                    const SizedBox(width: 8),
-                    _buildEvalPill('المشاركة', ev.participation),
-                  ],
-                ),
-                if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text('توجيه المعلم: ${ev.teacherNotes}', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _buildEvalPill('السلوك', ev.behaviorScore),
+                  const SizedBox(width: 6),
+                  _buildEvalPill('الانضباط', ev.discipline),
+                  const SizedBox(width: 6),
+                  _buildEvalPill('المشاركة', ev.participation),
+                ],
+              ),
+              if (ev.teacherNotes != null && ev.teacherNotes!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('توجيه المعلم: ${ev.teacherNotes}', style: AppTypography.secondary),
               ],
-            ),
+            ],
           ),
         );
       },
@@ -510,21 +575,27 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
       padding: const EdgeInsets.all(16),
       children: [
         if (activePlan != null) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('الخطة المقررة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark)),
-                  const SizedBox(height: 8),
-                  Text('اسم الخطة: ${activePlan["name"]}'),
-                  const SizedBox(height: 4),
-                  Text('النوع: ${activePlan["type"] ?? "حفظ ومراجعة"}'),
-                  const SizedBox(height: 4),
-                  Text('نسبة الإنجاز: ${activePlan["progressPercentage"] ?? 0}%'),
-                ],
-              ),
+          ModernCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'الخطة المقررة',
+                  style: TextStyle(
+                    fontFamily: AppTypography.fontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('اسم الخطة: ${activePlan["name"]}', style: AppTypography.body),
+                const SizedBox(height: 4),
+                Text('النوع: ${activePlan["type"] ?? "حفظ ومراجعة"}', style: AppTypography.secondary),
+                const SizedBox(height: 4),
+                Text('نسبة الإنجاز: ${activePlan["progressPercentage"] ?? 0}%', style: AppTypography.labelBold.copyWith(color: AppColors.primary)),
+              ],
             ),
           ),
         ] else ...[
@@ -537,60 +608,21 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
     );
   }
 
-  Widget _buildMetricTile({
-    required String title,
-    required String value,
-    String? subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withAlpha(20),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 1),
-                  Text(subtitle, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEvalPill(String label, double score) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(6),
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         '$label: ${score.toStringAsFixed(0)}',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+        style: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -605,7 +637,7 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -626,100 +658,105 @@ class _TeacherStudentDetailScreenState extends ConsumerState<TeacherStudentDetai
                 children: [
                   Text(
                     'إضافة تقييم تربوي لـ ${widget.studentName}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontFamily,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('السلوك والآداب (${behavior.toInt()})'),
+              Text('السلوك والآداب (${behavior.toInt()})', style: AppTypography.secondaryMedium),
               Slider(
                 value: behavior,
                 min: 50,
                 max: 100,
                 divisions: 10,
-                label: '${behavior.toInt()}',
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => behavior = val),
               ),
-              Text('الانضباط والالتزام (${discipline.toInt()})'),
+              Text('الانضباط والالتزام (${discipline.toInt()})', style: AppTypography.secondaryMedium),
               Slider(
                 value: discipline,
                 min: 50,
                 max: 100,
                 divisions: 10,
-                label: '${discipline.toInt()}',
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => discipline = val),
               ),
-              Text('المشاركة والتفاعل (${participation.toInt()})'),
+              Text('المشاركة والتفاعل (${participation.toInt()})', style: AppTypography.secondaryMedium),
               Slider(
                 value: participation,
                 min: 50,
                 max: 100,
                 divisions: 10,
-                label: '${participation.toInt()}',
+                activeColor: AppColors.primary,
                 onChanged: (val) => setModalState(() => participation = val),
               ),
               TextField(
                 controller: notesController,
                 decoration: const InputDecoration(
                   labelText: 'توجيهات وملاحظات المعلم',
-                  border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () async {
-                    final overall = (behavior + discipline + participation) / 3;
-                    if (overall >= 90) {
-                      rating = 'EXCELLENT';
-                    } else if (overall >= 80) {
-                      rating = 'VERY_GOOD';
-                    } else if (overall >= 70) {
-                      rating = 'GOOD';
-                    } else {
-                      rating = 'ACCEPTABLE';
-                    }
-
-                    try {
-                      final ops = ref.read(teacherOperationsProvider);
-                      await ops.submitStudentEvaluation(
-                        studentId: widget.studentId,
-                        halaqaId: 'halaqa-auto',
-                        evaluationDate: DateTime.now().toIso8601String().substring(0, 10),
-                        behaviorScore: behavior,
-                        discipline: discipline,
-                        participation: participation,
-                        overallScore: overall,
-                        rating: rating,
-                        teacherNotes: notesController.text.trim(),
-                      );
-                      if (context.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تم تسجيل التقييم التربوي بنجاح')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('تعذر حفظ التقييم: $e')),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('حفظ التقييم'),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 44),
                 ),
+                onPressed: () async {
+                  final overall = (behavior + discipline + participation) / 3;
+                  if (overall >= 90) {
+                    rating = 'EXCELLENT';
+                  } else if (overall >= 80) {
+                    rating = 'VERY_GOOD';
+                  } else if (overall >= 70) {
+                    rating = 'GOOD';
+                  } else {
+                    rating = 'ACCEPTABLE';
+                  }
+
+                  try {
+                    final ops = ref.read(teacherOperationsProvider);
+                    await ops.submitStudentEvaluation(
+                      studentId: widget.studentId,
+                      halaqaId: 'halaqa-auto',
+                      evaluationDate: DateTime.now().toIso8601String().substring(0, 10),
+                      behaviorScore: behavior,
+                      discipline: discipline,
+                      participation: participation,
+                      overallScore: overall,
+                      rating: rating,
+                      teacherNotes: notesController.text.trim(),
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ تم تسجيل التقييم التربوي بنجاح'),
+                          backgroundColor: AppColors.statusPresent,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('تعذر حفظ التقييم: $e'),
+                          backgroundColor: AppColors.statusAbsent,
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('حفظ التقييم'),
               ),
             ],
           ),
